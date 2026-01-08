@@ -1,0 +1,93 @@
+<header class="app-header">
+  <div class="container">
+    <div class="header-content">
+      
+      <!-- LOGO -->
+      <div class="logo" (click)="goHome()">
+        <h1>WSO2 API Catalog</h1>
+      </div>
+
+      <!-- BOUTON MENU MOBILE -->
+      <button 
+        class="menu-toggle" 
+        (click)="toggleMobileMenu()"
+        [class.open]="mobileMenuOpen"
+        aria-label="Toggle menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+
+      <!-- NAVIGATION PRINCIPALE -->
+      <nav class="main-nav" [class.open]="mobileMenuOpen">
+        <a 
+          routerLink="/catalog" 
+          routerLinkActive="active"
+          [routerLinkActiveOptions]="{exact: false}"
+          (click)="closeMobileMenu()">
+          Catalogue
+        </a>
+
+        <!-- Liens visibles uniquement si authentifié -->
+        <ng-container *ngIf="isAuthenticated$ | async">
+          <a 
+            routerLink="/dashboard" 
+            routerLinkActive="active"
+            (click)="closeMobileMenu()">
+            Dashboard
+          </a>
+          <a 
+            routerLink="/applications" 
+            routerLinkActive="active"
+            [routerLinkActiveOptions]="{exact: false}"
+            (click)="closeMobileMenu()">
+            Applications
+          </a>
+          <a 
+            routerLink="/subscriptions" 
+            routerLinkActive="active"
+            [routerLinkActiveOptions]="{exact: false}"
+            (click)="closeMobileMenu()">
+            Souscriptions
+          </a>
+        </ng-container>
+      </nav>
+
+      <!-- ACTIONS UTILISATEUR -->
+      <div class="user-actions">
+        
+        <!-- Si utilisateur connecté -->
+        <ng-container *ngIf="isAuthenticated$ | async; else notAuthenticated">
+          <div class="user-info">
+            <span class="user-icon">👤</span>
+            <span class="username">{{ currentUser$ | async }}</span>
+          </div>
+          
+          <div class="dropdown">
+            <button class="btn-dropdown">
+              <span>▼</span>
+            </button>
+            <div class="dropdown-menu">
+              <a routerLink="/profile" (click)="closeMobileMenu()">Mon Profil</a>
+              <a routerLink="/profile/settings" (click)="closeMobileMenu()">Paramètres</a>
+              <hr>
+              <button (click)="logout()" class="btn-logout">Déconnexion</button>
+            </div>
+          </div>
+        </ng-container>
+
+        <!-- Si utilisateur non connecté -->
+        <ng-template #notAuthenticated>
+          <a 
+            routerLink="/login" 
+            class="btn-login"
+            (click)="closeMobileMenu()">
+            Connexion
+          </a>
+        </ng-template>
+
+      </div>
+
+    </div>
+  </div>
+</header>

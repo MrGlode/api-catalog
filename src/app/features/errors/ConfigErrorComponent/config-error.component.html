@@ -1,0 +1,162 @@
+<!-- Page d'erreur de configuration WSO2 -->
+<div class="error-page config-error">
+  <div class="error-container">
+    
+    <!-- En-tête avec icône -->
+    <div class="error-header">
+      <div class="error-icon">
+        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="50" cy="50" r="45" fill="none" stroke="#ff5252" stroke-width="2"/>
+          <path d="M30 30 L70 70 M70 30 L30 70" stroke="#ff5252" stroke-width="4" stroke-linecap="round"/>
+          <circle cx="50" cy="50" r="45" fill="none" stroke="#ff5252" stroke-width="2">
+            <animate attributeName="stroke-dasharray" values="0 283;283 283" dur="1s" fill="freeze"/>
+          </circle>
+        </svg>
+      </div>
+      
+      <h1 class="error-title">Erreur de configuration WSO2</h1>
+      
+      <p class="error-description">
+        Impossible de se connecter à WSO2 API Manager. 
+        Veuillez vérifier votre configuration.
+      </p>
+    </div>
+
+    <!-- Détails de l'erreur -->
+    <div class="error-details" *ngIf="errorDetails && errorDetails.message">
+      <div class="alert alert-error">
+        <div class="alert-icon">⚠️</div>
+        <div class="alert-content">
+          <strong>Détail de l'erreur :</strong>
+          <p>{{ errorDetails.message }}</p>
+          <code *ngIf="errorDetails.code">Code : {{ errorDetails.code }}</code>
+        </div>
+      </div>
+    </div>
+
+    <!-- Diagnostic automatique -->
+    <div class="diagnostic-section">
+      <div class="diagnostic-header">
+        <h2>Diagnostic de connexion</h2>
+        <button 
+          class="btn-diagnostic"
+          (click)="runDiagnostic()"
+          [disabled]="isDiagnosing">
+          <span *ngIf="!isDiagnosing">🔍 Lancer le diagnostic</span>
+          <span *ngIf="isDiagnosing">⏳ Diagnostic en cours...</span>
+        </button>
+      </div>
+
+      <div class="diagnostic-steps">
+        <div 
+          *ngFor="let step of diagnosticSteps"
+          class="diagnostic-step"
+          [class.checking]="step.status === 'checking'"
+          [class.success]="step.status === 'success'"
+          [class.error]="step.status === 'error'">
+          
+          <div class="step-header">
+            <span class="step-icon">{{ getStatusIcon(step.status) }}</span>
+            <span class="step-title">{{ step.title }}</span>
+          </div>
+          
+          <ul class="step-checks" *ngIf="step.status !== 'pending'">
+            <li *ngFor="let check of step.checks">{{ check }}</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Configuration actuelle -->
+    <div class="config-section">
+      <h3>Configuration actuelle</h3>
+      
+      <div class="config-grid">
+        <div class="config-item">
+          <label>Environnement</label>
+          <code>{{ currentConfig.environment || 'Non défini' }}</code>
+        </div>
+        <div class="config-item">
+          <label>URL de base</label>
+          <code>{{ currentConfig.baseUrl || 'Non définie' }}</code>
+        </div>
+        <div class="config-item">
+          <label>DevPortal API</label>
+          <code>{{ currentConfig.devportalUrl || 'Non définie' }}</code>
+        </div>
+        <div class="config-item">
+          <label>Client ID</label>
+          <code>{{ currentConfig.clientId ? '****' + currentConfig.clientId.slice(-4) : 'Non défini' }}</code>
+        </div>
+      </div>
+    </div>
+
+    <!-- Solutions suggérées -->
+    <div class="solutions-section">
+      <h3>Solutions suggérées</h3>
+      
+      <div class="solution-cards">
+        <div class="solution-card">
+          <div class="solution-icon">🔧</div>
+          <div class="solution-content">
+            <h4>Vérifier la configuration</h4>
+            <p>Assurez-vous que les variables d'environnement sont correctement définies.</p>
+            <button class="btn-link" (click)="goToSettings()">
+              Accéder aux paramètres →
+            </button>
+          </div>
+        </div>
+
+        <div class="solution-card">
+          <div class="solution-icon">🔐</div>
+          <div class="solution-content">
+            <h4>Vérifier les credentials</h4>
+            <p>Confirmez que le Client ID et Secret sont valides dans WSO2.</p>
+            <a href="https://localhost:9443/devportal" target="_blank" class="btn-link">
+              Ouvrir WSO2 DevPortal →
+            </a>
+          </div>
+        </div>
+
+        <div class="solution-card">
+          <div class="solution-icon">🌐</div>
+          <div class="solution-content">
+            <h4>Vérifier le réseau</h4>
+            <p>Assurez-vous que WSO2 API Manager est accessible depuis votre réseau.</p>
+            <code>ping localhost:9443</code>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="error-actions">
+      <button class="btn btn-primary" (click)="retry()">
+        <span>🔄</span>
+        Réessayer
+      </button>
+      
+      <button class="btn btn-secondary" (click)="copyErrorDetails()">
+        <span>📋</span>
+        Copier les détails
+      </button>
+      
+      <a routerLink="/" class="btn btn-ghost">
+        <span>🏠</span>
+        Retour à l'accueil
+      </a>
+    </div>
+
+    <!-- Footer avec ressources -->
+    <div class="help-footer">
+      <p>Besoin d'aide ?</p>
+      <div class="help-links">
+        <a href="https://apim.docs.wso2.com" target="_blank">Documentation WSO2</a>
+        <span class="separator">•</span>
+        <a routerLink="/support">Contacter le support</a>
+        <span class="separator">•</span>
+        <a href="mailto:admin@example.com">admin@example.com</a>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,545 @@
+/**
+ * Styles pour la page 403 - Forbidden
+ */
+
+// Variables
+$forbidden-color: #ff9800;
+$forbidden-dark: #f57c00;
+$error-color: #ff5722;
+$primary-color: #1976d2;
+$success-color: #4caf50;
+$text-color: #333;
+$text-muted: #666;
+$bg-light: #f8f9fa;
+$border-color: #dee2e6;
+$card-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+// Container principal
+.error-page.forbidden {
+  min-height: calc(100vh - 120px);
+  background: linear-gradient(135deg, #ffa726 0%, #fb8c00 100%);
+  padding: 40px 20px;
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 10px,
+      rgba(255, 255, 255, 0.05) 10px,
+      rgba(255, 255, 255, 0.05) 20px
+    );
+    pointer-events: none;
+  }
+}
+
+.error-container {
+  max-width: 900px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+
+// En-tête avec animation
+.error-header {
+  background: white;
+  border-radius: 16px 16px 0 0;
+  padding: 40px;
+  text-align: center;
+  box-shadow: $card-shadow;
+
+  .lock-animation {
+    width: 120px;
+    height: 120px;
+    margin: 0 auto 20px;
+
+    svg {
+      width: 100%;
+      height: 100%;
+      filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+    }
+  }
+
+  .error-code {
+    font-size: 5rem;
+    font-weight: bold;
+    margin: 0;
+    background: linear-gradient(135deg, $forbidden-color, $error-color);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  .error-title {
+    font-size: 2rem;
+    color: $text-color;
+    margin: 10px 0 20px 0;
+    font-weight: 600;
+  }
+
+  .error-message {
+    p {
+      color: $text-muted;
+      font-size: 1.1rem;
+      margin: 0 0 15px 0;
+
+      strong {
+        color: $text-color;
+        font-weight: 600;
+      }
+    }
+
+    .reason-badge {
+      display: inline-block;
+      padding: 6px 16px;
+      background: lighten($forbidden-color, 40%);
+      color: darken($forbidden-color, 10%);
+      border-radius: 20px;
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+  }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+
+// Statut utilisateur
+.user-status {
+  background: white;
+  padding: 0 40px 30px;
+  
+  .status-card {
+    background: $bg-light;
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid $border-color;
+  }
+
+  .user-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 20px;
+
+    .user-avatar {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, $primary-color, lighten($primary-color, 20%));
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      font-weight: bold;
+    }
+
+    .user-details {
+      flex: 1;
+
+      .user-name {
+        font-weight: 600;
+        color: $text-color;
+        font-size: 1.1rem;
+      }
+
+      .user-email {
+        color: $text-muted;
+        font-size: 0.9rem;
+      }
+
+      .user-role {
+        color: $forbidden-color;
+        font-size: 0.85rem;
+        margin-top: 4px;
+        font-weight: 500;
+      }
+    }
+  }
+
+  .permissions-info {
+    .permissions-label {
+      color: $text-muted;
+      font-size: 0.9rem;
+      margin: 0 0 10px 0;
+    }
+
+    .permission-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+
+      .permission-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 12px;
+        background: white;
+        border: 1px solid $border-color;
+        border-radius: 16px;
+        font-size: 0.85rem;
+        color: $text-color;
+      }
+    }
+  }
+}
+
+// Prompt d'authentification
+.auth-prompt {
+  background: white;
+  padding: 0 40px 30px;
+
+  .prompt-card {
+    background: linear-gradient(135deg, lighten($primary-color, 45%), lighten($primary-color, 40%));
+    padding: 30px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+
+    @media (max-width: 600px) {
+      flex-direction: column;
+      text-align: center;
+    }
+
+    .prompt-icon {
+      font-size: 3rem;
+      flex-shrink: 0;
+    }
+
+    .prompt-content {
+      flex: 1;
+
+      h3 {
+        margin: 0 0 10px 0;
+        color: $text-color;
+        font-size: 1.3rem;
+      }
+
+      p {
+        margin: 0 0 15px 0;
+        color: $text-muted;
+        line-height: 1.5;
+      }
+
+      .btn {
+        padding: 10px 24px;
+        background: $primary-color;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+
+        &:hover {
+          background: darken($primary-color, 10%);
+          transform: translateY(-2px);
+        }
+      }
+    }
+  }
+}
+
+// Actions suggérées
+.suggested-actions {
+  background: white;
+  padding: 30px 40px;
+
+  h3 {
+    margin: 0 0 25px 0;
+    color: $text-color;
+    font-size: 1.3rem;
+    text-align: center;
+  }
+
+  .action-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+  }
+
+  .action-card {
+    background: $bg-light;
+    padding: 20px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    position: relative;
+    overflow: hidden;
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background: $forbidden-color;
+      transform: scaleY(0);
+      transition: transform 0.3s ease;
+    }
+
+    &:hover:not(.disabled) {
+      background: white;
+      box-shadow: $card-shadow;
+      transform: translateX(4px);
+
+      &::before {
+        transform: scaleY(1);
+      }
+
+      .action-arrow {
+        transform: translateX(4px);
+      }
+    }
+
+    &.disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .action-icon {
+      font-size: 2rem;
+      flex-shrink: 0;
+    }
+
+    .action-content {
+      flex: 1;
+
+      h4 {
+        margin: 0 0 5px 0;
+        color: $text-color;
+        font-size: 1.05rem;
+        font-weight: 600;
+      }
+
+      p {
+        margin: 0;
+        color: $text-muted;
+        font-size: 0.9rem;
+        line-height: 1.4;
+      }
+    }
+
+    .action-arrow {
+      color: $forbidden-color;
+      font-size: 1.5rem;
+      transition: transform 0.3s ease;
+    }
+  }
+}
+
+// FAQ Section
+.faq-section {
+  background: white;
+  padding: 30px 40px;
+  border-top: 1px solid $border-color;
+
+  h3 {
+    margin: 0 0 25px 0;
+    color: $text-color;
+    font-size: 1.3rem;
+    text-align: center;
+  }
+
+  .faq-list {
+    max-width: 700px;
+    margin: 0 auto;
+  }
+
+  .faq-item {
+    background: $bg-light;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+
+    &.expanded {
+      background: white;
+      box-shadow: $card-shadow;
+    }
+
+    .faq-question {
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      font-weight: 500;
+      color: $text-color;
+      transition: background 0.2s ease;
+
+      &:hover {
+        background: rgba($forbidden-color, 0.05);
+      }
+
+      .faq-toggle {
+        font-size: 1.5rem;
+        color: $forbidden-color;
+        font-weight: 300;
+      }
+    }
+
+    .faq-answer {
+      padding: 0 20px 20px;
+      animation: slideDown 0.3s ease-out;
+
+      p {
+        margin: 0;
+        color: $text-muted;
+        line-height: 1.6;
+      }
+    }
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// Actions principales
+.main-actions {
+  background: white;
+  padding: 30px 40px;
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  border-top: 1px solid $border-color;
+
+  @media (max-width: 600px) {
+    flex-direction: column;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+
+    &.btn-primary {
+      background: $primary-color;
+      color: white;
+
+      &:hover {
+        background: darken($primary-color, 10%);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba($primary-color, 0.3);
+      }
+    }
+
+    &.btn-secondary {
+      background: white;
+      color: $forbidden-color;
+      border: 2px solid $forbidden-color;
+
+      &:hover {
+        background: $forbidden-color;
+        color: white;
+        transform: translateY(-2px);
+      }
+    }
+  }
+}
+
+// Footer informatif
+.info-footer {
+  background: white;
+  border-radius: 0 0 16px 16px;
+  padding: 25px 40px;
+  border-top: 1px solid $border-color;
+
+  .footer-content {
+    .info-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 15px;
+
+      .info-icon {
+        font-size: 1.2rem;
+        flex-shrink: 0;
+        margin-top: 2px;
+      }
+
+      .info-text {
+        color: $text-muted;
+        font-size: 0.9rem;
+        line-height: 1.5;
+      }
+    }
+
+    .help-links {
+      text-align: center;
+      padding-top: 10px;
+
+      a {
+        color: $primary-color;
+        text-decoration: none;
+        font-size: 0.9rem;
+
+        &:hover {
+          text-decoration: underline;
+        }
+      }
+
+      .separator {
+        color: $text-muted;
+        margin: 0 10px;
+      }
+    }
+  }
+}
+
+// Responsive
+@media (max-width: 768px) {
+  .error-header {
+    padding: 30px 20px;
+
+    .error-code {
+      font-size: 3.5rem;
+    }
+
+    .error-title {
+      font-size: 1.5rem;
+    }
+  }
+
+  .user-status,
+  .auth-prompt,
+  .suggested-actions,
+  .faq-section,
+  .main-actions,
+  .info-footer {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+}

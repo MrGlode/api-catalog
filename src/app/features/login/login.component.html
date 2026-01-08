@@ -1,0 +1,253 @@
+<!-- Page de connexion -->
+<div class="login-page" [attr.data-animation]="animationState">
+  <div class="login-container">
+    
+    <!-- Partie gauche - Illustration -->
+    <div class="login-illustration">
+      <div class="illustration-content">
+        <!-- Logo animé -->
+        <div class="logo-section">
+          <div class="logo-icon">
+            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="50" cy="50" r="45" fill="none" stroke="white" stroke-width="2" opacity="0.3"/>
+              <text x="50" y="58" text-anchor="middle" fill="white" font-size="32" font-weight="bold">API</text>
+              <circle cx="50" cy="50" r="45" fill="none" stroke="white" stroke-width="2" stroke-dasharray="283" stroke-dashoffset="283">
+                <animate attributeName="stroke-dashoffset" from="283" to="0" dur="2s" fill="freeze"/>
+              </circle>
+            </svg>
+          </div>
+          <h1 class="logo-title">WSO2 API Catalog</h1>
+          <p class="logo-subtitle">Votre portail d'accès aux API</p>
+        </div>
+
+        <!-- Features list -->
+        <div class="features-list">
+          <div class="feature-item">
+            <span class="feature-icon">🚀</span>
+            <span class="feature-text">Accès rapide aux API</span>
+          </div>
+          <div class="feature-item">
+            <span class="feature-icon">🔒</span>
+            <span class="feature-text">Authentification sécurisée</span>
+          </div>
+          <div class="feature-item">
+            <span class="feature-icon">📊</span>
+            <span class="feature-text">Dashboard personnalisé</span>
+          </div>
+          <div class="feature-item">
+            <span class="feature-icon">🛠️</span>
+            <span class="feature-text">Sandbox de test intégré</span>
+          </div>
+        </div>
+
+        <!-- Mode test indicator -->
+        <div class="test-mode-indicator" *ngIf="isTestMode">
+          <div class="indicator-badge">
+            <span class="badge-icon">🧪</span>
+            <span class="badge-text">Mode Test Activé</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Background pattern -->
+      <div class="bg-pattern"></div>
+    </div>
+
+    <!-- Partie droite - Formulaire -->
+    <div class="login-form-section">
+      <div class="form-container">
+        
+        <!-- Header du formulaire -->
+        <div class="form-header">
+          <h2 class="form-title">Connexion</h2>
+          <p class="form-subtitle">
+            Connectez-vous pour accéder à votre dashboard
+          </p>
+
+          <!-- Toggle mode test/production -->
+          <div class="mode-toggle" [title]="getTestModeTooltip()">
+            <label class="toggle-label">
+              <input 
+                type="checkbox" 
+                [checked]="isTestMode"
+                (change)="toggleTestMode()">
+              <span class="toggle-slider"></span>
+              <span class="toggle-text">{{ isTestMode ? 'Test' : 'Prod' }}</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Messages -->
+        <div class="alert alert-error" *ngIf="errorMessage" @fadeInOut>
+          <span class="alert-icon">❌</span>
+          <span class="alert-text">{{ errorMessage }}</span>
+        </div>
+
+        <div class="alert alert-success" *ngIf="successMessage" @fadeInOut>
+          <span class="alert-icon">✅</span>
+          <span class="alert-text">{{ successMessage }}</span>
+        </div>
+
+        <!-- Formulaire -->
+        <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
+          
+          <!-- Champ username -->
+          <div class="form-group">
+            <label for="username" class="form-label">
+              <span class="label-icon">👤</span>
+              Nom d'utilisateur
+            </label>
+            <div class="input-wrapper">
+              <input 
+                type="text" 
+                id="username"
+                formControlName="username"
+                class="form-input"
+                [class.error]="loginForm.get('username')?.invalid && loginForm.get('username')?.touched"
+                placeholder="Entrez votre nom d'utilisateur"
+                autocomplete="username">
+              <div class="input-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
+                </svg>
+              </div>
+            </div>
+            <span class="error-message" *ngIf="getFieldError('username')">
+              {{ getFieldError('username') }}
+            </span>
+          </div>
+
+          <!-- Champ password -->
+          <div class="form-group">
+            <label for="password" class="form-label">
+              <span class="label-icon">🔐</span>
+              Mot de passe
+            </label>
+            <div class="input-wrapper">
+              <input 
+                [type]="showPassword ? 'text' : 'password'"
+                id="password"
+                formControlName="password"
+                class="form-input"
+                [class.error]="loginForm.get('password')?.invalid && loginForm.get('password')?.touched"
+                placeholder="Entrez votre mot de passe"
+                autocomplete="current-password">
+              <button 
+                type="button"
+                class="toggle-password"
+                (click)="togglePasswordVisibility()"
+                [title]="showPassword ? 'Masquer' : 'Afficher'">
+                <span *ngIf="!showPassword">👁️</span>
+                <span *ngIf="showPassword">👁️‍🗨️</span>
+              </button>
+            </div>
+            <span class="error-message" *ngIf="getFieldError('password')">
+              {{ getFieldError('password') }}
+            </span>
+          </div>
+
+          <!-- Options supplémentaires -->
+          <div class="form-options">
+            <label class="checkbox-label">
+              <input 
+                type="checkbox" 
+                formControlName="rememberMe"
+                class="checkbox-input">
+              <span class="checkbox-custom"></span>
+              <span class="checkbox-text">Se souvenir de moi</span>
+            </label>
+            
+            <a 
+              class="forgot-link"
+              (click)="goToForgotPassword()">
+              Mot de passe oublié ?
+            </a>
+          </div>
+
+          <!-- Bouton de connexion -->
+          <button 
+            type="submit" 
+            class="submit-button"
+            [disabled]="isLoading || loginForm.invalid"
+            [class.loading]="isLoading">
+            
+            <span class="button-content" *ngIf="!isLoading">
+              <span class="button-icon">🔑</span>
+              <span class="button-text">Se connecter</span>
+            </span>
+            
+            <span class="loader" *ngIf="isLoading">
+              <span class="loader-dot"></span>
+              <span class="loader-dot"></span>
+              <span class="loader-dot"></span>
+            </span>
+          </button>
+
+          <!-- Comptes de test disponibles -->
+          <div class="test-accounts" *ngIf="isTestMode">
+            <div class="test-accounts-header">
+              <span class="test-icon">🧪</span>
+              <span class="test-title">Comptes de test disponibles :</span>
+            </div>
+            <div class="test-accounts-list">
+              <div 
+                *ngFor="let user of testUsers" 
+                class="test-account"
+                (click)="loginForm.patchValue({username: user.username, password: user.password})">
+                <div class="account-info">
+                  <strong>{{ user.username }}</strong> / {{ user.password }}
+                  <span class="account-role">({{ user.role }})</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Divider -->
+          <div class="divider">
+            <span class="divider-line"></span>
+            <span class="divider-text">OU</span>
+            <span class="divider-line"></span>
+          </div>
+
+          <!-- Actions alternatives -->
+          <div class="alternative-actions">
+            <button 
+              type="button"
+              class="alt-button"
+              (click)="goToRegister()">
+              <span class="alt-icon">✨</span>
+              Créer un compte
+            </button>
+
+            <button 
+              type="button"
+              class="alt-button guest"
+              routerLink="/catalog">
+              <span class="alt-icon">👀</span>
+              Continuer en tant qu'invité
+            </button>
+          </div>
+        </form>
+
+        <!-- Footer -->
+        <div class="form-footer">
+          <p class="footer-text">
+            En vous connectant, vous acceptez nos 
+            <a routerLink="/terms">Conditions d'utilisation</a> et notre 
+            <a routerLink="/privacy">Politique de confidentialité</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Background animation -->
+  <div class="bg-animation">
+    <div class="bg-bubble"></div>
+    <div class="bg-bubble"></div>
+    <div class="bg-bubble"></div>
+    <div class="bg-bubble"></div>
+    <div class="bg-bubble"></div>
+  </div>
+</div>

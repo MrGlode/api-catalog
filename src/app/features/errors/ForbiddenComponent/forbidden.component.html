@@ -1,0 +1,169 @@
+<!-- Page 403 - Forbidden -->
+<div class="error-page forbidden">
+  <div class="error-container">
+    
+    <!-- En-tête avec animation -->
+    <div class="error-header">
+      <div class="lock-animation">
+        <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+          <!-- Cadenas -->
+          <rect x="35" y="55" width="50" height="40" rx="5" fill="#ff9800" opacity="0.9">
+            <animate attributeName="fill" values="#ff9800;#ff5722;#ff9800" dur="3s" repeatCount="indefinite"/>
+          </rect>
+          
+          <!-- Arc du cadenas -->
+          <path d="M 40 55 Q 40 35, 60 35 Q 80 35, 80 55" 
+                fill="none" 
+                stroke="#ff9800" 
+                stroke-width="6"
+                stroke-linecap="round">
+            <animate attributeName="stroke" values="#ff9800;#ff5722;#ff9800" dur="3s" repeatCount="indefinite"/>
+          </path>
+          
+          <!-- Trou de serrure -->
+          <circle cx="60" cy="70" r="3" fill="white"/>
+          <rect x="58" y="70" width="4" height="10" fill="white"/>
+          
+          <!-- Effet de brillance -->
+          <ellipse cx="60" cy="65" rx="15" ry="3" fill="white" opacity="0.3">
+            <animate attributeName="opacity" values="0.3;0.6;0.3" dur="3s" repeatCount="indefinite"/>
+          </ellipse>
+        </svg>
+      </div>
+
+      <h1 class="error-code">403</h1>
+      <h2 class="error-title">Accès interdit</h2>
+      
+      <div class="error-message">
+        <p>Vous n'avez pas les permissions nécessaires pour accéder à <strong>{{ attemptedResource }}</strong></p>
+        <span class="reason-badge">{{ forbiddenReason }}</span>
+      </div>
+    </div>
+
+    <!-- Statut utilisateur -->
+    <div class="user-status" *ngIf="isAuthenticated && currentUser">
+      <div class="status-card">
+        <div class="user-info">
+          <div class="user-avatar">
+            {{ currentUser.name?.charAt(0) || '?' }}
+          </div>
+          <div class="user-details">
+            <div class="user-name">{{ currentUser.name || 'Utilisateur' }}</div>
+            <div class="user-email">{{ currentUser.email }}</div>
+            <div class="user-role">Rôle : {{ currentUser.role || 'Standard' }}</div>
+          </div>
+        </div>
+        
+        <div class="permissions-info" *ngIf="requiredPermissions.length > 0">
+          <p class="permissions-label">Permissions requises :</p>
+          <div class="permission-tags">
+            <span *ngFor="let permission of requiredPermissions" class="permission-tag">
+              🔐 {{ permission }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Message non connecté -->
+    <div class="auth-prompt" *ngIf="!isAuthenticated">
+      <div class="prompt-card">
+        <div class="prompt-icon">🔑</div>
+        <div class="prompt-content">
+          <h3>Vous n'êtes pas connecté</h3>
+          <p>Connectez-vous avec un compte ayant les permissions appropriées pour accéder à cette ressource.</p>
+          <button class="btn btn-primary" routerLink="/login">
+            Se connecter
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions suggérées -->
+    <div class="suggested-actions">
+      <h3>Que pouvez-vous faire ?</h3>
+      
+      <div class="action-cards">
+        <div 
+          *ngFor="let action of suggestedActions"
+          class="action-card"
+          [class.disabled]="action.requiresAuth && !isAuthenticated"
+          (click)="shouldShowAction(action) && handleAction(action.action)">
+          
+          <div class="action-icon">{{ action.icon }}</div>
+          <div class="action-content">
+            <h4>{{ action.title }}</h4>
+            <p>{{ action.description }}</p>
+          </div>
+          <div class="action-arrow">→</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FAQ Section -->
+    <div class="faq-section">
+      <h3>Questions fréquentes</h3>
+      
+      <div class="faq-list">
+        <div 
+          *ngFor="let item of faqItems"
+          class="faq-item"
+          [class.expanded]="item.expanded">
+          
+          <div class="faq-question" (click)="toggleFaq(item)">
+            <span>{{ item.question }}</span>
+            <span class="faq-toggle">{{ item.expanded ? '−' : '+' }}</span>
+          </div>
+          
+          <div class="faq-answer" *ngIf="item.expanded">
+            <p>{{ item.answer }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions principales -->
+    <div class="main-actions">
+      <button class="btn btn-secondary" (click)="goHome()">
+        <span>🏠</span>
+        Retour à l'accueil
+      </button>
+      
+      <button 
+        *ngIf="isAuthenticated"
+        class="btn btn-primary" 
+        (click)="goToDashboard()">
+        <span>📊</span>
+        Mon dashboard
+      </button>
+      
+      <button 
+        *ngIf="!isAuthenticated"
+        class="btn btn-primary"
+        routerLink="/login">
+        <span>🔐</span>
+        Se connecter
+      </button>
+    </div>
+
+    <!-- Footer informatif -->
+    <div class="info-footer">
+      <div class="footer-content">
+        <div class="info-item">
+          <span class="info-icon">ℹ️</span>
+          <span class="info-text">
+            Les accès sont gérés par votre administrateur système selon les politiques de sécurité en vigueur.
+          </span>
+        </div>
+        
+        <div class="help-links">
+          <a routerLink="/documentation/permissions">Guide des permissions</a>
+          <span class="separator">•</span>
+          <a routerLink="/support">Contacter le support</a>
+          <span class="separator">•</span>
+          <a href="mailto:security@example.com">security@example.com</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

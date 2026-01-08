@@ -1,0 +1,76 @@
+<!-- Page 404 - Not Found -->
+<div class="error-page not-found">
+  <div class="error-container">
+    
+    <!-- Animation SVG 404 -->
+    <div class="error-animation">
+      <svg class="error-svg" viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+        <!-- Nombre 404 animé -->
+        <g class="number-404">
+          <text x="200" y="150" class="error-number" text-anchor="middle">404</text>
+          <text x="200" y="180" class="error-subtitle" text-anchor="middle">Page introuvable</text>
+        </g>
+        
+        <!-- Icône de recherche animée -->
+        <g class="search-icon" transform="translate(180, 80)">
+          <circle cx="20" cy="20" r="18" fill="none" stroke="#1976d2" stroke-width="3" opacity="0.5">
+            <animate attributeName="r" values="18;22;18" dur="2s" repeatCount="indefinite"/>
+            <animate attributeName="opacity" values="0.5;1;0.5" dur="2s" repeatCount="indefinite"/>
+          </circle>
+          <line x1="32" y1="32" x2="40" y2="40" stroke="#1976d2" stroke-width="3" stroke-linecap="round"/>
+        </g>
+      </svg>
+    </div>
+
+    <!-- Message d'erreur -->
+    <div class="error-content">
+      <h1 class="error-title">Oops ! Page introuvable</h1>
+      
+      <p class="error-message">
+        La page que vous recherchez n'existe pas ou a été déplacée.
+      </p>
+
+      <div class="requested-url" *ngIf="requestedUrl">
+        <span class="url-label">URL demandée :</span>
+        <code class="url-value">{{ requestedUrl }}</code>
+      </div>
+
+      <!-- Actions principales -->
+      <div class="error-actions">
+        <button class="btn btn-primary" (click)="goHome()">
+          <span class="btn-icon">🏠</span>
+          Retour à l'accueil
+        </button>
+        <button class="btn btn-secondary" (click)="goBack()">
+          <span class="btn-icon">↩️</span>
+          Page précédente
+        </button>
+      </div>
+    </div>
+
+    <!-- Suggestions de navigation -->
+    <div class="suggestions">
+      <h2 class="suggestions-title">Pages suggérées</h2>
+      
+      <div class="suggestions-grid">
+        <div 
+          *ngFor="let suggestion of suggestions"
+          class="suggestion-card"
+          (click)="navigateTo(suggestion.url)">
+          
+          <div class="suggestion-icon">{{ suggestion.icon }}</div>
+          <div class="suggestion-content">
+            <h3 class="suggestion-title">{{ suggestion.title }}</h3>
+            <p class="suggestion-description">{{ suggestion.description }}</p>
+          </div>
+          <div class="suggestion-arrow">→</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Message humoristique -->
+    <div class="fun-message">
+      <p>💡 <em>Fun fact : La page 404 est nommée d'après la salle 404 du CERN où le premier serveur web était hébergé.</em></p>
+    </div>
+  </div>
+</div>

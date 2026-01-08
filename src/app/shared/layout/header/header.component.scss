@@ -1,0 +1,391 @@
+// ========================================
+// VARIABLES
+// ========================================
+$primary-color: #1976d2;
+$primary-dark: #1565c0;
+$text-color: #333;
+$text-light: #666;
+$border-color: #e0e0e0;
+$white: #fff;
+$hover-bg: rgba($primary-color, 0.05);
+
+$header-height: 64px;
+$transition-speed: 0.3s;
+
+// ========================================
+// HEADER PRINCIPAL
+// ========================================
+.app-header {
+  background-color: $white;
+  border-bottom: 1px solid $border-color;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  height: $header-height;
+
+  .container {
+    height: 100%;
+  }
+
+  .header-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 100%;
+    gap: 20px;
+  }
+}
+
+// ========================================
+// LOGO
+// ========================================
+.logo {
+  cursor: pointer;
+  user-select: none;
+
+  h1 {
+    margin: 0;
+    font-size: 24px;
+    color: $primary-color;
+    font-weight: 600;
+    transition: color $transition-speed ease;
+    white-space: nowrap;
+
+    &:hover {
+      color: $primary-dark;
+    }
+  }
+}
+
+// ========================================
+// BOUTON MENU MOBILE (Hamburger)
+// ========================================
+.menu-toggle {
+  display: none;
+  flex-direction: column;
+  justify-content: space-around;
+  width: 30px;
+  height: 24px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  z-index: 1001;
+
+  span {
+    width: 100%;
+    height: 3px;
+    background-color: $text-color;
+    border-radius: 2px;
+    transition: all $transition-speed ease;
+  }
+
+  &.open {
+    span:nth-child(1) {
+      transform: translateY(10px) rotate(45deg);
+    }
+
+    span:nth-child(2) {
+      opacity: 0;
+    }
+
+    span:nth-child(3) {
+      transform: translateY(-11px) rotate(-45deg);
+    }
+  }
+}
+
+// ========================================
+// NAVIGATION PRINCIPALE
+// ========================================
+.main-nav {
+  display: flex;
+  gap: 30px;
+  flex: 1;
+  justify-content: center;
+
+  a {
+    text-decoration: none;
+    color: $text-color;
+    font-weight: 500;
+    padding: 8px 16px;
+    border-radius: 4px;
+    transition: all $transition-speed ease;
+    position: relative;
+    white-space: nowrap;
+
+    &:hover {
+      color: $primary-color;
+      background-color: $hover-bg;
+    }
+
+    &.active {
+      color: $primary-color;
+      
+      &::after {
+        content: '';
+        position: absolute;
+        bottom: -20px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 30px;
+        height: 3px;
+        background-color: $primary-color;
+        border-radius: 2px;
+      }
+    }
+  }
+}
+
+// ========================================
+// ACTIONS UTILISATEUR
+// ========================================
+.user-actions {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+
+  .btn-login {
+    display: inline-block;
+    padding: 8px 24px;
+    background-color: $primary-color;
+    color: $white;
+    text-decoration: none;
+    border-radius: 4px;
+    font-weight: 500;
+    transition: background-color $transition-speed ease;
+    white-space: nowrap;
+
+    &:hover {
+      background-color: $primary-dark;
+    }
+  }
+}
+
+// ========================================
+// UTILISATEUR CONNECTÉ
+// ========================================
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background-color: $hover-bg;
+  border-radius: 4px;
+
+  .user-icon {
+    font-size: 20px;
+  }
+
+  .username {
+    font-weight: 500;
+    color: $text-color;
+    white-space: nowrap;
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+// ========================================
+// DROPDOWN MENU
+// ========================================
+.dropdown {
+  position: relative;
+
+  .btn-dropdown {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    color: $text-color;
+    transition: color $transition-speed ease;
+
+    &:hover {
+      color: $primary-color;
+    }
+
+    span {
+      font-size: 12px;
+    }
+  }
+
+  .dropdown-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 8px;
+    background-color: $white;
+    border: 1px solid $border-color;
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    min-width: 180px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all $transition-speed ease;
+    z-index: 1002;
+
+    a, button {
+      display: block;
+      width: 100%;
+      padding: 12px 16px;
+      text-decoration: none;
+      color: $text-color;
+      background: transparent;
+      border: none;
+      text-align: left;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background-color $transition-speed ease;
+
+      &:hover {
+        background-color: $hover-bg;
+        color: $primary-color;
+      }
+
+      &:first-child {
+        border-radius: 4px 4px 0 0;
+      }
+
+      &:last-child {
+        border-radius: 0 0 4px 4px;
+      }
+    }
+
+    hr {
+      margin: 4px 0;
+      border: none;
+      border-top: 1px solid $border-color;
+    }
+
+    .btn-logout {
+      font-weight: 500;
+      color: #d32f2f;
+
+      &:hover {
+        background-color: rgba(#d32f2f, 0.05);
+        color: #d32f2f;
+      }
+    }
+  }
+
+  &:hover .dropdown-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+  }
+}
+
+// ========================================
+// RESPONSIVE - MOBILE
+// ========================================
+@media (max-width: 768px) {
+  .app-header {
+    height: auto;
+    min-height: $header-height;
+  }
+
+  .header-content {
+    flex-wrap: wrap;
+    padding: 10px 0;
+  }
+
+  .logo {
+    order: 1;
+    
+    h1 {
+      font-size: 20px;
+    }
+  }
+
+  .menu-toggle {
+    display: flex;
+    order: 2;
+    margin-left: auto;
+  }
+
+  .main-nav {
+    order: 3;
+    width: 100%;
+    flex-direction: column;
+    gap: 0;
+    background-color: $white;
+    border-top: 1px solid $border-color;
+    margin-top: 10px;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height $transition-speed ease;
+
+    &.open {
+      max-height: 400px;
+      padding: 10px 0;
+    }
+
+    a {
+      padding: 12px 16px;
+      border-radius: 0;
+
+      &.active::after {
+        display: none;
+      }
+
+      &.active {
+        background-color: $hover-bg;
+      }
+    }
+  }
+
+  .user-actions {
+    order: 4;
+    width: 100%;
+    justify-content: center;
+    padding: 10px 0;
+    border-top: 1px solid $border-color;
+    margin-top: 10px;
+    display: none;
+
+    .main-nav.open ~ & {
+      display: flex;
+    }
+
+    .user-info {
+      flex: 1;
+      justify-content: center;
+    }
+
+    .btn-login {
+      flex: 1;
+      text-align: center;
+    }
+  }
+
+  .dropdown {
+    .dropdown-menu {
+      position: fixed;
+      top: auto;
+      right: 20px;
+      left: 20px;
+      margin-top: 0;
+    }
+  }
+}
+
+// ========================================
+// RESPONSIVE - TABLET
+// ========================================
+@media (min-width: 769px) and (max-width: 1024px) {
+  .main-nav {
+    gap: 20px;
+
+    a {
+      padding: 6px 12px;
+      font-size: 14px;
+    }
+  }
+
+  .user-info .username {
+    max-width: 100px;
+  }
+}
