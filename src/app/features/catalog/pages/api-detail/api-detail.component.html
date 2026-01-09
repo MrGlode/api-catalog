@@ -1,0 +1,244 @@
+<!-- API Detail Page -->
+<div class="api-detail-page">
+  
+  @if (isLoading) {
+    <div class="loading">
+      <div class="loading-spinner"></div>
+      <span>Chargement...</span>
+    </div>
+  } @else if (api) {
+    
+    <!-- Breadcrumb -->
+    <nav class="breadcrumb">
+      <a routerLink="/catalog" class="breadcrumb-link">Catalogue</a>
+      <span class="breadcrumb-separator">/</span>
+      <span class="breadcrumb-current">{{ api.name }}</span>
+    </nav>
+    
+    <!-- Header -->
+    <header class="api-header">
+      <div class="api-icon" [class]="'icon-' + api.categoryColor">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M13 10V3L4 14h7v7l9-11h-7z" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      
+      <div class="api-info">
+        <div class="api-badges">
+          <span class="badge" [class]="'badge-' + api.categoryColor">
+            {{ api.category }}
+          </span>
+          <span class="badge" [class]="getStatusClass(api.status)">
+            {{ getStatusLabel(api.status) }}
+          </span>
+          <span class="badge badge-gray">{{ api.version }}</span>
+        </div>
+        
+        <h1 class="api-name">{{ api.name }}</h1>
+        <p class="api-description">{{ api.description }}</p>
+        
+        <div class="api-meta">
+          <span class="meta-item">
+            <svg viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
+            </svg>
+            {{ api.provider }}
+          </span>
+          <span class="meta-item">
+            <svg viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+            </svg>
+            Mis à jour le {{ api.lastUpdated }}
+          </span>
+        </div>
+      </div>
+    </header>
+    
+    <!-- Tabs -->
+    <div class="tabs">
+      <button 
+        class="tab" 
+        [class.active]="activeTab === 'overview'"
+        (click)="setTab('overview')"
+      >
+        Vue d'ensemble
+      </button>
+      <button 
+        class="tab" 
+        [class.active]="activeTab === 'endpoints'"
+        (click)="setTab('endpoints')"
+      >
+        Endpoints
+        <span class="tab-count">{{ api.endpoints.length }}</span>
+      </button>
+      <button 
+        class="tab" 
+        [class.active]="activeTab === 'plans'"
+        (click)="setTab('plans')"
+      >
+        Plans tarifaires
+      </button>
+      <button 
+        class="tab" 
+        [class.active]="activeTab === 'docs'"
+        (click)="setTab('docs')"
+      >
+        Documentation
+      </button>
+    </div>
+    
+    <!-- Tab Content -->
+    <div class="tab-content">
+      
+      <!-- Overview Tab -->
+      @if (activeTab === 'overview') {
+        <div class="overview-content">
+          
+          <!-- Benefits -->
+          <div class="benefits-grid">
+            @for (benefit of api.benefits; track benefit.title) {
+              <div class="benefit-card">
+                <span class="benefit-icon">{{ benefit.icon }}</span>
+                <h3 class="benefit-title">{{ benefit.title }}</h3>
+                <p class="benefit-description">{{ benefit.description }}</p>
+              </div>
+            }
+          </div>
+          
+          <!-- Description -->
+          <div class="description-section">
+            <h2 class="section-title">À propos de cette API</h2>
+            <div class="description-content">
+              @for (paragraph of api.longDescription.split('\n\n'); track paragraph) {
+                <p>{{ paragraph }}</p>
+              }
+            </div>
+          </div>
+          
+          <!-- Quick Start CTA -->
+          <div class="cta-box">
+            <div class="cta-content">
+              <h3 class="cta-title">Prêt à commencer ?</h3>
+              <p class="cta-description">
+                Créez un compte gratuit et obtenez vos clés API en quelques minutes.
+              </p>
+            </div>
+            <a routerLink="/login" class="btn btn-primary btn-lg">
+              Commencer gratuitement
+            </a>
+          </div>
+          
+        </div>
+      }
+      
+      <!-- Endpoints Tab -->
+      @if (activeTab === 'endpoints') {
+        <div class="endpoints-content">
+          <div class="endpoints-list">
+            @for (endpoint of api.endpoints; track endpoint.path) {
+              <div class="endpoint-item">
+                <span class="endpoint-method badge" [class]="getMethodClass(endpoint.method)">
+                  {{ endpoint.method }}
+                </span>
+                <code class="endpoint-path">{{ endpoint.path }}</code>
+                <span class="endpoint-description">{{ endpoint.description }}</span>
+              </div>
+            }
+          </div>
+          
+          <div class="endpoints-cta">
+            <p>Consultez la documentation complète pour plus de détails sur chaque endpoint.</p>
+            <button class="btn btn-secondary" (click)="setTab('docs')">
+              Voir la documentation
+            </button>
+          </div>
+        </div>
+      }
+      
+      <!-- Plans Tab -->
+      @if (activeTab === 'plans') {
+        <div class="plans-content">
+          <div class="plans-grid">
+            @for (plan of api.plans; track plan.name) {
+              <div class="plan-card" [class.recommended]="plan.recommended">
+                @if (plan.recommended) {
+                  <div class="plan-badge">Recommandé</div>
+                }
+                <h3 class="plan-name">{{ plan.name }}</h3>
+                <p class="plan-description">{{ plan.description }}</p>
+                <div class="plan-price">
+                  <span class="price-value">{{ plan.price }}</span>
+                  @if (plan.period) {
+                    <span class="price-period">{{ plan.period }}</span>
+                  }
+                </div>
+                <div class="plan-requests">
+                  {{ plan.requestsPerMonth }} requêtes/mois
+                </div>
+                <ul class="plan-features">
+                  @for (feature of plan.features; track feature) {
+                    <li>
+                      <svg viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                      </svg>
+                      {{ feature }}
+                    </li>
+                  }
+                </ul>
+                <button 
+                  class="btn plan-btn"
+                  [class.btn-primary]="plan.recommended"
+                  [class.btn-secondary]="!plan.recommended"
+                  (click)="subscribeToPlan(plan)"
+                >
+                  @if (plan.price === 'Gratuit') {
+                    Commencer gratuitement
+                  } @else if (plan.price === 'Sur devis') {
+                    Nous contacter
+                  } @else {
+                    S'abonner
+                  }
+                </button>
+              </div>
+            }
+          </div>
+        </div>
+      }
+      
+      <!-- Docs Tab -->
+      @if (activeTab === 'docs') {
+        <div class="docs-content">
+          <div class="docs-placeholder">
+            <div class="docs-icon">📚</div>
+            <h3>Documentation complète</h3>
+            <p>
+              La documentation interactive avec exemples de code et sandbox 
+              sera disponible après connexion.
+            </p>
+            <div class="docs-actions">
+              <a routerLink="/login" class="btn btn-primary">
+                Se connecter pour accéder
+              </a>
+              <a routerLink="/docs/getting-started" class="btn btn-ghost">
+                Guide de démarrage
+              </a>
+            </div>
+          </div>
+        </div>
+      }
+      
+    </div>
+    
+  } @else {
+    <!-- Not Found -->
+    <div class="not-found">
+      <div class="not-found-icon">🔍</div>
+      <h2>API non trouvée</h2>
+      <p>L'API que vous recherchez n'existe pas ou n'est plus disponible.</p>
+      <button class="btn btn-primary" (click)="goBack()">
+        Retour au catalogue
+      </button>
+    </div>
+  }
+  
+</div>

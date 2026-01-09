@@ -1,10 +1,14 @@
 import { Component } from '@angular/core';
-import { MainLayoutComponent } from './shared/layout/main-layout/main-layout.component';
+import { AppLayoutComponent } from './shared/layout/app-layout/app-layout.component';
 
+/**
+ * Root Application Component
+ * Uses the GitBook-inspired layout
+ */
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [MainLayoutComponent],
-  template: '<app-main-layout></app-main-layout>'
+  imports: [AppLayoutComponent],
+  template: '<app-layout></app-layout>'
 })
 export class AppComponent {}

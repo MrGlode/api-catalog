@@ -1,0 +1,28 @@
+<!-- App Layout - GitBook Style -->
+<div class="app-layout" [class.sidebar-open]="sidebarOpen">
+  
+  <!-- Sidebar -->
+  <app-sidebar 
+    [class.open]="sidebarOpen"
+    (closeSidebar)="closeSidebar()"
+  ></app-sidebar>
+  
+  <!-- Mobile Overlay -->
+  @if (sidebarOpen) {
+    <div class="sidebar-overlay" (click)="closeSidebar()"></div>
+  }
+  
+  <!-- Main Content Area -->
+  <div class="app-content">
+    
+    <!-- Header -->
+    <app-page-header (toggleSidebar)="toggleSidebar()"></app-page-header>
+    
+    <!-- Page Content -->
+    <main class="page-content">
+      <router-outlet></router-outlet>
+    </main>
+    
+  </div>
+  
+</div>

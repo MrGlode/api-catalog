@@ -1,0 +1,182 @@
+<!-- Sidebar Navigation - GitBook Style -->
+<aside class="sidebar">
+  
+  <!-- Logo -->
+  <div class="sidebar-logo">
+    <a routerLink="/home" class="logo-link" (click)="onNavigate()">
+      <div class="logo-icon">
+        <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect width="32" height="32" rx="8" fill="currentColor"/>
+          <path d="M8 10h16M8 16h12M8 22h8" stroke="white" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <span class="logo-text">API Catalog</span>
+    </a>
+  </div>
+
+  <!-- Search -->
+  <div class="sidebar-search">
+    <div class="search-input-wrapper">
+      <svg class="search-icon" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/>
+      </svg>
+      <input 
+        type="text" 
+        class="search-input" 
+        placeholder="Rechercher..."
+        [value]="searchQuery"
+        (input)="onSearch($event)"
+        (keyup)="onSearchKeyup($event)"
+      />
+      <span class="search-shortcut">⌘K</span>
+    </div>
+  </div>
+
+  <!-- Scrollable Content -->
+  <div class="sidebar-content">
+    
+    <!-- Main Navigation -->
+    <nav class="nav-section">
+      <ul class="nav-list">
+        @for (item of mainNavItems; track item.path) {
+          <li class="nav-item">
+            <a 
+              [routerLink]="item.path" 
+              routerLinkActive="active"
+              [routerLinkActiveOptions]="{exact: item.path === '/home'}"
+              class="nav-link"
+              (click)="onNavigate()"
+            >
+              <span class="nav-icon">
+                @switch (item.icon) {
+                  @case ('home') {
+                    <svg viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
+                    </svg>
+                  }
+                  @case ('grid') {
+                    <svg viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+                    </svg>
+                  }
+                }
+              </span>
+              <span class="nav-label">{{ item.label }}</span>
+            </a>
+          </li>
+        }
+      </ul>
+    </nav>
+
+    <!-- Categories Section -->
+    <div class="nav-section">
+      <div class="nav-section-header">
+        <span class="nav-section-title">Catégories</span>
+      </div>
+      <ul class="nav-list">
+        @for (category of categories; track category.id) {
+          <li class="nav-item">
+            <a 
+              class="nav-link nav-link-category"
+              [class]="'category-' + category.color"
+              (click)="navigateToCategory(category.id)"
+            >
+              <span class="nav-icon category-icon">{{ category.icon }}</span>
+              <span class="nav-label">{{ category.label }}</span>
+              @if (category.count) {
+                <span class="nav-count">{{ category.count }}</span>
+              }
+            </a>
+          </li>
+        }
+      </ul>
+    </div>
+
+    <!-- User Section (if authenticated) -->
+    @if (isAuthenticated$ | async) {
+      <div class="nav-section">
+        <div class="nav-section-header">
+          <span class="nav-section-title">Mon espace</span>
+        </div>
+        <ul class="nav-list">
+          @for (item of userNavItems; track item.path) {
+            <li class="nav-item">
+              <a 
+                [routerLink]="item.path" 
+                routerLinkActive="active"
+                class="nav-link"
+                (click)="onNavigate()"
+              >
+                <span class="nav-icon">
+                  @switch (item.icon) {
+                    @case ('box') {
+                      <svg viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"/>
+                      </svg>
+                    }
+                    @case ('link') {
+                      <svg viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z" clip-rule="evenodd"/>
+                      </svg>
+                    }
+                  }
+                </span>
+                <span class="nav-label">{{ item.label }}</span>
+              </a>
+            </li>
+          }
+        </ul>
+      </div>
+    }
+
+    <!-- Resources Section -->
+    <div class="nav-section">
+      <div class="nav-section-header">
+        <span class="nav-section-title">Ressources</span>
+      </div>
+      <ul class="nav-list">
+        @for (item of resourceLinks; track item.path) {
+          <li class="nav-item">
+            <a 
+              [routerLink]="item.path" 
+              routerLinkActive="active"
+              class="nav-link"
+              (click)="onNavigate()"
+            >
+              <span class="nav-icon">
+                @switch (item.icon) {
+                  @case ('book') {
+                    <svg viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z"/>
+                    </svg>
+                  }
+                  @case ('rocket') {
+                    <svg viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"/>
+                    </svg>
+                  }
+                  @case ('clock') {
+                    <svg viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+                    </svg>
+                  }
+                }
+              </span>
+              <span class="nav-label">{{ item.label }}</span>
+            </a>
+          </li>
+        }
+      </ul>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <div class="sidebar-footer">
+    <div class="footer-status">
+      <span class="status-dot"></span>
+      <span class="status-text">Tous les services opérationnels</span>
+    </div>
+  </div>
+
+</aside>

@@ -1,1 +1,447 @@
-/* You can add global styles to this file, and also import other style files */
+/**
+ * WSO2 API Catalog - Global Styles
+ * Design System GitBook-inspired
+ */
+
+// ========================================
+// CSS VARIABLES - DESIGN SYSTEM
+// ========================================
+:root {
+  // Colors - Base
+  --color-white: #ffffff;
+  --color-black: #000000;
+  
+  // Colors - Gray Scale
+  --color-gray-50: #f9fafb;
+  --color-gray-100: #f3f4f6;
+  --color-gray-200: #e5e7eb;
+  --color-gray-300: #d1d5db;
+  --color-gray-400: #9ca3af;
+  --color-gray-500: #6b7280;
+  --color-gray-600: #4b5563;
+  --color-gray-700: #374151;
+  --color-gray-800: #1f2937;
+  --color-gray-900: #111827;
+  
+  // Colors - Primary (Blue)
+  --color-primary-50: #eff6ff;
+  --color-primary-100: #dbeafe;
+  --color-primary-200: #bfdbfe;
+  --color-primary-300: #93c5fd;
+  --color-primary-400: #60a5fa;
+  --color-primary-500: #3b82f6;
+  --color-primary-600: #2563eb;
+  --color-primary-700: #1d4ed8;
+  
+  // Colors - Categories
+  --color-finance: #059669;
+  --color-finance-light: #d1fae5;
+  --color-security: #7c3aed;
+  --color-security-light: #ede9fe;
+  --color-communication: #0891b2;
+  --color-communication-light: #cffafe;
+  --color-data: #ea580c;
+  --color-data-light: #ffedd5;
+  --color-integration: #db2777;
+  --color-integration-light: #fce7f3;
+  --color-geo: #0d9488;
+  --color-geo-light: #ccfbf1;
+  
+  // Colors - Status
+  --color-success: #10b981;
+  --color-success-light: #d1fae5;
+  --color-warning: #f59e0b;
+  --color-warning-light: #fef3c7;
+  --color-error: #ef4444;
+  --color-error-light: #fee2e2;
+  
+  // Colors - Green Scale
+  --color-green-50: #f0fdf4;
+  --color-green-100: #dcfce7;
+  --color-green-500: #22c55e;
+  --color-green-600: #16a34a;
+  
+  // Colors - Orange Scale
+  --color-orange-50: #fff7ed;
+  --color-orange-100: #ffedd5;
+  --color-orange-500: #f97316;
+  --color-orange-600: #ea580c;
+  
+  // Colors - HTTP Methods
+  --color-method-get: #10b981;
+  --color-method-get-bg: rgba(16, 185, 129, 0.1);
+  --color-method-post: #3b82f6;
+  --color-method-post-bg: rgba(59, 130, 246, 0.1);
+  --color-method-put: #f59e0b;
+  --color-method-put-bg: rgba(245, 158, 11, 0.1);
+  --color-method-delete: #ef4444;
+  --color-method-delete-bg: rgba(239, 68, 68, 0.1);
+  --color-method-patch: #8b5cf6;
+  --color-method-patch-bg: rgba(139, 92, 246, 0.1);
+  
+  // Typography
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-size-xs: 11px;
+  --font-size-sm: 13px;
+  --font-size-base: 14px;
+  --font-size-md: 15px;
+  --font-size-lg: 18px;
+  --font-size-xl: 24px;
+  --font-size-2xl: 32px;
+  --font-size-3xl: 42px;
+  
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.75;
+  
+  // Spacing
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 24px;
+  --spacing-2xl: 32px;
+  --spacing-3xl: 48px;
+  --spacing-4xl: 64px;
+  
+  // Layout
+  --sidebar-width: 260px;
+  --header-height: 56px;
+  --content-max-width: 900px;
+  --content-wide-max-width: 1100px;
+  
+  // Borders
+  --border-radius-sm: 4px;
+  --border-radius-md: 6px;
+  --border-radius-lg: 8px;
+  --border-radius-xl: 12px;
+  --border-radius-full: 9999px;
+  
+  // Shadows
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  
+  // Transitions
+  --transition-fast: 150ms ease;
+  --transition-normal: 200ms ease;
+  --transition-slow: 300ms ease;
+}
+
+// ========================================
+// RESET & BASE
+// ========================================
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-normal);
+  line-height: var(--line-height-normal);
+  color: var(--color-gray-700);
+  background-color: var(--color-white);
+}
+
+// ========================================
+// TYPOGRAPHY
+// ========================================
+h1, h2, h3, h4, h5, h6 {
+  color: var(--color-gray-900);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+}
+
+h1 { font-size: var(--font-size-2xl); }
+h2 { font-size: var(--font-size-xl); }
+h3 { font-size: var(--font-size-lg); }
+h4 { font-size: var(--font-size-md); }
+
+p {
+  color: var(--color-gray-600);
+  line-height: var(--line-height-relaxed);
+}
+
+a {
+  color: var(--color-primary-600);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+  
+  &:hover {
+    color: var(--color-primary-700);
+  }
+}
+
+// ========================================
+// UTILITY CLASSES
+// ========================================
+
+// Text
+.text-xs { font-size: var(--font-size-xs); }
+.text-sm { font-size: var(--font-size-sm); }
+.text-base { font-size: var(--font-size-base); }
+.text-lg { font-size: var(--font-size-lg); }
+
+.text-gray-400 { color: var(--color-gray-400); }
+.text-gray-500 { color: var(--color-gray-500); }
+.text-gray-600 { color: var(--color-gray-600); }
+.text-gray-900 { color: var(--color-gray-900); }
+
+.font-medium { font-weight: var(--font-weight-medium); }
+.font-semibold { font-weight: var(--font-weight-semibold); }
+
+// Spacing
+.mt-xs { margin-top: var(--spacing-xs); }
+.mt-sm { margin-top: var(--spacing-sm); }
+.mt-md { margin-top: var(--spacing-md); }
+.mt-lg { margin-top: var(--spacing-lg); }
+.mt-xl { margin-top: var(--spacing-xl); }
+
+.mb-xs { margin-bottom: var(--spacing-xs); }
+.mb-sm { margin-bottom: var(--spacing-sm); }
+.mb-md { margin-bottom: var(--spacing-md); }
+.mb-lg { margin-bottom: var(--spacing-lg); }
+.mb-xl { margin-bottom: var(--spacing-xl); }
+
+// ========================================
+// BUTTONS
+// ========================================
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  font-family: var(--font-family);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  line-height: 1;
+  border: 1px solid transparent;
+  border-radius: var(--border-radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-decoration: none;
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.btn-primary {
+  background: var(--color-primary-600);
+  color: var(--color-white);
+  
+  &:hover:not(:disabled) {
+    background: var(--color-primary-700);
+  }
+}
+
+.btn-secondary {
+  background: var(--color-white);
+  color: var(--color-gray-700);
+  border-color: var(--color-gray-300);
+  
+  &:hover:not(:disabled) {
+    background: var(--color-gray-50);
+    border-color: var(--color-gray-400);
+  }
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--color-gray-600);
+  
+  &:hover:not(:disabled) {
+    background: var(--color-gray-100);
+    color: var(--color-gray-900);
+  }
+}
+
+.btn-sm {
+  padding: var(--spacing-xs) var(--spacing-md);
+  font-size: var(--font-size-xs);
+}
+
+.btn-lg {
+  padding: var(--spacing-md) var(--spacing-xl);
+  font-size: var(--font-size-base);
+}
+
+// ========================================
+// BADGES
+// ========================================
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: 2px 8px;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  border-radius: var(--border-radius-full);
+}
+
+.badge-gray {
+  background: var(--color-gray-100);
+  color: var(--color-gray-600);
+}
+
+.badge-green {
+  background: var(--color-success-light);
+  color: var(--color-success);
+}
+
+.badge-orange {
+  background: var(--color-warning-light);
+  color: var(--color-warning);
+}
+
+.badge-red {
+  background: var(--color-error-light);
+  color: var(--color-error);
+}
+
+.badge-blue {
+  background: var(--color-primary-100);
+  color: var(--color-primary-600);
+}
+
+// HTTP Method badges
+.badge-get { background: rgba(16, 185, 129, 0.1); color: var(--color-method-get); }
+.badge-post { background: rgba(59, 130, 246, 0.1); color: var(--color-method-post); }
+.badge-put { background: rgba(245, 158, 11, 0.1); color: var(--color-method-put); }
+.badge-delete { background: rgba(239, 68, 68, 0.1); color: var(--color-method-delete); }
+.badge-patch { background: rgba(139, 92, 246, 0.1); color: var(--color-method-patch); }
+
+// Category badges
+.badge-finance { background: var(--color-finance-light); color: var(--color-finance); }
+.badge-security { background: var(--color-security-light); color: var(--color-security); }
+.badge-communication { background: var(--color-communication-light); color: var(--color-communication); }
+.badge-data { background: var(--color-data-light); color: var(--color-data); }
+.badge-integration { background: var(--color-integration-light); color: var(--color-integration); }
+.badge-geo { background: var(--color-geo-light); color: var(--color-geo); }
+
+// ========================================
+// CARDS
+// ========================================
+.card {
+  background: var(--color-white);
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--border-radius-lg);
+  transition: all var(--transition-normal);
+}
+
+.card-hover {
+  &:hover {
+    border-color: var(--color-gray-300);
+    box-shadow: var(--shadow-sm);
+  }
+}
+
+// ========================================
+// FORMS
+// ========================================
+.input {
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-family: var(--font-family);
+  font-size: var(--font-size-sm);
+  color: var(--color-gray-900);
+  background: var(--color-white);
+  border: 1px solid var(--color-gray-300);
+  border-radius: var(--border-radius-md);
+  transition: all var(--transition-fast);
+  
+  &::placeholder {
+    color: var(--color-gray-400);
+  }
+  
+  &:focus {
+    outline: none;
+    border-color: var(--color-primary-500);
+    box-shadow: 0 0 0 3px var(--color-primary-100);
+  }
+}
+
+// ========================================
+// SCROLLBAR
+// ========================================
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-gray-300);
+  border-radius: 3px;
+  
+  &:hover {
+    background: var(--color-gray-400);
+  }
+}
+
+// ========================================
+// ANIMATIONS
+// ========================================
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { 
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.animate-fade-in {
+  animation: fadeIn var(--transition-normal) ease;
+}
+
+.animate-slide-up {
+  animation: slideUp var(--transition-slow) ease;
+}
+
+// ========================================
+// RESPONSIVE
+// ========================================
+@media (max-width: 1024px) {
+  :root {
+    --sidebar-width: 240px;
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    --sidebar-width: 100%;
+    --header-height: 52px;
+  }
+}

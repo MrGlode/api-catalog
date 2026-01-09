@@ -1,0 +1,78 @@
+<!-- Page Header - Minimal Top Bar -->
+<header class="page-header">
+  
+  <!-- Mobile Menu Toggle -->
+  <button class="menu-toggle" (click)="onToggleSidebar()" aria-label="Menu">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round"/>
+    </svg>
+  </button>
+
+  <!-- Spacer -->
+  <div class="header-spacer"></div>
+
+  <!-- Right Actions -->
+  <div class="header-actions">
+    
+    <!-- Documentation Link -->
+    <a routerLink="/docs" class="header-link">
+      <svg viewBox="0 0 20 20" fill="currentColor">
+        <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z"/>
+      </svg>
+      <span>Docs</span>
+    </a>
+
+    <!-- GitHub Link (external) -->
+    <a href="https://github.com" target="_blank" rel="noopener" class="header-link header-link-icon">
+      <svg viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+      </svg>
+    </a>
+
+    <!-- Auth Section -->
+    @if (isAuthenticated$ | async) {
+      <!-- User Menu -->
+      <div class="user-menu-container" (mouseleave)="closeUserMenu()">
+        <button class="user-avatar" (click)="toggleUserMenu()">
+          {{ getUserInitials(currentUser$ | async) }}
+        </button>
+        
+        @if (showUserMenu) {
+          <div class="user-dropdown">
+            <div class="dropdown-header">
+              <span class="dropdown-username">{{ currentUser$ | async }}</span>
+              <span class="dropdown-email">Connecté</span>
+            </div>
+            <div class="dropdown-divider"></div>
+            <a routerLink="/applications" class="dropdown-item" (click)="closeUserMenu()">
+              <svg viewBox="0 0 20 20" fill="currentColor">
+                <path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"/>
+              </svg>
+              Mes applications
+            </a>
+            <a routerLink="/subscriptions" class="dropdown-item" (click)="closeUserMenu()">
+              <svg viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z" clip-rule="evenodd"/>
+              </svg>
+              Mes souscriptions
+            </a>
+            <div class="dropdown-divider"></div>
+            <button class="dropdown-item dropdown-item-danger" (click)="logout()">
+              <svg viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clip-rule="evenodd"/>
+              </svg>
+              Déconnexion
+            </button>
+          </div>
+        }
+      </div>
+    } @else {
+      <!-- Login Button -->
+      <a routerLink="/login" class="btn btn-primary btn-sm">
+        Connexion
+      </a>
+    }
+    
+  </div>
+  
+</header>

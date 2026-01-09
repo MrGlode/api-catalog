@@ -1,0 +1,177 @@
+<!-- Home Page - Landing -->
+<div class="home-page">
+  
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="hero-content">
+      
+      <!-- Badge -->
+      <div class="hero-badge">
+        <span class="badge-dot"></span>
+        <span class="badge-text">{{ stats.totalApis }} API disponibles</span>
+      </div>
+      
+      <!-- Title -->
+      <h1 class="hero-title">
+        Intégrez nos API<br>
+        <span class="hero-title-gradient">en quelques minutes</span>
+      </h1>
+      
+      <!-- Description -->
+      <p class="hero-description">
+        Documentation complète, sandbox de test, et guides d'intégration pour 
+        accélérer vos développements et connecter vos applications.
+      </p>
+      
+      <!-- CTA Buttons -->
+      <div class="hero-actions">
+        <button class="btn btn-primary btn-lg" (click)="goToCatalog()">
+          Explorer le catalogue
+          <svg viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/>
+          </svg>
+        </button>
+        <button class="btn btn-secondary btn-lg" (click)="goToDocs()">
+          Guide de démarrage
+        </button>
+      </div>
+      
+    </div>
+    
+    <!-- Stats -->
+    <div class="hero-stats">
+      <div class="stat-item">
+        <span class="stat-value">{{ stats.totalApis }}</span>
+        <span class="stat-label">API disponibles</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <span class="stat-value">{{ stats.uptime }}</span>
+        <span class="stat-label">Disponibilité</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <span class="stat-value">{{ stats.connectedApps }}+</span>
+        <span class="stat-label">Apps connectées</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Categories Section -->
+  <section class="section categories-section">
+    <div class="section-header">
+      <h2 class="section-title">Explorer par catégorie</h2>
+      <p class="section-description">
+        Trouvez rapidement l'API adaptée à votre besoin
+      </p>
+    </div>
+    
+    <div class="categories-grid">
+      @for (category of categories; track category.id) {
+        <div 
+          class="category-card"
+          [class]="'category-' + category.color"
+          (click)="goToCategory(category.id)"
+        >
+          <div class="category-icon">{{ category.icon }}</div>
+          <div class="category-content">
+            <h3 class="category-name">{{ category.name }}</h3>
+            <p class="category-description">{{ category.description }}</p>
+          </div>
+          <div class="category-count">
+            <span class="count-value">{{ category.count }}</span>
+            <span class="count-label">API</span>
+          </div>
+        </div>
+      }
+    </div>
+  </section>
+
+  <!-- Popular APIs Section -->
+  <section class="section popular-section">
+    <div class="section-header">
+      <h2 class="section-title">API populaires</h2>
+      <a routerLink="/catalog" class="section-link">
+        Voir tout
+        <svg viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+        </svg>
+      </a>
+    </div>
+    
+    <div class="popular-grid">
+      @for (api of popularApis; track api.id) {
+        <div class="api-card" (click)="goToApi(api.id)">
+          <div class="api-card-header">
+            <div class="api-icon" [class]="'icon-' + api.categoryColor">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M13 10V3L4 14h7v7l9-11h-7z" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <span class="api-badge" [class]="'badge-' + api.categoryColor">
+              {{ api.category }}
+            </span>
+          </div>
+          <h3 class="api-name">{{ api.name }}</h3>
+          <p class="api-description">{{ api.description }}</p>
+          <div class="api-footer">
+            <span class="api-version">{{ api.version }}</span>
+            <span class="api-arrow">→</span>
+          </div>
+        </div>
+      }
+    </div>
+  </section>
+
+  <!-- New APIs Section -->
+  <section class="section new-section">
+    <div class="section-header">
+      <h2 class="section-title">Nouveautés</h2>
+      <a routerLink="/changelog" class="section-link">
+        Changelog
+        <svg viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+        </svg>
+      </a>
+    </div>
+    
+    <div class="new-list">
+      @for (api of newApis; track api.id) {
+        <div class="new-item" (click)="goToApi(api.id)">
+          <div class="new-badge">NEW</div>
+          <div class="new-content">
+            <div class="new-header">
+              <h3 class="new-name">{{ api.name }}</h3>
+              <span class="new-category" [class]="'badge-' + api.categoryColor">
+                {{ api.category }}
+              </span>
+            </div>
+            <p class="new-description">{{ api.description }}</p>
+          </div>
+          <div class="new-date">{{ api.date }}</div>
+        </div>
+      }
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="section cta-section">
+    <div class="cta-card">
+      <div class="cta-content">
+        <h2 class="cta-title">Prêt à commencer ?</h2>
+        <p class="cta-description">
+          Créez un compte gratuitement et accédez à toutes nos API en quelques minutes.
+        </p>
+      </div>
+      <div class="cta-actions">
+        <a routerLink="/login" class="btn btn-primary btn-lg">
+          Commencer gratuitement
+        </a>
+        <a routerLink="/docs/getting-started" class="btn btn-ghost btn-lg">
+          En savoir plus
+        </a>
+      </div>
+    </div>
+  </section>
+
+</div>

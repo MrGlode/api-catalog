@@ -1,0 +1,216 @@
+/**
+ * Page Header Styles - Minimal top bar
+ */
+
+.page-header {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+  height: var(--header-height);
+  padding: 0 var(--spacing-xl);
+  background: var(--color-white);
+  border-bottom: 1px solid var(--color-gray-200);
+  z-index: 50;
+}
+
+// ========================================
+// MOBILE MENU TOGGLE
+// ========================================
+.menu-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: var(--border-radius-md);
+  color: var(--color-gray-600);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  
+  &:hover {
+    background: var(--color-gray-100);
+    color: var(--color-gray-900);
+  }
+  
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+  
+  @media (max-width: 768px) {
+    display: flex;
+  }
+}
+
+// ========================================
+// SPACER
+// ========================================
+.header-spacer {
+  flex: 1;
+}
+
+// ========================================
+// ACTIONS
+// ========================================
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.header-link {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-gray-600);
+  text-decoration: none;
+  border-radius: var(--border-radius-md);
+  transition: all var(--transition-fast);
+  
+  &:hover {
+    color: var(--color-gray-900);
+    background: var(--color-gray-50);
+  }
+  
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+  
+  &.header-link-icon {
+    padding: var(--spacing-sm);
+    
+    span {
+      display: none;
+    }
+  }
+}
+
+// ========================================
+// USER MENU
+// ========================================
+.user-menu-container {
+  position: relative;
+}
+
+.user-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-white);
+  background: linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600));
+  border: none;
+  border-radius: var(--border-radius-full);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  
+  &:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 3px var(--color-primary-100);
+  }
+}
+
+.user-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 200px;
+  background: var(--color-white);
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-lg);
+  animation: fadeIn var(--transition-fast);
+  overflow: hidden;
+}
+
+.dropdown-header {
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: var(--color-gray-50);
+  
+  .dropdown-username {
+    display: block;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-gray-900);
+  }
+  
+  .dropdown-email {
+    display: block;
+    font-size: var(--font-size-xs);
+    color: var(--color-gray-500);
+    margin-top: 2px;
+  }
+}
+
+.dropdown-divider {
+  height: 1px;
+  background: var(--color-gray-200);
+  margin: 0;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  width: 100%;
+  padding: var(--spacing-md) var(--spacing-lg);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-gray-700);
+  background: transparent;
+  border: none;
+  text-decoration: none;
+  text-align: left;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  
+  &:hover {
+    background: var(--color-gray-50);
+    color: var(--color-gray-900);
+  }
+  
+  svg {
+    width: 16px;
+    height: 16px;
+    color: var(--color-gray-400);
+  }
+  
+  &.dropdown-item-danger {
+    color: var(--color-error);
+    
+    &:hover {
+      background: var(--color-error-light);
+    }
+    
+    svg {
+      color: var(--color-error);
+    }
+  }
+}
+
+// ========================================
+// RESPONSIVE
+// ========================================
+@media (max-width: 768px) {
+  .page-header {
+    padding: 0 var(--spacing-lg);
+  }
+  
+  .header-link {
+    span {
+      display: none;
+    }
+  }
+}

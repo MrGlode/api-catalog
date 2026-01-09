@@ -30,20 +30,29 @@ export class AuthService {
 
   /**
    * Observable du statut d'authentification
+   * Initialisé dans le constructeur pour éviter les problèmes d'injection
    */
-  private isAuthenticatedSubject = new BehaviorSubject<boolean>(this.hasValidToken());
-  public isAuthenticated$ = this.isAuthenticatedSubject.asObservable();
+  private isAuthenticatedSubject!: BehaviorSubject<boolean>;
+  public isAuthenticated$!: Observable<boolean>;
 
   /**
    * Observable de l'utilisateur courant
+   * Initialisé dans le constructeur pour éviter les problèmes d'injection
    */
-  private currentUserSubject = new BehaviorSubject<string | null>(this.getCurrentUsername());
-  public currentUser$ = this.currentUserSubject.asObservable();
+  private currentUserSubject!: BehaviorSubject<string | null>;
+  public currentUser$!: Observable<string | null>;
 
   constructor(
     private http: HttpClient,
     private config: ConfigService
   ) {
+    // Initialiser les BehaviorSubjects APRÈS l'injection de ConfigService
+    this.isAuthenticatedSubject = new BehaviorSubject<boolean>(this.hasValidToken());
+    this.isAuthenticated$ = this.isAuthenticatedSubject.asObservable();
+
+    this.currentUserSubject = new BehaviorSubject<string | null>(this.getCurrentUsername());
+    this.currentUser$ = this.currentUserSubject.asObservable();
+
     // Démarrer le timer de refresh du token si connecté
     if (this.hasValidToken()) {
       this.scheduleTokenRefresh();
@@ -174,8 +183,11 @@ export class AuthService {
     const expiry = parseInt(expiryTime, 10);
     const now = Date.now() / 1000;
     
+    // Utiliser une valeur par défaut si config n'est pas encore disponible
+    const buffer = this.config?.tokenExpirationBuffer ?? 300;
+    
     // Vérifier si le token expire dans moins de 5 minutes (buffer)
-    return expiry > (now + this.config.tokenExpirationBuffer);
+    return expiry > (now + buffer);
   }
 
   /**
@@ -208,7 +220,10 @@ export class AuthService {
 
     const expiry = parseInt(expiryTime, 10);
     const now = Date.now() / 1000;
-    const timeUntilRefresh = (expiry - now - this.config.tokenExpirationBuffer) * 1000;
+    
+    // Utiliser une valeur par défaut si config n'est pas encore disponible
+    const buffer = this.config?.tokenExpirationBuffer ?? 300;
+    const timeUntilRefresh = (expiry - now - buffer) * 1000;
 
     if (timeUntilRefresh > 0) {
       timer(timeUntilRefresh).pipe(

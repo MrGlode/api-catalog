@@ -1,0 +1,88 @@
+/**
+ * App Layout Styles - GitBook inspired
+ */
+
+.app-layout {
+  min-height: 100vh;
+  display: flex;
+}
+
+// ========================================
+// MAIN CONTENT
+// ========================================
+.app-content {
+  flex: 1;
+  margin-left: var(--sidebar-width);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--color-white);
+  
+  @media (max-width: 768px) {
+    margin-left: 0;
+  }
+}
+
+// ========================================
+// PAGE CONTENT
+// ========================================
+.page-content {
+  flex: 1;
+  padding: var(--spacing-2xl);
+  
+  @media (max-width: 768px) {
+    padding: var(--spacing-lg);
+  }
+}
+
+// ========================================
+// MOBILE OVERLAY
+// ========================================
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 90;
+  animation: fadeIn var(--transition-fast);
+  
+  @media (max-width: 768px) {
+    display: block;
+  }
+}
+
+// ========================================
+// SIDEBAR STATE
+// ========================================
+@media (max-width: 768px) {
+  .app-layout {
+    &.sidebar-open {
+      app-sidebar {
+        transform: translateX(0);
+      }
+    }
+  }
+}
+
+// ========================================
+// CONTENT CONSTRAINTS
+// ========================================
+// For pages that need centered content
+:host ::ng-deep {
+  .content-narrow {
+    max-width: var(--content-max-width);
+    margin: 0 auto;
+  }
+  
+  .content-wide {
+    max-width: var(--content-wide-max-width);
+    margin: 0 auto;
+  }
+  
+  .content-full {
+    max-width: 100%;
+  }
+}
