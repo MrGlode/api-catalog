@@ -1,322 +1,263 @@
+/**
+ * WSO2 Application Service
+ * Handles application management with WSO2 API Manager Devportal
+ */
 import { Injectable } from '@angular/core';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { BaseApiService } from './base-api.service';
+import { environment, getApiUrl } from '../../../environments/environment';
 import {
   Application,
   ApplicationList,
+  ApplicationRequest,
+  ApplicationQueryParams,
   ApplicationKey,
+  ApplicationKeyGenerateRequest,
+  ApplicationKeyReGenerateResponse,
   ApplicationToken,
-  ApplicationTokenGenerateRequest,
-  APIKey,
-  APIKeyGenerateRequest,
-  APIKeyRevokeRequest,
-  ScopeList
-} from '../../models';
+  ApplicationTokenGenerateRequest
+} from '../models';
 
-/**
- * Service de gestion des Applications
- * Gère les applications, clés OAuth et tokens d'accès
- */
 @Injectable({
   providedIn: 'root'
 })
-export class ApplicationService extends BaseApiService {
-  // ==================== APPLICATIONS ====================
+export class ApplicationService {
+
+  constructor(private http: HttpClient) {}
+
+  // ========================================
+  // Applications CRUD
+  // ========================================
 
   /**
-   * Récupère la liste des applications
-   * @param groupId - Filtre par groupe (optionnel)
-   * @param query - Recherche par nom (optionnel)
-   * @param limit - Nombre maximum de résultats
-   * @param offset - Offset pour la pagination
-   * @returns Observable de la liste d'applications
+   * Get list of applications
    */
-  getApplications(
-    groupId?: string,
-    query?: string,
-    limit?: number,
-    offset?: number
-  ): Observable<ApplicationList> {
-    const params = this.buildQueryParams({
-      groupId,
-      query,
-      limit,
-      offset
-    });
+  getApplications(params?: ApplicationQueryParams): Observable<ApplicationList> {
+    const url = getApiUrl('/applications');
+    let httpParams = new HttpParams();
 
-    return this.get<ApplicationList>('/applications', { params });
+    if (params?.query) {
+      httpParams = httpParams.set('query', params.query);
+    }
+    if (params?.limit) {
+      httpParams = httpParams.set('limit', params.limit.toString());
+    }
+    if (params?.offset) {
+      httpParams = httpParams.set('offset', params.offset.toString());
+    }
+    if (params?.sortBy) {
+      httpParams = httpParams.set('sortBy', params.sortBy);
+    }
+    if (params?.sortOrder) {
+      httpParams = httpParams.set('sortOrder', params.sortOrder);
+    }
+
+    return this.http.get<ApplicationList>(url, { params: httpParams });
   }
 
   /**
-   * Récupère les détails d'une application
-   * @param applicationId - Identifiant de l'application
-   * @returns Observable de l'application
+   * Get application by ID
    */
   getApplicationById(applicationId: string): Observable<Application> {
-    return this.get<Application>(`/applications/${applicationId}`);
+    const url = getApiUrl(`/applications/${applicationId}`);
+    
+    return this.http.get<Application>(url);
   }
 
   /**
-   * Crée une nouvelle application
-   * @param application - Données de l'application
-   * @returns Observable de l'application créée
+   * Create new application
    */
-  createApplication(application: Partial<Application>): Observable<Application> {
-    return this.post<Application>('/applications', application);
+  createApplication(application: ApplicationRequest): Observable<Application> {
+    const url = getApiUrl('/applications');
+    
+    return this.http.post<Application>(url, application);
   }
 
   /**
-   * Met à jour une application
-   * @param applicationId - Identifiant de l'application
-   * @param application - Données à mettre à jour
-   * @returns Observable de l'application mise à jour
+   * Update application
    */
-  updateApplication(
-    applicationId: string,
-    application: Partial<Application>
-  ): Observable<Application> {
-    return this.put<Application>(`/applications/${applicationId}`, application);
+  updateApplication(applicationId: string, application: ApplicationRequest): Observable<Application> {
+    const url = getApiUrl(`/applications/${applicationId}`);
+    
+    return this.http.put<Application>(url, application);
   }
 
   /**
-   * Supprime une application
-   * @param applicationId - Identifiant de l'application
-   * @returns Observable vide
+   * Delete application
    */
   deleteApplication(applicationId: string): Observable<void> {
-    return this.delete<void>(`/applications/${applicationId}`);
+    const url = getApiUrl(`/applications/${applicationId}`);
+    
+    return this.http.delete<void>(url);
   }
 
-  // ==================== CLÉS OAUTH ====================
+  // ========================================
+  // Application Keys
+  // ========================================
 
   /**
-   * Génère des clés OAuth pour une application
-   * @param applicationId - Identifiant de l'application
-   * @param keyType - Type de clé (PRODUCTION ou SANDBOX)
-   * @param keyManager - Nom du Key Manager (optionnel, "Resident Key Manager" par défaut)
-   * @param grantTypes - Types de grants OAuth2 supportés
-   * @param callbackUrl - URL de callback pour OAuth2
-   * @param scopes - Scopes requis
-   * @param validityTime - Durée de validité du token (en secondes)
-   * @returns Observable de la clé générée
+   * Get application OAuth keys
    */
-  generateApplicationKeys(
-    applicationId: string,
-    keyType: 'PRODUCTION' | 'SANDBOX',
-    keyManager?: string,
-    grantTypes?: string[],
-    callbackUrl?: string,
-    scopes?: string[],
-    validityTime?: number
-  ): Observable<ApplicationKey> {
-    const body = {
-      keyType,
-      keyManager: keyManager || 'Resident Key Manager',
-      grantTypesToBeSupported: grantTypes || ['client_credentials', 'password', 'refresh_token'],
-      callbackUrl: callbackUrl || '',
-      scopes: scopes || [],
-      validityTime: validityTime || 3600
-    };
-
-    return this.post<ApplicationKey>(
-      `/applications/${applicationId}/generate-keys`,
-      body
-    );
+  getApplicationKeys(applicationId: string): Observable<ApplicationKey[]> {
+    const url = getApiUrl(`/applications/${applicationId}/oauth-keys`);
+    
+    return this.http.get<ApplicationKey[]>(url);
   }
 
   /**
-   * Récupère les clés d'une application
-   * @param applicationId - Identifiant de l'application
-   * @param keyType - Type de clé (PRODUCTION ou SANDBOX)
-   * @returns Observable de la clé
+   * Get specific OAuth key by mapping ID
    */
-  getApplicationKeys(
-    applicationId: string,
-    keyType: 'PRODUCTION' | 'SANDBOX'
-  ): Observable<ApplicationKey> {
-    return this.get<ApplicationKey>(
-      `/applications/${applicationId}/keys/${keyType}`
-    );
+  getApplicationKey(applicationId: string, keyMappingId: string): Observable<ApplicationKey> {
+    const url = getApiUrl(`/applications/${applicationId}/oauth-keys/${keyMappingId}`);
+    
+    return this.http.get<ApplicationKey>(url);
   }
 
   /**
-   * Met à jour les clés d'une application
-   * @param applicationId - Identifiant de l'application
-   * @param keyType - Type de clé
-   * @param keyDetails - Détails de la clé à mettre à jour
-   * @returns Observable de la clé mise à jour
+   * Generate application keys
    */
-  updateApplicationKeys(
-    applicationId: string,
-    keyType: 'PRODUCTION' | 'SANDBOX',
-    keyDetails: Partial<ApplicationKey>
-  ): Observable<ApplicationKey> {
-    return this.put<ApplicationKey>(
-      `/applications/${applicationId}/keys/${keyType}`,
-      keyDetails
-    );
+  generateKeys(applicationId: string, request: ApplicationKeyGenerateRequest): Observable<ApplicationKey> {
+    const url = getApiUrl(`/applications/${applicationId}/generate-keys`);
+    
+    return this.http.post<ApplicationKey>(url, request);
   }
 
   /**
-   * Nettoie les clés d'une application (suppression)
-   * @param applicationId - Identifiant de l'application
-   * @param keyType - Type de clé
-   * @returns Observable vide
+   * Map existing OAuth app keys
    */
-  cleanUpApplicationKeys(
-    applicationId: string,
-    keyType: 'PRODUCTION' | 'SANDBOX'
-  ): Observable<void> {
-    return this.post<void>(
-      `/applications/${applicationId}/keys/${keyType}/clean-up`,
-      {}
-    );
-  }
-
-  // ==================== TOKENS ====================
-
-  /**
-   * Génère un token d'accès pour une application
-   * @param applicationId - Identifiant de l'application
-   * @param keyType - Type de clé
-   * @param request - Requête de génération de token
-   * @returns Observable du token
-   */
-  generateApplicationToken(
-    applicationId: string,
-    keyType: 'PRODUCTION' | 'SANDBOX',
-    request: ApplicationTokenGenerateRequest
-  ): Observable<ApplicationToken> {
-    return this.post<ApplicationToken>(
-      `/applications/${applicationId}/keys/${keyType}/generate-token`,
-      request
-    );
-  }
-
-  // ==================== API KEYS ====================
-
-  /**
-   * Génère une clé API pour une application
-   * @param applicationId - Identifiant de l'application
-   * @param keyType - Type de clé
-   * @param request - Requête de génération de clé API
-   * @returns Observable de la clé API
-   */
-  generateApiKey(
-    applicationId: string,
-    keyType: 'PRODUCTION' | 'SANDBOX',
-    request?: APIKeyGenerateRequest
-  ): Observable<APIKey> {
-    return this.post<APIKey>(
-      `/applications/${applicationId}/api-keys/${keyType}/generate`,
-      request || {}
-    );
-  }
-
-  /**
-   * Révoque une clé API
-   * @param applicationId - Identifiant de l'application
-   * @param keyType - Type de clé
-   * @param request - Requête de révocation contenant la clé API
-   * @returns Observable vide
-   */
-  revokeApiKey(
-    applicationId: string,
-    keyType: 'PRODUCTION' | 'SANDBOX',
-    request: APIKeyRevokeRequest
-  ): Observable<void> {
-    return this.post<void>(
-      `/applications/${applicationId}/api-keys/${keyType}/revoke`,
-      request
-    );
-  }
-
-  // ==================== SCOPES ====================
-
-  /**
-   * Récupère les scopes disponibles pour une application
-   * @param applicationId - Identifiant de l'application
-   * @param filterByUserRoles - Filtrer par rôles de l'utilisateur
-   * @returns Observable de la liste des scopes
-   */
-  getApplicationScopes(
-    applicationId: string,
-    filterByUserRoles?: boolean
-  ): Observable<ScopeList> {
-    const params = this.buildQueryParams({
-      filterByUserRoles
-    });
-
-    return this.get<ScopeList>(
-      `/applications/${applicationId}/scopes`,
-      { params }
-    );
-  }
-
-  // ==================== UTILITAIRES ====================
-
-  /**
-   * Mappe une application OAuth existante
-   * @param applicationId - Identifiant de l'application
-   * @param keyType - Type de clé
-   * @param consumerKey - Clé consumer existante
-   * @param keyManager - Nom du Key Manager
-   * @returns Observable de la clé mappée
-   */
-  mapExistingOAuthApp(
-    applicationId: string,
+  mapKeys(
+    applicationId: string, 
     keyType: 'PRODUCTION' | 'SANDBOX',
     consumerKey: string,
-    keyManager: string
+    consumerSecret: string,
+    keyManager?: string
   ): Observable<ApplicationKey> {
-    const body = {
+    const url = getApiUrl(`/applications/${applicationId}/map-keys`);
+    
+    return this.http.post<ApplicationKey>(url, {
+      keyType,
       consumerKey,
-      keyManager,
-      keyType
-    };
-
-    return this.post<ApplicationKey>(
-      `/applications/${applicationId}/map-keys`,
-      body
-    );
+      consumerSecret,
+      keyManager: keyManager || 'Resident Key Manager'
+    });
   }
 
   /**
-   * Exporte une application
-   * @param applicationId - Identifiant de l'application
-   * @returns Observable du blob de l'export
+   * Update application key (grant types, callback URL)
    */
-  exportApplication(applicationId: string): Observable<Blob> {
-    return this.get<Blob>(
-      `/applications/export?appId=${applicationId}`,
-      { responseType: 'blob' as any }
-    );
+  updateApplicationKey(
+    applicationId: string, 
+    keyMappingId: string,
+    key: Partial<ApplicationKey>
+  ): Observable<ApplicationKey> {
+    const url = getApiUrl(`/applications/${applicationId}/oauth-keys/${keyMappingId}`);
+    
+    return this.http.put<ApplicationKey>(url, key);
   }
 
   /**
-   * Importe une application
-   * @param file - Fichier de l'application à importer
-   * @param preserveOwner - Préserver le propriétaire original
-   * @param skipSubscriptions - Ignorer les souscriptions
-   * @returns Observable de l'application importée
+   * Delete application key
    */
-  importApplication(
-    file: File,
-    preserveOwner?: boolean,
-    skipSubscriptions?: boolean
-  ): Observable<Application> {
+  deleteApplicationKey(applicationId: string, keyMappingId: string): Observable<void> {
+    const url = getApiUrl(`/applications/${applicationId}/oauth-keys/${keyMappingId}`);
+    
+    return this.http.delete<void>(url);
+  }
+
+  /**
+   * Regenerate consumer secret
+   */
+  regenerateSecret(applicationId: string, keyMappingId: string): Observable<ApplicationKeyReGenerateResponse> {
+    const url = getApiUrl(`/applications/${applicationId}/oauth-keys/${keyMappingId}/regenerate-secret`);
+    
+    return this.http.post<ApplicationKeyReGenerateResponse>(url, {});
+  }
+
+  /**
+   * Clean up failed key generation
+   */
+  cleanUpKeys(applicationId: string, keyMappingId: string): Observable<void> {
+    const url = getApiUrl(`/applications/${applicationId}/oauth-keys/${keyMappingId}/clean-up`);
+    
+    return this.http.post<void>(url, {});
+  }
+
+  // ========================================
+  // Application Tokens
+  // ========================================
+
+  /**
+   * Generate application token
+   */
+  generateToken(
+    applicationId: string, 
+    keyMappingId: string,
+    request: ApplicationTokenGenerateRequest
+  ): Observable<ApplicationToken> {
+    const url = getApiUrl(`/applications/${applicationId}/oauth-keys/${keyMappingId}/generate-token`);
+    
+    return this.http.post<ApplicationToken>(url, request);
+  }
+
+  // ========================================
+  // API Keys
+  // ========================================
+
+  /**
+   * Generate API key for application
+   */
+  generateApiKey(
+    applicationId: string, 
+    keyType: 'PRODUCTION' | 'SANDBOX',
+    validityPeriod?: number
+  ): Observable<{ apikey: string; validityTime: number }> {
+    const url = getApiUrl(`/applications/${applicationId}/api-keys/${keyType}/generate`);
+    
+    return this.http.post<{ apikey: string; validityTime: number }>(url, {
+      validityPeriod: validityPeriod || -1 // -1 for unlimited
+    });
+  }
+
+  /**
+   * Revoke API key
+   */
+  revokeApiKey(
+    applicationId: string, 
+    keyType: 'PRODUCTION' | 'SANDBOX',
+    apiKey: string
+  ): Observable<void> {
+    const url = getApiUrl(`/applications/${applicationId}/api-keys/${keyType}/revoke`);
+    
+    return this.http.post<void>(url, { apikey: apiKey });
+  }
+
+  // ========================================
+  // Export/Import
+  // ========================================
+
+  /**
+   * Export application
+   */
+  exportApplication(applicationId: string, withKeys: boolean = false): Observable<Blob> {
+    const url = getApiUrl(`/applications/export`);
+    let params = new HttpParams()
+      .set('appId', applicationId)
+      .set('withKeys', withKeys.toString());
+
+    return this.http.get(url, { params, responseType: 'blob' });
+  }
+
+  /**
+   * Import application
+   */
+  importApplication(file: File, preserveOwner: boolean = false, skipSubscriptions: boolean = false): Observable<Application> {
+    const url = getApiUrl(`/applications/import`);
+    
     const formData = new FormData();
     formData.append('file', file);
-    
-    if (preserveOwner !== undefined) {
-      formData.append('preserveOwner', preserveOwner.toString());
-    }
-    if (skipSubscriptions !== undefined) {
-      formData.append('skipSubscriptions', skipSubscriptions.toString());
-    }
+    formData.append('preserveOwner', preserveOwner.toString());
+    formData.append('skipSubscriptions', skipSubscriptions.toString());
 
-    // Note: Pour FormData, on ne définit pas le Content-Type
-    // car le navigateur le fait automatiquement avec le boundary
-    return this.post<Application>('/applications/import', formData);
+    return this.http.post<Application>(url, formData);
   }
 }

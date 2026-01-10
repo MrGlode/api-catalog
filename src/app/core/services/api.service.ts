@@ -1,272 +1,330 @@
+/**
+ * WSO2 API Service
+ * Handles all API-related operations with WSO2 API Manager Devportal
+ */
 import { Injectable } from '@angular/core';
+import { HttpClient, HttpParams, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { HttpParams } from '@angular/common/http';
-import { BaseApiService } from './base-api.service';
-import {
-  API,
-  APIList,
-  APIInfo,
-  APISearchParams,
-  APICategory,
+import { environment, getApiUrl } from '../../../environments/environment';
+import { 
+  API, 
+  APIList, 
+  APIQueryParams,
   APICategoryList,
+  TagList,
   DocumentList,
   Document,
+  RatingList,
+  Rating,
   CommentList,
   Comment,
-  RatingList,
-  Rating
-} from '../../models';
+  ThrottlingPolicyList
+} from '../models';
 
-/**
- * Service de gestion des API
- * Fournit toutes les opérations CRUD sur les API WSO2
- */
 @Injectable({
   providedIn: 'root'
 })
-export class ApiService extends BaseApiService {
+export class ApiService {
+
+  constructor(private http: HttpClient) {}
+
+  // ========================================
+  // APIs
+  // ========================================
+
   /**
-   * Récupère la liste des API avec filtres et pagination
-   * @param params - Paramètres de recherche
-   * @returns Observable de la liste d'API
+   * Get list of APIs
    */
-  getApis(params?: APISearchParams): Observable<APIList> {
+  getApis(params?: APIQueryParams): Observable<APIList> {
+    const url = getApiUrl('/apis');
     let httpParams = new HttpParams();
 
-    if (params) {
-      if (params.query) {
-        httpParams = httpParams.set('query', params.query);
-      }
-      if (params.limit !== undefined) {
-        httpParams = httpParams.set('limit', params.limit.toString());
-      }
-      if (params.offset !== undefined) {
-        httpParams = httpParams.set('offset', params.offset.toString());
-      }
+    if (params?.query) {
+      httpParams = httpParams.set('query', params.query);
+    }
+    if (params?.limit) {
+      httpParams = httpParams.set('limit', params.limit.toString());
+    }
+    if (params?.offset) {
+      httpParams = httpParams.set('offset', params.offset.toString());
     }
 
-    return this.get<APIList>('/apis', { params: httpParams });
+    const headers = this.getTenantHeader(params?.xWso2Tenant);
+
+    return this.http.get<APIList>(url, { params: httpParams, headers });
   }
 
   /**
-   * Récupère les détails complets d'une API
-   * @param apiId - Identifiant de l'API
-   * @returns Observable de l'API
+   * Get API details by ID
    */
-  getApiById(apiId: string): Observable<API> {
-    return this.get<API>(`/apis/${apiId}`);
+  getApiById(apiId: string, tenant?: string): Observable<API> {
+    const url = getApiUrl(`/apis/${apiId}`);
+    const headers = this.getTenantHeader(tenant);
+    
+    return this.http.get<API>(url, { headers });
   }
 
   /**
-   * Récupère la définition Swagger/OpenAPI d'une API
-   * @param apiId - Identifiant de l'API
-   * @returns Observable de la définition (string JSON)
+   * Get API Swagger/OpenAPI definition
    */
-  getApiSwagger(apiId: string): Observable<any> {
-    return this.get<any>(`/apis/${apiId}/swagger`);
+  getApiDefinition(apiId: string): Observable<string> {
+    const url = getApiUrl(`/apis/${apiId}/swagger`);
+    
+    return this.http.get(url, { responseType: 'text' });
   }
 
   /**
-   * Récupère la miniature d'une API
-   * @param apiId - Identifiant de l'API
-   * @returns Observable du blob de l'image
+   * Get API thumbnail
    */
   getApiThumbnail(apiId: string): Observable<Blob> {
-    return this.get<Blob>(`/apis/${apiId}/thumbnail`, { 
-      responseType: 'blob' as any 
-    });
+    const url = getApiUrl(`/apis/${apiId}/thumbnail`);
+    
+    return this.http.get(url, { responseType: 'blob' });
   }
 
   /**
-   * Recherche des API par critères avancés
-   * @param query - Requête de recherche (ex: "provider:admin", "status:PUBLISHED")
-   * @param limit - Nombre maximum de résultats
-   * @param offset - Offset pour la pagination
-   * @returns Observable de la liste d'API
+   * Get API thumbnail URL
    */
-  searchApis(query: string, limit?: number, offset?: number): Observable<APIList> {
-    return this.getApis({ query, limit, offset });
+  getApiThumbnailUrl(apiId: string): string {
+    return getApiUrl(`/apis/${apiId}/thumbnail`);
   }
 
-  /**
-   * Récupère les catégories d'API disponibles
-   * @returns Observable de la liste des catégories
-   */
-  getApiCategories(): Observable<APICategoryList> {
-    return this.get<APICategoryList>('/api-categories');
-  }
+  // ========================================
+  // Documents
+  // ========================================
 
   /**
-   * Récupère les API d'une catégorie spécifique
-   * @param categoryId - Identifiant de la catégorie
-   * @param limit - Nombre maximum de résultats
-   * @param offset - Offset pour la pagination
-   * @returns Observable de la liste d'API
-   */
-  getApisByCategory(
-    categoryId: string, 
-    limit?: number, 
-    offset?: number
-  ): Observable<APIList> {
-    const params = this.buildPaginationParams(limit, offset);
-    return this.get<APIList>(`/api-categories/${categoryId}/apis`, { params });
-  }
-
-  // ==================== DOCUMENTATION ====================
-
-  /**
-   * Récupère la liste des documents d'une API
-   * @param apiId - Identifiant de l'API
-   * @param limit - Nombre maximum de résultats
-   * @param offset - Offset pour la pagination
-   * @returns Observable de la liste de documents
+   * Get documents for an API
    */
   getApiDocuments(apiId: string, limit?: number, offset?: number): Observable<DocumentList> {
-    const params = this.buildPaginationParams(limit, offset);
-    return this.get<DocumentList>(`/apis/${apiId}/documents`, { params });
+    const url = getApiUrl(`/apis/${apiId}/documents`);
+    let params = new HttpParams();
+
+    if (limit) params = params.set('limit', limit.toString());
+    if (offset) params = params.set('offset', offset.toString());
+
+    return this.http.get<DocumentList>(url, { params });
   }
 
   /**
-   * Récupère un document spécifique
-   * @param apiId - Identifiant de l'API
-   * @param documentId - Identifiant du document
-   * @returns Observable du document
+   * Get document content
    */
-  getApiDocument(apiId: string, documentId: string): Observable<Document> {
-    return this.get<Document>(`/apis/${apiId}/documents/${documentId}`);
+  getDocumentContent(apiId: string, documentId: string): Observable<string> {
+    const url = getApiUrl(`/apis/${apiId}/documents/${documentId}/content`);
+    
+    return this.http.get(url, { responseType: 'text' });
   }
 
-  /**
-   * Récupère le contenu d'un document
-   * @param apiId - Identifiant de l'API
-   * @param documentId - Identifiant du document
-   * @returns Observable du contenu (string ou blob selon le type)
-   */
-  getApiDocumentContent(apiId: string, documentId: string): Observable<any> {
-    return this.get<any>(`/apis/${apiId}/documents/${documentId}/content`);
-  }
-
-  // ==================== COMMENTAIRES ====================
+  // ========================================
+  // Ratings
+  // ========================================
 
   /**
-   * Récupère les commentaires d'une API
-   * @param apiId - Identifiant de l'API
-   * @param limit - Nombre maximum de résultats
-   * @param offset - Offset pour la pagination
-   * @returns Observable de la liste de commentaires
-   */
-  getApiComments(apiId: string, limit?: number, offset?: number): Observable<CommentList> {
-    const params = this.buildPaginationParams(limit, offset);
-    return this.get<CommentList>(`/apis/${apiId}/comments`, { params });
-  }
-
-  /**
-   * Ajoute un commentaire à une API
-   * @param apiId - Identifiant de l'API
-   * @param content - Contenu du commentaire
-   * @param parentCommentId - ID du commentaire parent (pour les réponses)
-   * @returns Observable du commentaire créé
-   */
-  addApiComment(
-    apiId: string, 
-    content: string, 
-    parentCommentId?: string
-  ): Observable<Comment> {
-    const body: Partial<Comment> = { content };
-    if (parentCommentId) {
-      body.parentCommentId = parentCommentId;
-    }
-    return this.post<Comment>(`/apis/${apiId}/comments`, body);
-  }
-
-  /**
-   * Récupère un commentaire spécifique
-   * @param apiId - Identifiant de l'API
-   * @param commentId - Identifiant du commentaire
-   * @returns Observable du commentaire
-   */
-  getApiComment(apiId: string, commentId: string): Observable<Comment> {
-    return this.get<Comment>(`/apis/${apiId}/comments/${commentId}`);
-  }
-
-  /**
-   * Modifie un commentaire
-   * @param apiId - Identifiant de l'API
-   * @param commentId - Identifiant du commentaire
-   * @param content - Nouveau contenu
-   * @returns Observable du commentaire modifié
-   */
-  updateApiComment(apiId: string, commentId: string, content: string): Observable<Comment> {
-    return this.put<Comment>(`/apis/${apiId}/comments/${commentId}`, { content });
-  }
-
-  /**
-   * Supprime un commentaire
-   * @param apiId - Identifiant de l'API
-   * @param commentId - Identifiant du commentaire
-   * @returns Observable vide
-   */
-  deleteApiComment(apiId: string, commentId: string): Observable<void> {
-    return this.delete<void>(`/apis/${apiId}/comments/${commentId}`);
-  }
-
-  /**
-   * Récupère les réponses à un commentaire
-   * @param apiId - Identifiant de l'API
-   * @param commentId - Identifiant du commentaire
-   * @param limit - Nombre maximum de résultats
-   * @param offset - Offset pour la pagination
-   * @returns Observable de la liste de réponses
-   */
-  getCommentReplies(
-    apiId: string, 
-    commentId: string, 
-    limit?: number, 
-    offset?: number
-  ): Observable<CommentList> {
-    const params = this.buildPaginationParams(limit, offset);
-    return this.get<CommentList>(`/apis/${apiId}/comments/${commentId}/replies`, { params });
-  }
-
-  // ==================== NOTATIONS ====================
-
-  /**
-   * Récupère les notations d'une API
-   * @param apiId - Identifiant de l'API
-   * @param limit - Nombre maximum de résultats
-   * @param offset - Offset pour la pagination
-   * @returns Observable de la liste de notations
+   * Get API ratings
    */
   getApiRatings(apiId: string, limit?: number, offset?: number): Observable<RatingList> {
-    const params = this.buildPaginationParams(limit, offset);
-    return this.get<RatingList>(`/apis/${apiId}/ratings`, { params });
+    const url = getApiUrl(`/apis/${apiId}/ratings`);
+    let params = new HttpParams();
+
+    if (limit) params = params.set('limit', limit.toString());
+    if (offset) params = params.set('offset', offset.toString());
+
+    return this.http.get<RatingList>(url, { params });
   }
 
   /**
-   * Récupère la notation de l'utilisateur courant
-   * @param apiId - Identifiant de l'API
-   * @returns Observable de la notation
+   * Get user rating for an API
    */
-  getUserApiRating(apiId: string): Observable<Rating> {
-    return this.get<Rating>(`/apis/${apiId}/user-rating`);
+  getUserRating(apiId: string): Observable<Rating> {
+    const url = getApiUrl(`/apis/${apiId}/user-rating`);
+    
+    return this.http.get<Rating>(url);
   }
 
   /**
-   * Ajoute ou met à jour la notation de l'utilisateur
-   * @param apiId - Identifiant de l'API
-   * @param rating - Note (généralement 1-5)
-   * @returns Observable de la notation
+   * Add or update user rating
    */
-  rateApi(apiId: string, rating: number): Observable<Rating> {
-    return this.put<Rating>(`/apis/${apiId}/user-rating`, { rating });
+  addRating(apiId: string, rating: number): Observable<Rating> {
+    const url = getApiUrl(`/apis/${apiId}/user-rating`);
+    
+    return this.http.put<Rating>(url, { rating });
   }
 
   /**
-   * Supprime la notation de l'utilisateur
-   * @param apiId - Identifiant de l'API
-   * @returns Observable vide
+   * Delete user rating
    */
-  deleteUserApiRating(apiId: string): Observable<void> {
-    return this.delete<void>(`/apis/${apiId}/user-rating`);
+  deleteRating(apiId: string): Observable<void> {
+    const url = getApiUrl(`/apis/${apiId}/user-rating`);
+    
+    return this.http.delete<void>(url);
+  }
+
+  // ========================================
+  // Comments
+  // ========================================
+
+  /**
+   * Get API comments
+   */
+  getApiComments(
+    apiId: string, 
+    limit?: number, 
+    offset?: number,
+    includeReplies?: boolean
+  ): Observable<CommentList> {
+    const url = getApiUrl(`/apis/${apiId}/comments`);
+    let params = new HttpParams();
+
+    if (limit) params = params.set('limit', limit.toString());
+    if (offset) params = params.set('offset', offset.toString());
+    if (includeReplies) params = params.set('includeCommenterInfo', 'true');
+
+    return this.http.get<CommentList>(url, { params });
+  }
+
+  /**
+   * Add comment to API
+   */
+  addComment(apiId: string, content: string, replyTo?: string): Observable<Comment> {
+    const url = getApiUrl(`/apis/${apiId}/comments`);
+    const body: any = { content };
+    
+    if (replyTo) {
+      body.parentCommentId = replyTo;
+    }
+
+    return this.http.post<Comment>(url, body);
+  }
+
+  /**
+   * Update comment
+   */
+  updateComment(apiId: string, commentId: string, content: string): Observable<Comment> {
+    const url = getApiUrl(`/apis/${apiId}/comments/${commentId}`);
+    
+    return this.http.patch<Comment>(url, { content });
+  }
+
+  /**
+   * Delete comment
+   */
+  deleteComment(apiId: string, commentId: string): Observable<void> {
+    const url = getApiUrl(`/apis/${apiId}/comments/${commentId}`);
+    
+    return this.http.delete<void>(url);
+  }
+
+  // ========================================
+  // Categories & Tags
+  // ========================================
+
+  /**
+   * Get all API categories
+   */
+  getCategories(tenant?: string): Observable<APICategoryList> {
+    const url = getApiUrl('/api-categories');
+    const headers = this.getTenantHeader(tenant);
+    
+    return this.http.get<APICategoryList>(url, { headers });
+  }
+
+  /**
+   * Get all tags
+   */
+  getTags(limit?: number, offset?: number, tenant?: string): Observable<TagList> {
+    const url = getApiUrl('/tags');
+    let params = new HttpParams();
+    
+    if (limit) params = params.set('limit', limit.toString());
+    if (offset) params = params.set('offset', offset.toString());
+    
+    const headers = this.getTenantHeader(tenant);
+
+    return this.http.get<TagList>(url, { params, headers });
+  }
+
+  // ========================================
+  // Throttling Policies
+  // ========================================
+
+  /**
+   * Get subscription throttling policies
+   */
+  getThrottlingPolicies(policyLevel: 'subscription' | 'application'): Observable<ThrottlingPolicyList> {
+    const url = getApiUrl(`/throttling-policies/${policyLevel}`);
+    
+    return this.http.get<ThrottlingPolicyList>(url);
+  }
+
+  // ========================================
+  // SDK Generation
+  // ========================================
+
+  /**
+   * Get supported SDK languages
+   */
+  getSdkLanguages(): Observable<string[]> {
+    const url = getApiUrl('/sdk-gen/languages');
+    
+    return this.http.get<string[]>(url);
+  }
+
+  /**
+   * Generate SDK for an API
+   */
+  generateSdk(apiId: string, language: string): Observable<Blob> {
+    const url = getApiUrl(`/apis/${apiId}/sdks/${language}`);
+    
+    return this.http.get(url, { responseType: 'blob' });
+  }
+
+  // ========================================
+  // Helpers
+  // ========================================
+
+  /**
+   * Get tenant header if specified
+   */
+  private getTenantHeader(tenant?: string): HttpHeaders {
+    let headers = new HttpHeaders();
+    
+    if (tenant) {
+      headers = headers.set('X-WSO2-Tenant', tenant);
+    }
+    
+    return headers;
+  }
+
+  /**
+   * Search APIs by various criteria
+   */
+  searchApis(
+    searchTerm?: string,
+    category?: string,
+    tag?: string,
+    status?: string,
+    limit?: number,
+    offset?: number
+  ): Observable<APIList> {
+    const queryParts: string[] = [];
+
+    if (searchTerm) {
+      queryParts.push(searchTerm);
+    }
+    if (category) {
+      queryParts.push(`category:${category}`);
+    }
+    if (tag) {
+      queryParts.push(`tag:${tag}`);
+    }
+    if (status) {
+      queryParts.push(`status:${status}`);
+    }
+
+    return this.getApis({
+      query: queryParts.length > 0 ? queryParts.join(' ') : undefined,
+      limit,
+      offset
+    });
   }
 }

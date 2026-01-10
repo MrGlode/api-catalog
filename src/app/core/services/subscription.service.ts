@@ -1,202 +1,162 @@
+/**
+ * WSO2 Subscription Service
+ * Handles API subscriptions with WSO2 API Manager Devportal
+ */
 import { Injectable } from '@angular/core';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { BaseApiService } from './base-api.service';
+import { environment, getApiUrl } from '../../../environments/environment';
 import {
   Subscription,
   SubscriptionList,
-  ThrottlingPolicy,
+  SubscriptionRequest,
+  SubscriptionQueryParams,
   ThrottlingPolicyList
-} from '../../models';
+} from '../models';
 
-/**
- * Service de gestion des Souscriptions
- * Gère les souscriptions entre applications et API
- */
 @Injectable({
   providedIn: 'root'
 })
-export class SubscriptionService extends BaseApiService {
-  // ==================== SOUSCRIPTIONS ====================
+export class SubscriptionService {
+
+  constructor(private http: HttpClient) {}
+
+  // ========================================
+  // Subscriptions CRUD
+  // ========================================
 
   /**
-   * Récupère la liste des souscriptions
-   * @param apiId - Filtre par API (optionnel)
-   * @param applicationId - Filtre par application (optionnel)
-   * @param groupId - Filtre par groupe (optionnel)
-   * @param limit - Nombre maximum de résultats
-   * @param offset - Offset pour la pagination
-   * @returns Observable de la liste de souscriptions
+   * Get list of subscriptions
    */
-  getSubscriptions(
-    apiId?: string,
-    applicationId?: string,
-    groupId?: string,
-    limit?: number,
-    offset?: number
-  ): Observable<SubscriptionList> {
-    const params = this.buildQueryParams({
-      apiId,
-      applicationId,
-      groupId,
-      limit,
-      offset
-    });
+  getSubscriptions(params?: SubscriptionQueryParams): Observable<SubscriptionList> {
+    const url = getApiUrl('/subscriptions');
+    let httpParams = new HttpParams();
 
-    return this.get<SubscriptionList>('/subscriptions', { params });
+    if (params?.apiId) {
+      httpParams = httpParams.set('apiId', params.apiId);
+    }
+    if (params?.applicationId) {
+      httpParams = httpParams.set('applicationId', params.applicationId);
+    }
+    if (params?.groupId) {
+      httpParams = httpParams.set('groupId', params.groupId);
+    }
+    if (params?.limit) {
+      httpParams = httpParams.set('limit', params.limit.toString());
+    }
+    if (params?.offset) {
+      httpParams = httpParams.set('offset', params.offset.toString());
+    }
+
+    return this.http.get<SubscriptionList>(url, { params: httpParams });
   }
 
   /**
-   * Récupère une souscription par son ID
-   * @param subscriptionId - Identifiant de la souscription
-   * @returns Observable de la souscription
+   * Get subscription by ID
    */
   getSubscriptionById(subscriptionId: string): Observable<Subscription> {
-    return this.get<Subscription>(`/subscriptions/${subscriptionId}`);
+    const url = getApiUrl(`/subscriptions/${subscriptionId}`);
+    
+    return this.http.get<Subscription>(url);
   }
 
   /**
-   * Crée une nouvelle souscription
-   * @param applicationId - Identifiant de l'application
-   * @param apiId - Identifiant de l'API
-   * @param throttlingPolicy - Politique de throttling à appliquer
-   * @returns Observable de la souscription créée
+   * Create new subscription
    */
-  createSubscription(
-    applicationId: string,
-    apiId: string,
-    throttlingPolicy: string
-  ): Observable<Subscription> {
-    const body: Partial<Subscription> = {
-      applicationId,
-      apiId,
-      throttlingPolicy
-    };
-
-    return this.post<Subscription>('/subscriptions', body);
+  createSubscription(subscription: SubscriptionRequest): Observable<Subscription> {
+    const url = getApiUrl('/subscriptions');
+    
+    return this.http.post<Subscription>(url, subscription);
   }
 
   /**
-   * Crée plusieurs souscriptions en une seule requête
-   * @param applicationId - Identifiant de l'application
-   * @param apiIds - Liste des identifiants d'API
-   * @param throttlingPolicy - Politique de throttling commune
-   * @returns Observable de la liste de souscriptions créées
+   * Create multiple subscriptions at once
    */
-  createMultipleSubscriptions(
-    applicationId: string,
-    apiIds: string[],
-    throttlingPolicy: string
-  ): Observable<Subscription[]> {
-    const body = {
-      applicationId,
-      apiIdentifiers: apiIds.map(id => ({ apiId: id })),
-      throttlingPolicy
-    };
-
-    return this.post<Subscription[]>('/subscriptions/multiple', body);
+  createMultipleSubscriptions(subscriptions: SubscriptionRequest[]): Observable<Subscription[]> {
+    const url = getApiUrl('/subscriptions/multiple');
+    
+    return this.http.post<Subscription[]>(url, subscriptions);
   }
 
   /**
-   * Met à jour une souscription (change la politique de throttling)
-   * @param subscriptionId - Identifiant de la souscription
-   * @param throttlingPolicy - Nouvelle politique de throttling
-   * @returns Observable de la souscription mise à jour
+   * Update subscription (change throttling policy)
    */
-  updateSubscription(
-    subscriptionId: string,
-    throttlingPolicy: string
-  ): Observable<Subscription> {
-    const body = { throttlingPolicy };
-    return this.put<Subscription>(`/subscriptions/${subscriptionId}`, body);
+  updateSubscription(subscriptionId: string, throttlingPolicy: string): Observable<Subscription> {
+    const url = getApiUrl(`/subscriptions/${subscriptionId}`);
+    
+    return this.http.put<Subscription>(url, { throttlingPolicy });
   }
 
   /**
-   * Supprime une souscription
-   * @param subscriptionId - Identifiant de la souscription
-   * @returns Observable vide
+   * Delete subscription
    */
   deleteSubscription(subscriptionId: string): Observable<void> {
-    return this.delete<void>(`/subscriptions/${subscriptionId}`);
-  }
-
-  // ==================== POLITIQUES DE THROTTLING ====================
-
-  /**
-   * Récupère les politiques de throttling disponibles
-   * @param policyLevel - Niveau de la politique (application ou subscription)
-   * @param limit - Nombre maximum de résultats
-   * @param offset - Offset pour la pagination
-   * @returns Observable de la liste des politiques
-   */
-  getThrottlingPolicies(
-    policyLevel: 'application' | 'subscription',
-    limit?: number,
-    offset?: number
-  ): Observable<ThrottlingPolicyList> {
-    const params = this.buildPaginationParams(limit, offset);
+    const url = getApiUrl(`/subscriptions/${subscriptionId}`);
     
-    return this.get<ThrottlingPolicyList>(
-      `/throttling-policies/${policyLevel}`,
-      { params }
-    );
+    return this.http.delete<void>(url);
+  }
+
+  // ========================================
+  // Additional Information
+  // ========================================
+
+  /**
+   * Get additional info for subscription workflow
+   */
+  getAdditionalInfoForSubscription(subscriptionId: string): Observable<any> {
+    const url = getApiUrl(`/subscriptions/${subscriptionId}/additionalInfo`);
+    
+    return this.http.get(url);
+  }
+
+  // ========================================
+  // Throttling Policies
+  // ========================================
+
+  /**
+   * Get available subscription throttling policies
+   */
+  getSubscriptionPolicies(): Observable<ThrottlingPolicyList> {
+    const url = getApiUrl('/throttling-policies/subscription');
+    
+    return this.http.get<ThrottlingPolicyList>(url);
   }
 
   /**
-   * Récupère une politique de throttling spécifique
-   * @param policyLevel - Niveau de la politique
-   * @param policyId - Identifiant de la politique
-   * @returns Observable de la politique
+   * Get subscription policy by name
    */
-  getThrottlingPolicyById(
-    policyLevel: 'application' | 'subscription',
-    policyId: string
-  ): Observable<ThrottlingPolicy> {
-    return this.get<ThrottlingPolicy>(
-      `/throttling-policies/${policyLevel}/${policyId}`
-    );
+  getSubscriptionPolicy(policyName: string): Observable<any> {
+    const url = getApiUrl(`/throttling-policies/subscription/${policyName}`);
+    
+    return this.http.get(url);
+  }
+
+  // ========================================
+  // Helper Methods
+  // ========================================
+
+  /**
+   * Get subscriptions for a specific API
+   */
+  getApiSubscriptions(apiId: string, limit?: number, offset?: number): Observable<SubscriptionList> {
+    return this.getSubscriptions({ apiId, limit, offset });
   }
 
   /**
-   * Récupère les politiques de throttling au niveau subscription
-   * Raccourci pour getThrottlingPolicies avec policyLevel='subscription'
-   * @param limit - Nombre maximum de résultats
-   * @param offset - Offset pour la pagination
-   * @returns Observable de la liste des politiques
+   * Get subscriptions for a specific application
    */
-  getSubscriptionThrottlingPolicies(
-    limit?: number,
-    offset?: number
-  ): Observable<ThrottlingPolicyList> {
-    return this.getThrottlingPolicies('subscription', limit, offset);
+  getApplicationSubscriptions(applicationId: string, limit?: number, offset?: number): Observable<SubscriptionList> {
+    return this.getSubscriptions({ applicationId, limit, offset });
   }
 
   /**
-   * Récupère les politiques de throttling au niveau application
-   * Raccourci pour getThrottlingPolicies avec policyLevel='application'
-   * @param limit - Nombre maximum de résultats
-   * @param offset - Offset pour la pagination
-   * @returns Observable de la liste des politiques
+   * Check if an API is subscribed by an application
    */
-  getApplicationThrottlingPolicies(
-    limit?: number,
-    offset?: number
-  ): Observable<ThrottlingPolicyList> {
-    return this.getThrottlingPolicies('application', limit, offset);
-  }
-
-  // ==================== UTILITAIRES ====================
-
-  /**
-   * Vérifie si une application est déjà souscrite à une API
-   * @param applicationId - Identifiant de l'application
-   * @param apiId - Identifiant de l'API
-   * @returns Observable booléen
-   */
-  isSubscribed(applicationId: string, apiId: string): Observable<boolean> {
+  isSubscribed(apiId: string, applicationId: string): Observable<boolean> {
     return new Observable(observer => {
-      this.getSubscriptions(apiId, applicationId).subscribe({
+      this.getSubscriptions({ apiId, applicationId, limit: 1 }).subscribe({
         next: (result) => {
-          observer.next(result.count > 0);
+          observer.next(result.count !== undefined && result.count > 0);
           observer.complete();
         },
         error: (err) => {
@@ -207,32 +167,20 @@ export class SubscriptionService extends BaseApiService {
   }
 
   /**
-   * Récupère toutes les souscriptions d'une application
-   * @param applicationId - Identifiant de l'application
-   * @param limit - Nombre maximum de résultats
-   * @param offset - Offset pour la pagination
-   * @returns Observable de la liste de souscriptions
+   * Subscribe to an API with a specific application and policy
    */
-  getApplicationSubscriptions(
-    applicationId: string,
-    limit?: number,
-    offset?: number
-  ): Observable<SubscriptionList> {
-    return this.getSubscriptions(undefined, applicationId, undefined, limit, offset);
+  subscribeToApi(apiId: string, applicationId: string, throttlingPolicy: string): Observable<Subscription> {
+    return this.createSubscription({
+      apiId,
+      applicationId,
+      throttlingPolicy
+    });
   }
 
   /**
-   * Récupère toutes les souscriptions à une API
-   * @param apiId - Identifiant de l'API
-   * @param limit - Nombre maximum de résultats
-   * @param offset - Offset pour la pagination
-   * @returns Observable de la liste de souscriptions
+   * Unsubscribe from an API
    */
-  getApiSubscriptions(
-    apiId: string,
-    limit?: number,
-    offset?: number
-  ): Observable<SubscriptionList> {
-    return this.getSubscriptions(apiId, undefined, undefined, limit, offset);
+  unsubscribeFromApi(subscriptionId: string): Observable<void> {
+    return this.deleteSubscription(subscriptionId);
   }
 }

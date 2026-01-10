@@ -1,277 +1,308 @@
-import { Injectable } from '@angular/core';
+/**
+ * WSO2 Authentication Service
+ * Handles OAuth2 authentication with WSO2 API Manager
+ */
+import { Injectable, signal, computed } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
-import { Observable, BehaviorSubject, throwError, timer } from 'rxjs';
+import { Observable, BehaviorSubject, throwError, of } from 'rxjs';
 import { map, tap, catchError, switchMap } from 'rxjs/operators';
-import { ConfigService } from './config.service';
-import { TokenResponse } from '../../models';
+import { environment, getOAuthUrl } from '../../../environments/environment';
+import { DCRRequest, DCRResponse, TokenResponse, AuthState, LoginCredentials, UserInfo} from '../models';
 
-/**
- * Interface pour les informations décodées du JWT
- */
-interface JwtPayload {
-  sub: string;           // Subject (username)
-  exp: number;           // Expiration timestamp
-  iat: number;           // Issued at timestamp
-  scope: string;         // Scopes
-  [key: string]: any;    // Autres propriétés
-}
+const AUTH_STORAGE_KEY = 'wso2_auth_state';
+const DCR_STORAGE_KEY = 'wso2_dcr_client';
 
-/**
- * Service d'authentification
- * Gère l'authentification OAuth2/JWT avec WSO2 API Manager
- */
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
-  private readonly TOKEN_KEY = 'wso2_access_token';
-  private readonly REFRESH_TOKEN_KEY = 'wso2_refresh_token';
-  private readonly TOKEN_EXPIRY_KEY = 'wso2_token_expiry';
+  private authState = new BehaviorSubject<AuthState>({
+    isAuthenticated: false
+  });
 
-  /**
-   * Observable du statut d'authentification
-   * Initialisé dans le constructeur pour éviter les problèmes d'injection
-   */
-  private isAuthenticatedSubject!: BehaviorSubject<boolean>;
-  public isAuthenticated$!: Observable<boolean>;
+  // Public observables
+  authState$ = this.authState.asObservable();
+  isAuthenticated$ = this.authState$.pipe(map(state => state.isAuthenticated));
+  user$ = this.authState$.pipe(map(state => state.user));
 
-  /**
-   * Observable de l'utilisateur courant
-   * Initialisé dans le constructeur pour éviter les problèmes d'injection
-   */
-  private currentUserSubject!: BehaviorSubject<string | null>;
-  public currentUser$!: Observable<string | null>;
+  // Signals for modern Angular
+  isAuthenticated = signal(false);
+  currentUser = signal<UserInfo | null>(null);
 
-  constructor(
-    private http: HttpClient,
-    private config: ConfigService
-  ) {
-    // Initialiser les BehaviorSubjects APRÈS l'injection de ConfigService
-    this.isAuthenticatedSubject = new BehaviorSubject<boolean>(this.hasValidToken());
-    this.isAuthenticated$ = this.isAuthenticatedSubject.asObservable();
-
-    this.currentUserSubject = new BehaviorSubject<string | null>(this.getCurrentUsername());
-    this.currentUser$ = this.currentUserSubject.asObservable();
-
-    // Démarrer le timer de refresh du token si connecté
-    if (this.hasValidToken()) {
-      this.scheduleTokenRefresh();
-    }
+  constructor(private http: HttpClient) {
+    this.loadStoredAuth();
   }
 
   /**
-   * Authentification avec username et password
-   * @param username - Nom d'utilisateur
-   * @param password - Mot de passe
-   * @returns Observable du token
+   * Load stored authentication state
    */
-  login(username: string, password: string): Observable<TokenResponse> {
-    const body = new HttpParams()
-      .set('grant_type', 'password')
-      .set('username', username)
-      .set('password', password)
-      .set('scope', this.config.scopes);
-
-    const headers = new HttpHeaders({
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Authorization': 'Basic ' + this.getBasicAuthHeader()
-    });
-
-    return this.http.post<any>(this.config.tokenUrl, body.toString(), { headers }).pipe(
-      map(response => this.mapTokenResponse(response)),
-      tap(token => this.handleSuccessfulAuth(token)),
-      catchError(error => {
-        console.error('Login failed:', error);
-        return throwError(() => new Error('Échec de l\'authentification'));
-      })
-    );
-  }
-
-  /**
-   * Rafraîchir le token d'accès
-   * @returns Observable du nouveau token
-   */
-  refreshToken(): Observable<TokenResponse> {
-    const refreshToken = this.getRefreshToken();
-    
-    if (!refreshToken) {
-      return throwError(() => new Error('Aucun refresh token disponible'));
-    }
-
-    const body = new HttpParams()
-      .set('grant_type', 'refresh_token')
-      .set('refresh_token', refreshToken);
-
-    const headers = new HttpHeaders({
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Authorization': 'Basic ' + this.getBasicAuthHeader()
-    });
-
-    return this.http.post<any>(this.config.tokenUrl, body.toString(), { headers }).pipe(
-      map(response => this.mapTokenResponse(response)),
-      tap(token => this.handleSuccessfulAuth(token)),
-      catchError(error => {
-        console.error('Token refresh failed:', error);
-        this.logout();
-        return throwError(() => new Error('Échec du rafraîchissement du token'));
-      })
-    );
-  }
-
-  /**
-   * Déconnexion
-   */
-  logout(): void {
-    localStorage.removeItem(this.TOKEN_KEY);
-    localStorage.removeItem(this.REFRESH_TOKEN_KEY);
-    localStorage.removeItem(this.TOKEN_EXPIRY_KEY);
-    this.isAuthenticatedSubject.next(false);
-    this.currentUserSubject.next(null);
-  }
-
-  /**
-   * Récupère le token d'accès
-   * @returns Token d'accès ou null
-   */
-  getAccessToken(): string | null {
-    return localStorage.getItem(this.TOKEN_KEY);
-  }
-
-  /**
-   * Récupère le refresh token
-   * @returns Refresh token ou null
-   */
-  getRefreshToken(): string | null {
-    return localStorage.getItem(this.REFRESH_TOKEN_KEY);
-  }
-
-  /**
-   * Vérifie si l'utilisateur est authentifié
-   * @returns true si un token valide existe
-   */
-  isAuthenticated(): boolean {
-    return this.hasValidToken();
-  }
-
-  /**
-   * Récupère le nom d'utilisateur depuis le JWT
-   * @returns Nom d'utilisateur ou null
-   */
-  getCurrentUsername(): string | null {
-    const token = this.getAccessToken();
-    if (!token) return null;
-
+  private loadStoredAuth(): void {
     try {
-      const payload = this.decodeJwt(token);
-      return payload.sub || null;
-    } catch (error) {
+      const stored = localStorage.getItem(AUTH_STORAGE_KEY);
+      if (stored) {
+        const state: AuthState = JSON.parse(stored);
+        
+        // Check if token is still valid
+        if (state.expiresAt && state.expiresAt > Date.now()) {
+          this.authState.next(state);
+          this.isAuthenticated.set(state.isAuthenticated);
+          this.currentUser.set(state.user || null);
+        } else if (state.refreshToken) {
+          // Try to refresh token
+          this.refreshToken(state.refreshToken).subscribe();
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load stored auth state', e);
+    }
+  }
+
+  /**
+   * Save authentication state
+   */
+  private saveAuthState(state: AuthState): void {
+    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(state));
+    this.authState.next(state);
+    this.isAuthenticated.set(state.isAuthenticated);
+    this.currentUser.set(state.user || null);
+  }
+
+  /**
+   * Get stored DCR client credentials
+   */
+  private getStoredDCRClient(): DCRResponse | null {
+    try {
+      const stored = localStorage.getItem(DCR_STORAGE_KEY);
+      return stored ? JSON.parse(stored) : null;
+    } catch {
       return null;
     }
   }
 
   /**
-   * Vérifie si le token est expiré ou va expirer bientôt
-   * @returns true si le token est valide
+   * Save DCR client credentials
    */
-  private hasValidToken(): boolean {
-    const token = this.getAccessToken();
-    if (!token) return false;
-
-    const expiryTime = localStorage.getItem(this.TOKEN_EXPIRY_KEY);
-    if (!expiryTime) return false;
-
-    const expiry = parseInt(expiryTime, 10);
-    const now = Date.now() / 1000;
-    
-    // Utiliser une valeur par défaut si config n'est pas encore disponible
-    const buffer = this.config?.tokenExpirationBuffer ?? 300;
-    
-    // Vérifier si le token expire dans moins de 5 minutes (buffer)
-    return expiry > (now + buffer);
+  private saveDCRClient(client: DCRResponse): void {
+    localStorage.setItem(DCR_STORAGE_KEY, JSON.stringify(client));
   }
 
   /**
-   * Gère une authentification réussie
-   * @param token - Réponse du token
+   * Register DCR application (Dynamic Client Registration)
    */
-  private handleSuccessfulAuth(token: TokenResponse): void {
-    localStorage.setItem(this.TOKEN_KEY, token.accessToken);
+  registerDCRApplication(adminUsername: string, adminPassword: string): Observable<DCRResponse> {
+    const url = `${environment.wso2.baseUrl}${environment.wso2.oauth.dcrEndpoint}`;
     
-    if (token.refreshToken) {
-      localStorage.setItem(this.REFRESH_TOKEN_KEY, token.refreshToken);
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Authorization': 'Basic ' + btoa(`${adminUsername}:${adminPassword}`)
+    });
+
+    const body: DCRRequest = {
+      clientName: environment.wso2.dcr.clientName,
+      grantType: environment.wso2.dcr.grantTypes,
+      callbackUrl: environment.wso2.dcr.callbackUrl,
+      saasApp: true,
+      owner: adminUsername
+    };
+
+    return this.http.post<DCRResponse>(url, body, { headers }).pipe(
+      tap(response => this.saveDCRClient(response)),
+      catchError(error => {
+        console.error('DCR registration failed', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  /**
+   * Login with username and password
+   */
+  login(credentials: LoginCredentials): Observable<AuthState> {
+    const dcrClient = this.getStoredDCRClient();
+    
+    if (!dcrClient) {
+      return throwError(() => new Error('DCR client not registered. Please register first.'));
     }
 
-    const expiryTime = Math.floor(Date.now() / 1000) + token.expiresIn;
-    localStorage.setItem(this.TOKEN_EXPIRY_KEY, expiryTime.toString());
-
-    this.isAuthenticatedSubject.next(true);
-    this.currentUserSubject.next(this.getCurrentUsername());
-
-    // Planifier le refresh du token
-    this.scheduleTokenRefresh();
+    return this.getToken(
+      dcrClient.clientId,
+      dcrClient.clientSecret,
+      credentials.username,
+      credentials.password
+    );
   }
 
   /**
-   * Planifie le rafraîchissement automatique du token
+   * Get OAuth2 token
    */
-  private scheduleTokenRefresh(): void {
-    const expiryTime = localStorage.getItem(this.TOKEN_EXPIRY_KEY);
-    if (!expiryTime) return;
-
-    const expiry = parseInt(expiryTime, 10);
-    const now = Date.now() / 1000;
+  private getToken(
+    clientId: string,
+    clientSecret: string,
+    username: string,
+    password: string
+  ): Observable<AuthState> {
+    const url = getOAuthUrl('tokenEndpoint');
     
-    // Utiliser une valeur par défaut si config n'est pas encore disponible
-    const buffer = this.config?.tokenExpirationBuffer ?? 300;
-    const timeUntilRefresh = (expiry - now - buffer) * 1000;
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Authorization': 'Basic ' + btoa(`${clientId}:${clientSecret}`)
+    });
 
-    if (timeUntilRefresh > 0) {
-      timer(timeUntilRefresh).pipe(
-        switchMap(() => this.refreshToken())
-      ).subscribe({
-        next: () => console.log('Token rafraîchi automatiquement'),
-        error: (err) => console.error('Erreur lors du refresh automatique:', err)
+    const scopes = Object.values(environment.wso2.scopes).join(' ');
+    
+    const body = new HttpParams()
+      .set('grant_type', 'password')
+      .set('username', username)
+      .set('password', password)
+      .set('scope', scopes);
+
+    return this.http.post<TokenResponse>(url, body.toString(), { headers }).pipe(
+      map(response => this.createAuthState(response, clientId, clientSecret)),
+      tap(state => this.saveAuthState(state)),
+      switchMap(state => this.fetchUserInfo(state)),
+      catchError(error => {
+        console.error('Token request failed', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  /**
+   * Refresh access token
+   */
+  refreshToken(refreshToken: string): Observable<AuthState> {
+    const dcrClient = this.getStoredDCRClient();
+    
+    if (!dcrClient) {
+      return throwError(() => new Error('DCR client not found'));
+    }
+
+    const url = getOAuthUrl('tokenEndpoint');
+    
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Authorization': 'Basic ' + btoa(`${dcrClient.clientId}:${dcrClient.clientSecret}`)
+    });
+
+    const body = new HttpParams()
+      .set('grant_type', 'refresh_token')
+      .set('refresh_token', refreshToken);
+
+    return this.http.post<TokenResponse>(url, body.toString(), { headers }).pipe(
+      map(response => this.createAuthState(response, dcrClient.clientId, dcrClient.clientSecret)),
+      tap(state => this.saveAuthState(state)),
+      catchError(error => {
+        console.error('Token refresh failed', error);
+        this.logout();
+        return throwError(() => error);
+      })
+    );
+  }
+
+  /**
+   * Fetch user info from OAuth2 userinfo endpoint
+   */
+  private fetchUserInfo(state: AuthState): Observable<AuthState> {
+    if (!state.accessToken) {
+      return of(state);
+    }
+
+    const url = getOAuthUrl('userinfoEndpoint');
+    const headers = new HttpHeaders({
+      'Authorization': `Bearer ${state.accessToken}`
+    });
+
+    return this.http.get<UserInfo>(url, { headers }).pipe(
+      map(userInfo => ({
+        ...state,
+        user: userInfo
+      })),
+      tap(updatedState => this.saveAuthState(updatedState)),
+      catchError(() => of(state)) // If userinfo fails, continue with existing state
+    );
+  }
+
+  /**
+   * Create auth state from token response
+   */
+  private createAuthState(
+    tokenResponse: TokenResponse,
+    clientId: string,
+    clientSecret: string
+  ): AuthState {
+    return {
+      isAuthenticated: true,
+      accessToken: tokenResponse.access_token,
+      refreshToken: tokenResponse.refresh_token,
+      expiresAt: Date.now() + (tokenResponse.expires_in * 1000),
+      clientId,
+      clientSecret
+    };
+  }
+
+  /**
+   * Logout
+   */
+  logout(): void {
+    const state = this.authState.getValue();
+    
+    // Optionally revoke token
+    if (state.accessToken) {
+      this.revokeToken(state.accessToken).subscribe({
+        error: () => {} // Ignore revoke errors
       });
     }
+
+    // Clear state
+    localStorage.removeItem(AUTH_STORAGE_KEY);
+    this.authState.next({ isAuthenticated: false });
+    this.isAuthenticated.set(false);
+    this.currentUser.set(null);
   }
 
   /**
-   * Décode un JWT sans vérification de signature
-   * @param token - Token JWT
-   * @returns Payload décodé
+   * Revoke token
    */
-  private decodeJwt(token: string): JwtPayload {
-    const parts = token.split('.');
-    if (parts.length !== 3) {
-      throw new Error('Token JWT invalide');
+  private revokeToken(token: string): Observable<void> {
+    const dcrClient = this.getStoredDCRClient();
+    if (!dcrClient) {
+      return of(void 0);
     }
 
-    const payload = parts[1];
-    const decoded = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
-    return JSON.parse(decoded);
+    const url = getOAuthUrl('revokeEndpoint');
+    
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Authorization': 'Basic ' + btoa(`${dcrClient.clientId}:${dcrClient.clientSecret}`)
+    });
+
+    const body = new HttpParams().set('token', token);
+
+    return this.http.post<void>(url, body.toString(), { headers });
   }
 
   /**
-   * Génère le header Basic Auth pour OAuth2
-   * @returns Header Basic Auth encodé en base64
+   * Get current access token
    */
-  private getBasicAuthHeader(): string {
-    const credentials = `${this.config.clientId}:${this.config.clientSecret}`;
-    return btoa(credentials);
+  getAccessToken(): string | undefined {
+    return this.authState.getValue().accessToken;
   }
 
   /**
-   * Mappe la réponse de l'API vers notre interface TokenResponse
-   * @param response - Réponse brute de l'API
-   * @returns TokenResponse normalisé
+   * Check if token needs refresh (5 minutes before expiry)
    */
-  private mapTokenResponse(response: any): TokenResponse {
-    return {
-      accessToken: response.access_token,
-      refreshToken: response.refresh_token,
-      scope: response.scope,
-      tokenType: response.token_type,
-      expiresIn: response.expires_in
-    };
+  shouldRefreshToken(): boolean {
+    const state = this.authState.getValue();
+    if (!state.expiresAt) return false;
+    
+    const fiveMinutes = 5 * 60 * 1000;
+    return state.expiresAt - Date.now() < fiveMinutes;
+  }
+
+  /**
+   * Get current auth state
+   */
+  getCurrentState(): AuthState {
+    return this.authState.getValue();
   }
 }

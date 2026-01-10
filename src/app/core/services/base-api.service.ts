@@ -3,7 +3,7 @@ import { HttpClient, HttpHeaders, HttpParams, HttpErrorResponse } from '@angular
 import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { ConfigService } from './config.service';
-import { ApiError } from '../../models';
+import { ApiError } from '../models';
 
 /**
  * Options pour les requêtes HTTP
