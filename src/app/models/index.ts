@@ -6,9 +6,6 @@
  * import { API, APIList, Application, Subscription } from './models';
  */
 
-// Modèles communs
-export * from './common.models';
-
 // Modèles des API
 export * from './api.models';
 
@@ -20,6 +17,3 @@ export * from './auth.models';
 
 // Modèles des souscriptions
 export * from './subscription.models';
-
-// Modèles de documentation
-export * from './document.models';
