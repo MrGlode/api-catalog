@@ -4,22 +4,24 @@ import { Pagination } from './common.models';
  * Informations basiques d'une API (utilisé dans les listes)
  */
 export interface APIInfo {
-  id: string;
-  name: string;
+  id?: string;
+  name?: string;
+  displayName?: string;
   description?: string;
-  context: string;
-  version: string;
-  type: string;
+  context?: string;
+  version?: string;
+  type?: string;
   createdTime?: string;
-  provider: string;
-  lifeCycleStatus: string;
+  provider?: string;
+  lifeCycleStatus?: 'CREATED' | 'PROTOTYPED' | 'PUBLISHED' | 'BLOCKED' | 'DEPRECATED' | 'RETIRED';
   thumbnailUri?: string;
   avgRating?: string;
-  throttlingPolicies: string[];
+  throttlingPolicies?: string[];
   advertiseInfo?: AdvertiseInfo;
   businessInformation?: APIBusinessInformation;
-  isSubscriptionAvailable: boolean;
+  isSubscriptionAvailable?: boolean;
   monetizationLabel?: string;
+  gatewayType?: string;
   gatewayVendor?: string;
   additionalProperties?: AdditionalProperty[];
   monetizedInfo?: boolean;
@@ -31,26 +33,18 @@ export interface APIInfo {
  * Liste d'API avec pagination
  */
 export interface APIList {
-  count: number;
-  list: APIInfo[];
-  pagination: Pagination;
+  count?: number;
+  list?: APIInfo[];
+  pagination?: Pagination;
 }
 
 /**
  * Détails complets d'une API
  */
-export interface API {
-  id: string;
-  name: string;
-  description?: string;
-  context: string;
-  version: string;
-  provider: string;
+export interface API extends APIInfo {
   apiDefinition?: string;
   wsdlUri?: string;
-  lifeCycleStatus: string;
   isDefaultVersion?: boolean;
-  type: string;
   transport?: string[];
   operations?: APIOperation[];
   authorizationHeader?: string;
@@ -59,15 +53,15 @@ export interface API {
   tags?: string[];
   tiers?: APITier[];
   hasThumbnail?: boolean;
-  additionalProperties?: AdditionalProperty[];
   monetization?: APIMonetizationInfo;
-  endpointURLs?: EndpointURL[];
-  businessInformation?: APIBusinessInformation;
-  corsConfiguration?: CorsConfiguration;
-  createdTime?: string;
-  lastUpdatedTime?: string;
+  endpointURLs?: APIEndpointURLs[];
+  environmentList?: string[];
+  scopes?: ScopeInfo[];
+  subscriptions?: number;
   categories?: string[];
-  subtype?: string;
+  keyManagers?: any;
+  lastUpdatedTime?: string;
+  asyncTransportProtocols?: string[];
 }
 
 /**
@@ -77,14 +71,18 @@ export interface APIOperation {
   id?: string;
   target?: string;
   verb?: string;
+  authType?: string;
+  throttlingPolicy?: string;
+  scopes?: string[];
+  usedProductIds?: string[];
 }
 
 /**
  * Tier de souscription avec informations de monétisation
  */
 export interface APITier {
-  tierName: string;
-  tierPlan: string;
+  tierName?: string;
+  tierPlan?: 'FREE' | 'COMMERCIAL';
   monetizationAttributes?: MonetizationAttributes;
 }
 
@@ -103,16 +101,27 @@ export interface MonetizationAttributes {
  */
 export interface APIMonetizationInfo {
   enabled: boolean;
-  properties?: Record<string, string>;
 }
 
 /**
  * URL d'un endpoint
  */
-export interface EndpointURL {
+export interface APIEndpointURLs {
   environmentType?: string;
   environmentName?: string;
-  environmentURL?: string;
+  environmentDisplayName?: string;
+  URLs?: {
+    http?: string;
+    https?: string;
+    ws?: string;
+    wss?: string;
+  };
+  defaultVersionURLs?: {
+    http?: string;
+    https?: string;
+    ws?: string;
+    wss?: string;
+  };
 }
 
 /**
@@ -151,26 +160,27 @@ export interface AdvertiseInfo {
  * Propriété additionnelle personnalisée
  */
 export interface AdditionalProperty {
-  name: string;
-  value: string;
-  display: boolean;
+  name?: string;
+  value?: string;
+  display?: boolean;
 }
 
 /**
  * Catégorie d'API
  */
 export interface APICategory {
-  id: string;
-  name: string;
+  id?: string;
+  name?: string;
   description?: string;
+  numberOfAPIs?: number;
 }
 
 /**
  * Liste de catégories d'API
  */
 export interface APICategoryList {
-  count: number;
-  list: APICategory[];
+  count?: number;
+  list?: APICategory[];
 }
 
 /**
@@ -181,4 +191,103 @@ export interface APISearchParams {
   limit?: number;
   offset?: number;
   tenant?: string;
+}
+
+/**
+ * Informations sur le scope d'API
+ */
+export interface ScopeInfo {
+  key?: string;
+  name?: string;
+  roles?: string[];
+  description?: string;
+}
+
+/**
+ * Tag
+ */
+export interface Tag {
+  value?: string;
+  count?: number;
+}
+
+/**
+ * Tag List
+ */
+export interface TagList {
+  count?: number;
+  list?: Tag[];
+  pagination?: Pagination;
+}
+
+/**
+ * Document
+ */
+export interface Document {
+  documentId?: string;
+  name?: string;
+  type?: 'HOWTO' | 'SAMPLES' | 'PUBLIC_FORUM' | 'SUPPORT_FORUM' | 'API_MESSAGE_FORMAT' | 'SWAGGER_DOC' | 'OTHER';
+  summary?: string;
+  sourceType?: 'INLINE' | 'MARKDOWN' | 'URL' | 'FILE';
+  sourceUrl?: string;
+  otherTypeName?: string;
+}
+
+/**
+ * Document List
+ */
+export interface DocumentList {
+  count?: number;
+  list?: Document[];
+  pagination?: Pagination;
+}
+
+/**
+ * Rating
+ */
+export interface Rating {
+  ratingId?: string;
+  apiId?: string;
+  ratedBy?: string;
+  rating?: number;
+}
+
+/**
+ * Rating List
+ */
+export interface RatingList {
+  avgRating?: string;
+  userRating?: number;
+  count?: number;
+  list?: Rating[];
+  pagination?: Pagination;
+}
+
+/**
+ * Comment
+ */
+export interface Comment {
+  id?: string;
+  content?: string;
+  createdTime?: string;
+  createdBy?: string;
+  updatedTime?: string;
+  category?: string;
+  parentCommentId?: string;
+  entryPoint?: 'devPortal' | 'publisher';
+  commenterInfo?: {
+    firstName?: string;
+    lastName?: string;
+    fullName?: string;
+  };
+  replies?: CommentList;
+}
+
+/**
+ * Comment List
+ */
+export interface CommentList {
+  count?: number;
+  list?: Comment[];
+  pagination?: Pagination;
 }
