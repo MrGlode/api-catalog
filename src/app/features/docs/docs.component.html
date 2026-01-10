@@ -1,0 +1,111 @@
+<!-- Documentation Page -->
+<div class="docs-page">
+  
+  <!-- Mobile Header -->
+  <div class="docs-mobile-header">
+    <button class="menu-toggle" (click)="toggleSidebar()">
+      <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20">
+        <path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"/>
+      </svg>
+      Menu
+    </button>
+    @if (currentPage) {
+      <span class="current-page-title">{{ currentPage.title }}</span>
+    }
+  </div>
+
+  <!-- Sidebar -->
+  <aside class="docs-sidebar" [class.open]="sidebarOpen">
+    <div class="sidebar-header">
+      <h2 class="sidebar-title">Documentation</h2>
+      <button class="sidebar-close" (click)="toggleSidebar()">
+        <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20">
+          <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+        </svg>
+      </button>
+    </div>
+    
+    <nav class="sidebar-nav">
+      @for (section of docSections; track section.id) {
+        <div class="nav-section" [class.active]="isSectionActive(section)">
+          <div class="nav-section-header">
+            <span class="nav-section-icon">{{ section.icon }}</span>
+            <span class="nav-section-title">{{ section.title }}</span>
+          </div>
+          @if (section.children) {
+            <ul class="nav-section-items">
+              @for (page of section.children; track page.slug) {
+                <li>
+                  <a 
+                    class="nav-link"
+                    [class.active]="isActivePage(page.slug)"
+                    (click)="goToPage(page.slug)"
+                  >
+                    {{ page.title }}
+                  </a>
+                </li>
+              }
+            </ul>
+          }
+        </div>
+      }
+    </nav>
+  </aside>
+  
+  <!-- Overlay for mobile -->
+  @if (sidebarOpen) {
+    <div class="sidebar-overlay" (click)="toggleSidebar()"></div>
+  }
+
+  <!-- Main Content -->
+  <main class="docs-content">
+    @if (isLoading) {
+      <div class="loading">
+        <div class="loading-spinner"></div>
+        <span>Chargement...</span>
+      </div>
+    } @else if (currentPage) {
+      <article class="doc-article">
+        <div class="article-content" [innerHTML]="currentPage.content | markdown"></div>
+      </article>
+      
+      <!-- Navigation -->
+      <nav class="doc-navigation">
+        @if (previousPage) {
+          <a class="nav-prev" (click)="goToPage(previousPage.slug)">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+              <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"/>
+            </svg>
+            <div class="nav-text">
+              <span class="nav-label">Précédent</span>
+              <span class="nav-title">{{ previousPage.title }}</span>
+            </div>
+          </a>
+        } @else {
+          <div></div>
+        }
+        
+        @if (nextPage) {
+          <a class="nav-next" (click)="goToPage(nextPage.slug)">
+            <div class="nav-text">
+              <span class="nav-label">Suivant</span>
+              <span class="nav-title">{{ nextPage.title }}</span>
+            </div>
+            <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+              <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+            </svg>
+          </a>
+        }
+      </nav>
+    } @else {
+      <div class="not-found">
+        <div class="not-found-icon">📄</div>
+        <h2>Page non trouvée</h2>
+        <p>Cette page de documentation n'existe pas.</p>
+        <button class="btn btn-primary" (click)="goToPage('getting-started')">
+          Retour au guide de démarrage
+        </button>
+      </div>
+    }
+  </main>
+</div>

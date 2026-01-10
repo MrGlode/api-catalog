@@ -28,10 +28,10 @@
 // ========================================
 .page-content {
   flex: 1;
-  padding: var(--spacing-2xl);
+  padding: var(--spacing-lg) var(--spacing-md);
   
   @media (max-width: 768px) {
-    padding: var(--spacing-lg);
+    padding: var(--spacing-md);
   }
 }
 

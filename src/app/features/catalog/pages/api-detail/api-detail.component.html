@@ -6,7 +6,9 @@
       <div class="loading-spinner"></div>
       <span>Chargement...</span>
     </div>
-  } @else if (api) {
+  }
+  
+  @if (!isLoading && api) {
     
     <!-- Breadcrumb -->
     <nav class="breadcrumb">
@@ -18,81 +20,93 @@
     <!-- Header -->
     <header class="api-header">
       <div class="api-icon" [class]="'icon-' + api.categoryColor">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="32" height="32">
           <path d="M13 10V3L4 14h7v7l9-11h-7z" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </div>
       
       <div class="api-info">
         <div class="api-badges">
-          <span class="badge" [class]="'badge-' + api.categoryColor">
-            {{ api.category }}
-          </span>
-          <span class="badge" [class]="getStatusClass(api.status)">
-            {{ getStatusLabel(api.status) }}
-          </span>
+          <span class="badge" [class]="'badge-' + api.categoryColor">{{ api.category }}</span>
+          <span class="badge" [class]="getStatusClass(api.status)">{{ getStatusLabel(api.status) }}</span>
           <span class="badge badge-gray">{{ api.version }}</span>
         </div>
-        
         <h1 class="api-name">{{ api.name }}</h1>
         <p class="api-description">{{ api.description }}</p>
-        
-        <div class="api-meta">
-          <span class="meta-item">
-            <svg viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
-            </svg>
-            {{ api.provider }}
-          </span>
-          <span class="meta-item">
-            <svg viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
-            </svg>
-            Mis à jour le {{ api.lastUpdated }}
-          </span>
-        </div>
       </div>
     </header>
     
     <!-- Tabs -->
     <div class="tabs">
-      <button 
-        class="tab" 
-        [class.active]="activeTab === 'overview'"
-        (click)="setTab('overview')"
-      >
+      <button class="tab" [class.active]="activeTab === 'overview'" (click)="setTab('overview')">
+        <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+          <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
+        </svg>
         Vue d'ensemble
       </button>
-      <button 
-        class="tab" 
-        [class.active]="activeTab === 'endpoints'"
-        (click)="setTab('endpoints')"
-      >
-        Endpoints
-        <span class="tab-count">{{ api.endpoints.length }}</span>
-      </button>
-      <button 
-        class="tab" 
-        [class.active]="activeTab === 'plans'"
-        (click)="setTab('plans')"
-      >
-        Plans tarifaires
-      </button>
-      <button 
-        class="tab" 
-        [class.active]="activeTab === 'docs'"
-        (click)="setTab('docs')"
-      >
+      <button class="tab" [class.active]="activeTab === 'docs'" (click)="setTab('docs')">
+        <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+          <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z"/>
+        </svg>
         Documentation
+      </button>
+      <button class="tab" [class.active]="activeTab === 'reference'" (click)="setTab('reference')">
+        <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+          <path fill-rule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd"/>
+        </svg>
+        Référence API
+      </button>
+      <button class="tab" [class.active]="activeTab === 'plans'" (click)="setTab('plans')">
+        <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+          <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"/>
+          <path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clip-rule="evenodd"/>
+        </svg>
+        Tarifs
       </button>
     </div>
     
     <!-- Tab Content -->
     <div class="tab-content">
       
-      <!-- Overview Tab -->
+      <!-- ========================================
+           OVERVIEW TAB
+           ======================================== -->
       @if (activeTab === 'overview') {
         <div class="overview-content">
+          
+          <!-- Quick Actions -->
+          <div class="quick-actions">
+            <button class="action-card primary" (click)="setTab('docs'); setDocsSection('guides')">
+              <span class="action-icon">🚀</span>
+              <div class="action-content">
+                <h3>Démarrage rapide</h3>
+                <p>Intégrez votre premier paiement en 15 minutes</p>
+              </div>
+              <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20">
+                <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/>
+              </svg>
+            </button>
+            <button class="action-card" (click)="setTab('docs'); setDocsSection('usecases')">
+              <span class="action-icon">💡</span>
+              <div class="action-content">
+                <h3>Cas d'usage</h3>
+                <p>E-commerce, SaaS, Marketplace...</p>
+              </div>
+              <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20">
+                <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/>
+              </svg>
+            </button>
+            <button class="action-card" (click)="setTab('reference')">
+              <span class="action-icon">📖</span>
+              <div class="action-content">
+                <h3>Référence API</h3>
+                <p>Endpoints, authentification, erreurs</p>
+              </div>
+              <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20">
+                <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/>
+              </svg>
+            </button>
+          </div>
           
           <!-- Benefits -->
           <div class="benefits-grid">
@@ -105,9 +119,25 @@
             }
           </div>
           
+          <!-- Quick Info -->
+          <div class="quick-info">
+            <div class="info-card">
+              <div class="info-label">Base URL</div>
+              <code class="info-value">{{ api.baseUrl }}</code>
+            </div>
+            <div class="info-card">
+              <div class="info-label">Sandbox</div>
+              <code class="info-value">{{ api.sandboxUrl }}</code>
+            </div>
+            <div class="info-card">
+              <div class="info-label">Authentification</div>
+              <span class="info-value">{{ api.authentication.type }}</span>
+            </div>
+          </div>
+          
           <!-- Description -->
           <div class="description-section">
-            <h2 class="section-title">À propos de cette API</h2>
+            <h2 class="section-title">À propos</h2>
             <div class="description-content">
               @for (paragraph of api.longDescription.split('\n\n'); track paragraph) {
                 <p>{{ paragraph }}</p>
@@ -115,49 +145,479 @@
             </div>
           </div>
           
-          <!-- Quick Start CTA -->
-          <div class="cta-box">
-            <div class="cta-content">
-              <h3 class="cta-title">Prêt à commencer ?</h3>
-              <p class="cta-description">
-                Créez un compte gratuit et obtenez vos clés API en quelques minutes.
-              </p>
-            </div>
-            <a routerLink="/login" class="btn btn-primary btn-lg">
-              Commencer gratuitement
-            </a>
-          </div>
-          
         </div>
       }
       
-      <!-- Endpoints Tab -->
-      @if (activeTab === 'endpoints') {
-        <div class="endpoints-content">
-          <div class="endpoints-list">
-            @for (endpoint of api.endpoints; track endpoint.path) {
-              <div class="endpoint-item">
-                <span class="endpoint-method badge" [class]="getMethodClass(endpoint.method)">
-                  {{ endpoint.method }}
-                </span>
-                <code class="endpoint-path">{{ endpoint.path }}</code>
-                <span class="endpoint-description">{{ endpoint.description }}</span>
+      <!-- ========================================
+           DOCUMENTATION TAB
+           ======================================== -->
+      @if (activeTab === 'docs') {
+        <div class="docs-layout">
+          
+          <!-- Sidebar -->
+          <aside class="docs-sidebar">
+            <nav class="docs-nav">
+              
+              <button 
+                class="nav-section-btn" 
+                [class.active]="activeDocsSection === 'guides'"
+                (click)="setDocsSection('guides')"
+              >
+                <span class="nav-icon">📚</span>
+                Guides & Tutoriels
+                <span class="nav-count">{{ api.guides.length }}</span>
+              </button>
+              
+              <button 
+                class="nav-section-btn" 
+                [class.active]="activeDocsSection === 'usecases'"
+                (click)="setDocsSection('usecases')"
+              >
+                <span class="nav-icon">💡</span>
+                Cas d'usage
+                <span class="nav-count">{{ api.useCases.length }}</span>
+              </button>
+              
+              <button 
+                class="nav-section-btn" 
+                [class.active]="activeDocsSection === 'concepts'"
+                (click)="setDocsSection('concepts')"
+              >
+                <span class="nav-icon">📖</span>
+                Concepts clés
+                <span class="nav-count">{{ api.concepts.length }}</span>
+              </button>
+              
+              <button 
+                class="nav-section-btn" 
+                [class.active]="activeDocsSection === 'faq'"
+                (click)="setDocsSection('faq')"
+              >
+                <span class="nav-icon">❓</span>
+                FAQ
+                <span class="nav-count">{{ api.faq.length }}</span>
+              </button>
+              
+            </nav>
+          </aside>
+          
+          <!-- Content -->
+          <div class="docs-content">
+            
+            <!-- GUIDES -->
+            @if (activeDocsSection === 'guides') {
+              <div class="docs-section">
+                <h2 class="docs-title">Guides & Tutoriels</h2>
+                <p class="docs-intro">Apprenez à intégrer l'API étape par étape avec nos tutoriels pratiques.</p>
+                
+                <div class="guides-layout">
+                  <!-- Liste des guides -->
+                  <div class="guides-list">
+                    @for (guide of api.guides; track guide.id) {
+                      <button 
+                        class="guide-card"
+                        [class.active]="selectedGuide?.id === guide.id"
+                        (click)="selectGuide(guide)"
+                      >
+                        <span class="guide-icon">{{ guide.icon }}</span>
+                        <div class="guide-info">
+                          <h4 class="guide-title">{{ guide.title }}</h4>
+                          <p class="guide-desc">{{ guide.description }}</p>
+                          <div class="guide-meta">
+                            <span class="guide-duration">⏱️ {{ guide.duration }}</span>
+                            <span class="guide-difficulty" [class]="getDifficultyClass(guide.difficulty)">
+                              {{ guide.difficulty }}
+                            </span>
+                          </div>
+                        </div>
+                        <svg class="guide-arrow" viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+                          <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                      </button>
+                    }
+                  </div>
+                  
+                  <!-- Contenu du guide sélectionné -->
+                  @if (selectedGuide) {
+                    <div class="guide-content">
+                      <div class="guide-header">
+                        <span class="guide-content-icon">{{ selectedGuide.icon }}</span>
+                        <div>
+                          <h3>{{ selectedGuide.title }}</h3>
+                          <div class="guide-content-meta">
+                            <span>⏱️ {{ selectedGuide.duration }}</span>
+                            <span [class]="getDifficultyClass(selectedGuide.difficulty)">{{ selectedGuide.difficulty }}</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div class="guide-steps">
+                        @for (step of selectedGuide.steps; track step.title; let i = $index) {
+                          <div class="step">
+                            <div class="step-number">{{ i + 1 }}</div>
+                            <div class="step-content">
+                              <h4 class="step-title">{{ step.title }}</h4>
+                              <p class="step-text">{{ step.content }}</p>
+                              
+                              @if (step.tip) {
+                                <div class="step-tip">
+                                  <span class="tip-icon">💡</span>
+                                  <span>{{ step.tip }}</span>
+                                </div>
+                              }
+                              
+                              @if (step.warning) {
+                                <div class="step-warning">
+                                  <span class="warning-icon">⚠️</span>
+                                  <span>{{ step.warning }}</span>
+                                </div>
+                              }
+                              
+                              @if (step.codeExample) {
+                                <pre class="step-code"><code [innerText]="step.codeExample.code"></code></pre>
+                              }
+                            </div>
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  }
+                </div>
               </div>
             }
-          </div>
-          
-          <div class="endpoints-cta">
-            <p>Consultez la documentation complète pour plus de détails sur chaque endpoint.</p>
-            <button class="btn btn-secondary" (click)="setTab('docs')">
-              Voir la documentation
-            </button>
+            
+            <!-- USE CASES -->
+            @if (activeDocsSection === 'usecases') {
+              <div class="docs-section">
+                <h2 class="docs-title">Cas d'usage</h2>
+                <p class="docs-intro">Découvrez comment utiliser l'API selon votre secteur d'activité.</p>
+                
+                <div class="usecases-grid">
+                  @for (useCase of api.useCases; track useCase.id) {
+                    <button 
+                      class="usecase-card"
+                      [class.active]="selectedUseCase?.id === useCase.id"
+                      (click)="selectUseCase(useCase)"
+                    >
+                      <span class="usecase-icon">{{ useCase.icon }}</span>
+                      <h4 class="usecase-title">{{ useCase.title }}</h4>
+                      <p class="usecase-desc">{{ useCase.description }}</p>
+                      @if (useCase.industry) {
+                        <span class="usecase-industry">{{ useCase.industry }}</span>
+                      }
+                    </button>
+                  }
+                </div>
+                
+                @if (selectedUseCase) {
+                  <div class="usecase-detail">
+                    <div class="usecase-detail-header">
+                      <span class="usecase-detail-icon">{{ selectedUseCase.icon }}</span>
+                      <div>
+                        <h3>{{ selectedUseCase.title }}</h3>
+                        <p>{{ selectedUseCase.description }}</p>
+                      </div>
+                    </div>
+                    
+                    <div class="usecase-columns">
+                      <div class="usecase-benefits">
+                        <h4>✅ Avantages</h4>
+                        <ul>
+                          @for (benefit of selectedUseCase.benefits; track benefit) {
+                            <li>{{ benefit }}</li>
+                          }
+                        </ul>
+                      </div>
+                      
+                      <div class="usecase-workflow">
+                        <h4>📋 Workflow type</h4>
+                        <ol>
+                          @for (step of selectedUseCase.workflow; track step) {
+                            <li>{{ step }}</li>
+                          }
+                        </ol>
+                      </div>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+            
+            <!-- CONCEPTS -->
+            @if (activeDocsSection === 'concepts') {
+              <div class="docs-section">
+                <h2 class="docs-title">Concepts clés</h2>
+                <p class="docs-intro">Glossaire des termes et notions essentielles pour comprendre l'API.</p>
+                
+                <div class="concepts-list">
+                  @for (concept of api.concepts; track concept.id) {
+                    <div class="concept-card">
+                      <h4 class="concept-term">{{ concept.term }}</h4>
+                      <p class="concept-definition">{{ concept.definition }}</p>
+                      @if (concept.example) {
+                        <div class="concept-example">
+                          <strong>Exemple :</strong> {{ concept.example }}
+                        </div>
+                      }
+                      @if (concept.relatedTerms && concept.relatedTerms.length > 0) {
+                        <div class="concept-related">
+                          <span>Voir aussi :</span>
+                          @for (term of concept.relatedTerms; track term) {
+                            <span class="related-tag">{{ term }}</span>
+                          }
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+            
+            <!-- FAQ -->
+            @if (activeDocsSection === 'faq') {
+              <div class="docs-section">
+                <h2 class="docs-title">Questions fréquentes</h2>
+                <p class="docs-intro">Retrouvez les réponses aux questions les plus courantes.</p>
+                
+                <div class="faq-list">
+                  @for (faq of api.faq; track faq.question; let i = $index) {
+                    <div class="faq-item" [class.expanded]="expandedFaqIndex === i">
+                      <button class="faq-question" (click)="toggleFaq(i)">
+                        <span class="faq-category">{{ faq.category }}</span>
+                        <span class="faq-text">{{ faq.question }}</span>
+                        <svg class="faq-icon" viewBox="0 0 20 20" fill="currentColor" width="20" height="20">
+                          <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                        </svg>
+                      </button>
+                      @if (expandedFaqIndex === i) {
+                        <div class="faq-answer">
+                          <p>{{ faq.answer }}</p>
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+            
           </div>
         </div>
       }
       
-      <!-- Plans Tab -->
+      <!-- ========================================
+           REFERENCE TAB
+           ======================================== -->
+      @if (activeTab === 'reference') {
+        <div class="docs-layout">
+          
+          <!-- Sidebar -->
+          <aside class="docs-sidebar">
+            <nav class="docs-nav">
+              
+              <button 
+                class="nav-section-btn" 
+                [class.active]="activeRefSection === 'auth'"
+                (click)="setRefSection('auth')"
+              >
+                <span class="nav-icon">🔐</span>
+                Authentification
+              </button>
+              
+              <button 
+                class="nav-section-btn" 
+                [class.active]="activeRefSection === 'endpoints'"
+                (click)="setRefSection('endpoints')"
+              >
+                <span class="nav-icon">🔌</span>
+                Endpoints
+                <span class="nav-count">{{ api.endpoints.length }}</span>
+              </button>
+              
+              @if (activeRefSection === 'endpoints') {
+                <div class="nav-subitems">
+                  @for (endpoint of api.endpoints; track endpoint.path) {
+                    <button 
+                      class="nav-subitem"
+                      [class.active]="selectedEndpoint === endpoint"
+                      (click)="selectEndpoint(endpoint)"
+                    >
+                      <span class="method-badge mini" [class]="getMethodClass(endpoint.method)">{{ endpoint.method }}</span>
+                      <span>{{ endpoint.path }}</span>
+                    </button>
+                  }
+                </div>
+              }
+              
+              <button 
+                class="nav-section-btn" 
+                [class.active]="activeRefSection === 'errors'"
+                (click)="setRefSection('errors')"
+              >
+                <span class="nav-icon">⚠️</span>
+                Codes d'erreur
+              </button>
+              
+            </nav>
+          </aside>
+          
+          <!-- Content -->
+          <div class="docs-content">
+            
+            <!-- AUTH -->
+            @if (activeRefSection === 'auth') {
+              <div class="docs-section">
+                <h2 class="docs-title">Authentification</h2>
+                <p class="docs-intro">{{ api.authentication.description }}</p>
+                
+                <div class="auth-type-badge">🔐 {{ api.authentication.type }}</div>
+                
+                <h3 class="docs-subtitle">Étapes</h3>
+                <ol class="auth-steps">
+                  @for (step of api.authentication.steps; track step; let i = $index) {
+                    <li>
+                      <span class="step-number">{{ i + 1 }}</span>
+                      <span>{{ step }}</span>
+                    </li>
+                  }
+                </ol>
+                
+                <h3 class="docs-subtitle">Exemple de code</h3>
+                <div class="code-block-wrapper">
+                  <div class="code-header">
+                    <div class="code-tabs">
+                      <button class="code-tab" [class.active]="activeCodeLang === 'curl'" (click)="setCodeLang('curl')">cURL</button>
+                      <button class="code-tab" [class.active]="activeCodeLang === 'javascript'" (click)="setCodeLang('javascript')">JavaScript</button>
+                      <button class="code-tab" [class.active]="activeCodeLang === 'python'" (click)="setCodeLang('python')">Python</button>
+                    </div>
+                    <button class="copy-btn" (click)="copyCode(getAuthCode())">
+                      {{ codeCopied ? '✓ Copié' : 'Copier' }}
+                    </button>
+                  </div>
+                  <pre class="code-block"><code [innerText]="getAuthCode()"></code></pre>
+                </div>
+              </div>
+            }
+            
+            <!-- ENDPOINTS -->
+            @if (activeRefSection === 'endpoints' && selectedEndpoint) {
+              <div class="docs-section">
+                <div class="endpoint-header">
+                  <span class="method-badge large" [class]="getMethodClass(selectedEndpoint.method)">{{ selectedEndpoint.method }}</span>
+                  <code class="endpoint-path-display">{{ selectedEndpoint.path }}</code>
+                </div>
+                
+                <h2 class="docs-title">{{ selectedEndpoint.summary }}</h2>
+                <p class="docs-intro">{{ selectedEndpoint.description }}</p>
+                
+                @if (selectedEndpoint.pathParams && selectedEndpoint.pathParams.length > 0) {
+                  <h3 class="docs-subtitle">Paramètres de chemin</h3>
+                  <div class="params-table">
+                    @for (param of selectedEndpoint.pathParams; track param.name) {
+                      <div class="params-row">
+                        <code class="param-name">{{ param.name }}</code>
+                        <span class="param-type">{{ param.type }}</span>
+                        <span class="param-desc">{{ param.description }}</span>
+                        @if (param.required) {
+                          <span class="required-badge">requis</span>
+                        }
+                      </div>
+                    }
+                  </div>
+                }
+                
+                @if (selectedEndpoint.queryParams && selectedEndpoint.queryParams.length > 0) {
+                  <h3 class="docs-subtitle">Paramètres de requête</h3>
+                  <div class="params-table">
+                    @for (param of selectedEndpoint.queryParams; track param.name) {
+                      <div class="params-row">
+                        <code class="param-name">{{ param.name }}</code>
+                        <span class="param-type">{{ param.type }}</span>
+                        <span class="param-desc">{{ param.description }}</span>
+                        @if (param.required) {
+                          <span class="required-badge">requis</span>
+                        }
+                      </div>
+                    }
+                  </div>
+                }
+                
+                <h3 class="docs-subtitle">Réponses</h3>
+                <div class="responses-list">
+                  @for (response of selectedEndpoint.responses; track response.status) {
+                    <div class="response-item">
+                      <div class="response-header" [class]="getResponseClass(response.status)">
+                        <span class="response-status">{{ response.status }}</span>
+                        <span>{{ response.description }}</span>
+                      </div>
+                      <pre class="code-block json"><code [innerText]="response.example"></code></pre>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+            
+            <!-- ERRORS -->
+            @if (activeRefSection === 'errors') {
+              <div class="docs-section">
+                <h2 class="docs-title">Codes d'erreur</h2>
+                <p class="docs-intro">L'API retourne des codes HTTP standard avec des messages détaillés.</p>
+                
+                <h3 class="docs-subtitle">Codes HTTP</h3>
+                <div class="errors-table">
+                  <div class="error-row">
+                    <span class="error-code success">200</span>
+                    <span class="error-name">OK</span>
+                    <span class="error-desc">Requête réussie</span>
+                  </div>
+                  <div class="error-row">
+                    <span class="error-code success">201</span>
+                    <span class="error-name">Created</span>
+                    <span class="error-desc">Ressource créée</span>
+                  </div>
+                  <div class="error-row">
+                    <span class="error-code warning">400</span>
+                    <span class="error-name">Bad Request</span>
+                    <span class="error-desc">Requête invalide</span>
+                  </div>
+                  <div class="error-row">
+                    <span class="error-code warning">401</span>
+                    <span class="error-name">Unauthorized</span>
+                    <span class="error-desc">Non authentifié</span>
+                  </div>
+                  <div class="error-row">
+                    <span class="error-code warning">404</span>
+                    <span class="error-name">Not Found</span>
+                    <span class="error-desc">Ressource non trouvée</span>
+                  </div>
+                  <div class="error-row">
+                    <span class="error-code warning">429</span>
+                    <span class="error-name">Too Many Requests</span>
+                    <span class="error-desc">Limite dépassée</span>
+                  </div>
+                  <div class="error-row">
+                    <span class="error-code error">500</span>
+                    <span class="error-name">Server Error</span>
+                    <span class="error-desc">Erreur serveur</span>
+                  </div>
+                </div>
+                
+                <h3 class="docs-subtitle">Format des erreurs</h3>
+                <pre class="code-block json"><code [innerText]="errorFormatExample"></code></pre>
+              </div>
+            }
+            
+          </div>
+        </div>
+      }
+      
+      <!-- ========================================
+           PLANS TAB
+           ======================================== -->
       @if (activeTab === 'plans') {
         <div class="plans-content">
+          <h2 class="plans-title">Choisissez votre plan</h2>
+          <p class="plans-intro">Des tarifs adaptés à votre volume, sans engagement.</p>
+          
           <div class="plans-grid">
             @for (plan of api.plans; track plan.name) {
               <div class="plan-card" [class.recommended]="plan.recommended">
@@ -172,13 +632,11 @@
                     <span class="price-period">{{ plan.period }}</span>
                   }
                 </div>
-                <div class="plan-requests">
-                  {{ plan.requestsPerMonth }} requêtes/mois
-                </div>
+                <div class="plan-requests">{{ plan.requestsPerMonth }} requêtes/mois</div>
                 <ul class="plan-features">
                   @for (feature of plan.features; track feature) {
                     <li>
-                      <svg viewBox="0 0 20 20" fill="currentColor">
+                      <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
                         <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                       </svg>
                       {{ feature }}
@@ -191,13 +649,7 @@
                   [class.btn-secondary]="!plan.recommended"
                   (click)="subscribeToPlan(plan)"
                 >
-                  @if (plan.price === 'Gratuit') {
-                    Commencer gratuitement
-                  } @else if (plan.price === 'Sur devis') {
-                    Nous contacter
-                  } @else {
-                    S'abonner
-                  }
+                  {{ plan.price === 'Gratuit' ? 'Commencer gratuitement' : (plan.price === 'Sur devis' ? 'Nous contacter' : 'S\'abonner') }}
                 </button>
               </div>
             }
@@ -205,39 +657,15 @@
         </div>
       }
       
-      <!-- Docs Tab -->
-      @if (activeTab === 'docs') {
-        <div class="docs-content">
-          <div class="docs-placeholder">
-            <div class="docs-icon">📚</div>
-            <h3>Documentation complète</h3>
-            <p>
-              La documentation interactive avec exemples de code et sandbox 
-              sera disponible après connexion.
-            </p>
-            <div class="docs-actions">
-              <a routerLink="/login" class="btn btn-primary">
-                Se connecter pour accéder
-              </a>
-              <a routerLink="/docs/getting-started" class="btn btn-ghost">
-                Guide de démarrage
-              </a>
-            </div>
-          </div>
-        </div>
-      }
-      
     </div>
-    
-  } @else {
-    <!-- Not Found -->
+  }
+  
+  @if (!isLoading && !api) {
     <div class="not-found">
       <div class="not-found-icon">🔍</div>
       <h2>API non trouvée</h2>
-      <p>L'API que vous recherchez n'existe pas ou n'est plus disponible.</p>
-      <button class="btn btn-primary" (click)="goBack()">
-        Retour au catalogue
-      </button>
+      <p>L'API recherchée n'existe pas.</p>
+      <button class="btn btn-primary" (click)="goBack()">Retour au catalogue</button>
     </div>
   }
   

@@ -45,7 +45,6 @@ export const routes: Routes = [
     title: 'Connexion'
   },
 
-  /*
   // Protected routes (requires auth)
   {
     path: 'applications',
@@ -61,7 +60,6 @@ export const routes: Routes = [
       .then(m => m.SubscriptionsComponent),
     title: 'Mes Souscriptions'
   },
-
   // Documentation routes
   {
     path: 'docs',
@@ -75,7 +73,7 @@ export const routes: Routes = [
       .then(m => m.DocsComponent),
     title: 'Documentation'
   },
-
+  /*
   // Changelog
   {
     path: 'changelog',
@@ -84,7 +82,7 @@ export const routes: Routes = [
     title: 'Changelog'
   },
   */
- 
+
   // Error pages
   {
     path: 'config-error',

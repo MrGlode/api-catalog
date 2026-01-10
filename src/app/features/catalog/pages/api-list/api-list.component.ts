@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -38,7 +38,7 @@ interface CategoryFilter {
   standalone: true,
   imports: [CommonModule, RouterLink, FormsModule],
   templateUrl: './api-list.component.html',
-  styleUrl: './api-list.component.scss'
+  styleUrls: ['./api-list.component.scss']
 })
 export class ApiListComponent implements OnInit {
   
@@ -51,6 +51,11 @@ export class ApiListComponent implements OnInit {
    * Active category filter
    */
   activeCategory: string | null = null;
+  
+  /**
+   * View mode: grid or list
+   */
+  viewMode: 'grid' | 'list' = 'grid';
   
   /**
    * Category filters
@@ -264,7 +269,8 @@ export class ApiListComponent implements OnInit {
 
   constructor(
     private router: Router,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -302,6 +308,7 @@ export class ApiListComponent implements OnInit {
     }
     
     this.filteredApis = result;
+    this.cdr.detectChanges();
   }
 
   /**
@@ -319,6 +326,14 @@ export class ApiListComponent implements OnInit {
     this.activeCategory = this.activeCategory === categoryId ? null : categoryId;
     this.updateQueryParams();
     this.filterApis();
+  }
+
+  /**
+   * Set view mode
+   */
+  setViewMode(mode: 'grid' | 'list'): void {
+    this.viewMode = mode;
+    this.cdr.detectChanges();
   }
 
   /**
