@@ -1,18 +1,18 @@
 {
   "/api/am/devportal": {
-    "target": "https://localhost:9443",
+    "target": "https://cp-am.recette.verspieren.com",
     "secure": false,
     "changeOrigin": true,
     "logLevel": "debug"
   },
   "/oauth2": {
-    "target": "https://localhost:9443",
+    "target": "https://cp-am.recette.verspieren.com",
     "secure": false,
     "changeOrigin": true,
     "logLevel": "debug"
   },
   "/client-registration": {
-    "target": "https://localhost:9443",
+    "target": "https://cp-am.recette.verspieren.com",
     "secure": false,
     "changeOrigin": true,
     "logLevel": "debug"

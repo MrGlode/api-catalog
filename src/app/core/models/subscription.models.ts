@@ -78,6 +78,7 @@ export interface ThrottlingPolicy {
   quotaPolicyType?: 'REQUESTCOUNT' | 'BANDWIDTHVOLUME';
   tierPlan?: 'FREE' | 'COMMERCIAL';
   stopOnQuotaReach?: boolean;
+  policyName?: string;
   monetizationAttributes?: {
     fixedPrice?: string;
     pricePerRequest?: string;

@@ -1,27 +1,37 @@
-import { ApplicationConfig, provideZonelessChangeDetection } from '@angular/core';
+/**
+ * Application Configuration
+ * Provides all necessary Angular providers including WSO2 integration
+ */
+import { ApplicationConfig, provideZonelessChangeDetection, APP_INITIALIZER } from '@angular/core';
 import { provideRouter, withComponentInputBinding } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
-import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 
 import { routes } from './app.routes';
-import { authInterceptor } from './core';
+import { authInterceptor, errorInterceptor } from './core';
+import { ConfigLoaderService, initializeApp } from './core/services/config-loader.service';
+import { provideAnimations } from '@angular/platform-browser/animations';
 
-/**
- * Configuration principale de l'application WSO2 API Catalog
- * Compatible avec Angular v20 et Vite
- */
 export const appConfig: ApplicationConfig = {
   providers: [
+    // Zone change detection
     provideZonelessChangeDetection(),
-    // Configuration du routeur avec binding automatique des inputs
+    
+    // Router with input binding for route params
     provideRouter(routes, withComponentInputBinding()),
     
-    // Configuration HTTP avec intercepteur JWT (nouvelle syntaxe)
+    // HTTP client with WSO2 interceptors
     provideHttpClient(
-      withInterceptors([authInterceptor])
+      withInterceptors([authInterceptor, errorInterceptor])
     ),
+
+    provideAnimations(),
     
-    // Animations asynchrones (nouvelle méthode pour Angular v20)
-    provideAnimationsAsync()
+    // Load external configuration at startup
+    {
+      provide: APP_INITIALIZER,
+      useFactory: initializeApp,
+      deps: [ConfigLoaderService],
+      multi: true
+    }
   ]
 };

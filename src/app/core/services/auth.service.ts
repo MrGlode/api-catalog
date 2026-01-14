@@ -7,7 +7,14 @@ import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable, BehaviorSubject, throwError, of } from 'rxjs';
 import { map, tap, catchError, switchMap } from 'rxjs/operators';
 import { environment, getOAuthUrl } from '../../../environments/environment';
-import { DCRRequest, DCRResponse, TokenResponse, AuthState, LoginCredentials, UserInfo} from '../models';
+import { 
+  DCRRequest, 
+  DCRResponse, 
+  TokenResponse, 
+  AuthState, 
+  LoginCredentials,
+  UserInfo 
+} from '../models';
 
 const AUTH_STORAGE_KEY = 'wso2_auth_state';
 const DCR_STORAGE_KEY = 'wso2_dcr_client';
@@ -24,6 +31,14 @@ export class AuthService {
   authState$ = this.authState.asObservable();
   isAuthenticated$ = this.authState$.pipe(map(state => state.isAuthenticated));
   user$ = this.authState$.pipe(map(state => state.user));
+  
+  // Username as string observable (for components expecting string | null)
+  currentUser$: Observable<string | null> = this.user$.pipe(
+    map(user => {
+      if (!user) return null;
+      return user.preferred_username || user.name || user.sub || null;
+    })
+  );
 
   // Signals for modern Angular
   isAuthenticated = signal(false);
@@ -116,19 +131,32 @@ export class AuthService {
 
   /**
    * Login with username and password
+   * Supports both: login(credentials) and login(username, password)
    */
-  login(credentials: LoginCredentials): Observable<AuthState> {
+  login(credentialsOrUsername: LoginCredentials | string, password?: string): Observable<AuthState> {
     const dcrClient = this.getStoredDCRClient();
     
     if (!dcrClient) {
       return throwError(() => new Error('DCR client not registered. Please register first.'));
     }
 
+    // Support both signatures
+    let username: string;
+    let pwd: string;
+    
+    if (typeof credentialsOrUsername === 'string') {
+      username = credentialsOrUsername;
+      pwd = password!;
+    } else {
+      username = credentialsOrUsername.username;
+      pwd = credentialsOrUsername.password;
+    }
+
     return this.getToken(
       dcrClient.clientId,
       dcrClient.clientSecret,
-      credentials.username,
-      credentials.password
+      username,
+      pwd
     );
   }
 
@@ -169,12 +197,20 @@ export class AuthService {
 
   /**
    * Refresh access token
+   * Can be called without argument (uses stored refresh token) or with explicit token
    */
-  refreshToken(refreshToken: string): Observable<AuthState> {
+  refreshToken(refreshTokenParam?: string): Observable<AuthState> {
     const dcrClient = this.getStoredDCRClient();
     
     if (!dcrClient) {
       return throwError(() => new Error('DCR client not found'));
+    }
+
+    // Use provided token or get from stored state
+    const tokenToUse = refreshTokenParam || this.authState.getValue().refreshToken;
+    
+    if (!tokenToUse) {
+      return throwError(() => new Error('No refresh token available'));
     }
 
     const url = getOAuthUrl('tokenEndpoint');
@@ -186,7 +222,7 @@ export class AuthService {
 
     const body = new HttpParams()
       .set('grant_type', 'refresh_token')
-      .set('refresh_token', refreshToken);
+      .set('refresh_token', tokenToUse);
 
     return this.http.post<TokenResponse>(url, body.toString(), { headers }).pipe(
       map(response => this.createAuthState(response, dcrClient.clientId, dcrClient.clientSecret)),
@@ -304,5 +340,20 @@ export class AuthService {
    */
   getCurrentState(): AuthState {
     return this.authState.getValue();
+  }
+
+  /**
+   * Get current username
+   */
+  getCurrentUsername(): string | undefined {
+    const user = this.currentUser();
+    return user?.preferred_username || user?.name || user?.sub;
+  }
+
+  /**
+   * Get refresh token from current state
+   */
+  getRefreshToken(): string | undefined {
+    return this.authState.getValue().refreshToken;
   }
 }

@@ -18,4 +18,4 @@ export * from './auth.models';
 // Modèles des souscriptions
 export * from './subscription.models';
 
-export type { APIQueryParams, ApplicationQueryParams, SubscriptionQueryParams } from './common.models';
+export type { APIQueryParams, ApplicationQueryParams, SubscriptionQueryParams, ApiError } from './common.models';

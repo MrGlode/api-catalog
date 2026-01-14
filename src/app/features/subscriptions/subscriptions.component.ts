@@ -1,24 +1,31 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, Router } from '@angular/router';
+import { SubscriptionService } from '../../core/services/subscription.service';
+import { ApplicationService } from '../../core/services/application.service';
+import { 
+  Subscription, 
+  SubscriptionList,
+  ApplicationInfo,
+  ApplicationList
+} from '../../core/models';
+import { forkJoin } from 'rxjs';
 
 /**
- * Subscription interface
+ * Display subscription with enriched data
  */
-interface Subscription {
-  id: string;
+interface DisplaySubscription {
+  subscriptionId: string;
   apiId: string;
   apiName: string;
   apiVersion: string;
   apiDescription: string;
-  apiCategory: string;
-  apiCategoryColor: string;
+  apiContext: string;
+  apiType: string;
   applicationId: string;
   applicationName: string;
-  tier: string;
-  status: 'UNBLOCKED' | 'BLOCKED' | 'PROD_ONLY_BLOCKED' | 'ON_HOLD';
-  createdAt: string;
-  requestCount?: number;
+  throttlingPolicy: string;
+  status: string;
 }
 
 /**
@@ -27,11 +34,12 @@ interface Subscription {
 interface ApplicationGroup {
   applicationId: string;
   applicationName: string;
-  subscriptions: Subscription[];
+  subscriptions: DisplaySubscription[];
 }
 
 /**
  * Subscriptions Component - Manage API subscriptions
+ * Connected to WSO2 API Manager
  */
 @Component({
   selector: 'app-subscriptions',
@@ -48,9 +56,14 @@ export class SubscriptionsComponent implements OnInit {
   isLoading = true;
   
   /**
+   * Error message
+   */
+  errorMessage: string | null = null;
+  
+  /**
    * All subscriptions
    */
-  subscriptions: Subscription[] = [];
+  subscriptions: DisplaySubscription[] = [];
   
   /**
    * Grouped by application
@@ -65,113 +78,20 @@ export class SubscriptionsComponent implements OnInit {
   /**
    * Selected subscription for detail
    */
-  selectedSubscription: Subscription | null = null;
+  selectedSubscription: DisplaySubscription | null = null;
   
   /**
    * Show unsubscribe confirmation
    */
   showUnsubscribeModal = false;
-  subscriptionToUnsubscribe: Subscription | null = null;
-
-  /**
-   * Mock subscriptions data
-   */
-  private mockSubscriptions: Subscription[] = [
-    {
-      id: 'sub-001',
-      apiId: 'payment-api',
-      apiName: 'Payment Gateway API',
-      apiVersion: 'v2.1.0',
-      apiDescription: 'API de paiement sécurisée pour traiter les transactions.',
-      apiCategory: 'Paiements & Finance',
-      apiCategoryColor: 'finance',
-      applicationId: 'app-001',
-      applicationName: 'E-Commerce App',
-      tier: 'Business',
-      status: 'UNBLOCKED',
-      createdAt: '2025-11-20',
-      requestCount: 12847
-    },
-    {
-      id: 'sub-002',
-      apiId: 'oauth-api',
-      apiName: 'OAuth 2.0 Service',
-      apiVersion: 'v1.0.0',
-      apiDescription: 'Service d\'authentification OAuth 2.0 avec support JWT.',
-      apiCategory: 'Auth & Sécurité',
-      apiCategoryColor: 'security',
-      applicationId: 'app-001',
-      applicationName: 'E-Commerce App',
-      tier: 'Pro',
-      status: 'UNBLOCKED',
-      createdAt: '2025-11-20',
-      requestCount: 45231
-    },
-    {
-      id: 'sub-003',
-      apiId: 'notification-api',
-      apiName: 'Notification Service',
-      apiVersion: 'v1.2.0',
-      apiDescription: 'Envoi de notifications push, email et SMS.',
-      apiCategory: 'Messagerie',
-      apiCategoryColor: 'communication',
-      applicationId: 'app-001',
-      applicationName: 'E-Commerce App',
-      tier: 'Starter',
-      status: 'UNBLOCKED',
-      createdAt: '2025-12-01',
-      requestCount: 8934
-    },
-    {
-      id: 'sub-004',
-      apiId: 'payment-api',
-      apiName: 'Payment Gateway API',
-      apiVersion: 'v2.1.0',
-      apiDescription: 'API de paiement sécurisée pour traiter les transactions.',
-      apiCategory: 'Paiements & Finance',
-      apiCategoryColor: 'finance',
-      applicationId: 'app-002',
-      applicationName: 'Mobile Banking',
-      tier: 'Enterprise',
-      status: 'UNBLOCKED',
-      createdAt: '2025-12-05',
-      requestCount: 67432
-    },
-    {
-      id: 'sub-005',
-      apiId: 'analytics-api',
-      apiName: 'Analytics API',
-      apiVersion: 'v3.0.0',
-      apiDescription: 'Collecte et analyse des données utilisateur.',
-      apiCategory: 'Analytics',
-      apiCategoryColor: 'data',
-      applicationId: 'app-002',
-      applicationName: 'Mobile Banking',
-      tier: 'Business',
-      status: 'BLOCKED',
-      createdAt: '2025-12-10',
-      requestCount: 0
-    },
-    {
-      id: 'sub-006',
-      apiId: 'geocoding-api',
-      apiName: 'Geocoding API',
-      apiVersion: 'v2.0.0',
-      apiDescription: 'Conversion d\'adresses en coordonnées GPS.',
-      apiCategory: 'Géolocalisation',
-      apiCategoryColor: 'geo',
-      applicationId: 'app-003',
-      applicationName: 'Analytics Dashboard',
-      tier: 'Starter',
-      status: 'ON_HOLD',
-      createdAt: '2025-12-15',
-      requestCount: 234
-    }
-  ];
+  subscriptionToUnsubscribe: DisplaySubscription | null = null;
+  isUnsubscribing = false;
 
   constructor(
     private router: Router,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private subscriptionService: SubscriptionService,
+    private applicationService: ApplicationService
   ) {}
 
   ngOnInit(): void {
@@ -179,18 +99,73 @@ export class SubscriptionsComponent implements OnInit {
   }
 
   /**
-   * Load subscriptions
+   * Load subscriptions from WSO2
    */
   loadSubscriptions(): void {
     this.isLoading = true;
+    this.errorMessage = null;
     
-    // Simulate API call
-    setTimeout(() => {
-      this.subscriptions = this.mockSubscriptions;
-      this.groupByApplication();
-      this.isLoading = false;
-      this.cdr.detectChanges();
-    }, 500);
+    // First get all applications, then get subscriptions for each
+    this.applicationService.getApplications({ limit: 100 }).subscribe({
+      next: (appResponse: ApplicationList) => {
+        const applications = appResponse.list || [];
+        
+        if (applications.length === 0) {
+          this.subscriptions = [];
+          this.applicationGroups = [];
+          this.isLoading = false;
+          this.cdr.detectChanges();
+          return;
+        }
+        
+        // Get subscriptions - WSO2 returns all if no filter
+        this.subscriptionService.getSubscriptions({ limit: 1000 }).subscribe({
+          next: (subResponse: SubscriptionList) => {
+            const rawSubscriptions = subResponse.list || [];
+            this.subscriptions = this.mapSubscriptions(rawSubscriptions, applications);
+            this.groupByApplication();
+            this.isLoading = false;
+            this.cdr.detectChanges();
+          },
+          error: (error) => {
+            console.error('Failed to load subscriptions', error);
+            this.errorMessage = 'Impossible de charger les souscriptions.';
+            this.isLoading = false;
+            this.cdr.detectChanges();
+          }
+        });
+      },
+      error: (error) => {
+        console.error('Failed to load applications', error);
+        this.errorMessage = 'Impossible de charger les applications.';
+        this.isLoading = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  /**
+   * Map WSO2 subscriptions to display format
+   */
+  mapSubscriptions(subs: Subscription[], apps: ApplicationInfo[]): DisplaySubscription[] {
+    return subs.map(sub => {
+      // Find application name
+      const app = apps.find(a => a.applicationId === sub.applicationId);
+      
+      return {
+        subscriptionId: sub.subscriptionId || '',
+        apiId: sub.apiId || sub.apiInfo?.id || '',
+        apiName: sub.apiInfo?.name || 'API inconnue',
+        apiVersion: sub.apiInfo?.version || '',
+        apiDescription: sub.apiInfo?.description || '',
+        apiContext: sub.apiInfo?.context || '',
+        apiType: sub.apiInfo?.type || 'HTTP',
+        applicationId: sub.applicationId,
+        applicationName: app?.name || sub.applicationInfo?.name || 'Application inconnue',
+        throttlingPolicy: sub.throttlingPolicy,
+        status: sub.status || 'UNBLOCKED'
+      };
+    });
   }
 
   /**
@@ -224,7 +199,7 @@ export class SubscriptionsComponent implements OnInit {
   /**
    * Select subscription
    */
-  selectSubscription(sub: Subscription): void {
+  selectSubscription(sub: DisplaySubscription): void {
     this.selectedSubscription = sub;
     this.cdr.detectChanges();
   }
@@ -254,7 +229,7 @@ export class SubscriptionsComponent implements OnInit {
   /**
    * Open unsubscribe modal
    */
-  openUnsubscribeModal(sub: Subscription, event: Event): void {
+  openUnsubscribeModal(sub: DisplaySubscription, event: Event): void {
     event.stopPropagation();
     this.subscriptionToUnsubscribe = sub;
     this.showUnsubscribeModal = true;
@@ -276,16 +251,28 @@ export class SubscriptionsComponent implements OnInit {
   confirmUnsubscribe(): void {
     if (!this.subscriptionToUnsubscribe) return;
     
-    const subId = this.subscriptionToUnsubscribe.id;
-    this.subscriptions = this.subscriptions.filter(s => s.id !== subId);
-    this.groupByApplication();
+    this.isUnsubscribing = true;
+    const subId = this.subscriptionToUnsubscribe.subscriptionId;
     
-    if (this.selectedSubscription?.id === subId) {
-      this.selectedSubscription = null;
-    }
-    
-    this.closeUnsubscribeModal();
-    this.cdr.detectChanges();
+    this.subscriptionService.deleteSubscription(subId).subscribe({
+      next: () => {
+        this.subscriptions = this.subscriptions.filter(s => s.subscriptionId !== subId);
+        this.groupByApplication();
+        
+        if (this.selectedSubscription?.subscriptionId === subId) {
+          this.selectedSubscription = null;
+        }
+        
+        this.isUnsubscribing = false;
+        this.closeUnsubscribeModal();
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        console.error('Failed to unsubscribe', error);
+        this.isUnsubscribing = false;
+        alert('Erreur lors de la désinscription: ' + (error.error?.description || error.message));
+      }
+    });
   }
 
   /**
@@ -297,6 +284,9 @@ export class SubscriptionsComponent implements OnInit {
       case 'BLOCKED': return 'badge-red';
       case 'PROD_ONLY_BLOCKED': return 'badge-orange';
       case 'ON_HOLD': return 'badge-gray';
+      case 'REJECTED': return 'badge-red';
+      case 'TIER_UPDATE_PENDING': return 'badge-blue';
+      case 'DELETE_PENDING': return 'badge-orange';
       default: return 'badge-gray';
     }
   }
@@ -310,29 +300,33 @@ export class SubscriptionsComponent implements OnInit {
       case 'BLOCKED': return 'Bloquée';
       case 'PROD_ONLY_BLOCKED': return 'Prod bloquée';
       case 'ON_HOLD': return 'En attente';
+      case 'REJECTED': return 'Rejetée';
+      case 'TIER_UPDATE_PENDING': return 'Mise à jour en cours';
+      case 'DELETE_PENDING': return 'Suppression en cours';
       default: return status;
     }
   }
 
   /**
-   * Get category class
+   * Get API type class for color
    */
-  getCategoryClass(color: string): string {
-    return `badge-${color}`;
-  }
-
-  /**
-   * Format request count
-   */
-  formatRequestCount(count: number | undefined): string {
-    if (!count) return '0';
-    if (count >= 1000000) {
-      return (count / 1000000).toFixed(1) + 'M';
+  getApiTypeClass(type: string): string {
+    switch (type?.toUpperCase()) {
+      case 'HTTP':
+      case 'REST':
+        return 'badge-blue';
+      case 'SOAP':
+        return 'badge-purple';
+      case 'GRAPHQL':
+        return 'badge-pink';
+      case 'WEBSOCKET':
+      case 'WS':
+        return 'badge-green';
+      case 'SSE':
+        return 'badge-orange';
+      default:
+        return 'badge-gray';
     }
-    if (count >= 1000) {
-      return (count / 1000).toFixed(1) + 'K';
-    }
-    return count.toString();
   }
 
   /**
@@ -350,9 +344,9 @@ export class SubscriptionsComponent implements OnInit {
   }
 
   /**
-   * Get total request count
+   * Reload subscriptions
    */
-  get totalRequests(): number {
-    return this.subscriptions.reduce((sum, s) => sum + (s.requestCount || 0), 0);
+  reload(): void {
+    this.loadSubscriptions();
   }
 }

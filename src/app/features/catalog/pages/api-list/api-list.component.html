@@ -109,15 +109,42 @@
   }
   
   <!-- Results Count -->
-  <div class="results-info">
-    <span class="results-count">{{ filteredApis.length }} API</span>
-    @if (filteredApis.length !== allApis.length) {
-      <span class="results-total">sur {{ allApis.length }}</span>
-    }
-  </div>
+  @if (!isLoading && !errorMessage) {
+    <div class="results-info">
+      <span class="results-count">{{ filteredApis.length }} API</span>
+      @if (filteredApis.length !== allApis.length) {
+        <span class="results-total">sur {{ allApis.length }}</span>
+      }
+      <button class="reload-btn" (click)="reload()" title="Rafraîchir">
+        <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+          <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/>
+        </svg>
+      </button>
+    </div>
+  }
+
+  <!-- Loading State -->
+  @if (isLoading) {
+    <div class="loading-state">
+      <div class="loading-spinner"></div>
+      <p>Chargement des APIs...</p>
+    </div>
+  }
+
+  <!-- Error State -->
+  @if (errorMessage) {
+    <div class="error-state">
+      <div class="error-icon">⚠️</div>
+      <h3>Erreur de chargement</h3>
+      <p>{{ errorMessage }}</p>
+      <button class="btn btn-primary" (click)="reload()">
+        Réessayer
+      </button>
+    </div>
+  }
   
   <!-- API Grid View -->
-  @if (viewMode === 'grid') {
+  @if (viewMode === 'grid' && !isLoading && !errorMessage) {
     <div class="api-grid">
       @for (api of filteredApis; track api.id) {
         <div class="api-card" (click)="goToApi(api.id)">
@@ -176,7 +203,7 @@
   }
   
   <!-- API List View -->
-  @if (viewMode === 'list') {
+  @if (viewMode === 'list' && !isLoading && !errorMessage) {
     <div class="api-list">
       @for (api of filteredApis; track api.id) {
         <div class="api-item" (click)="goToApi(api.id)">
@@ -241,7 +268,7 @@
   }
   
   <!-- Empty State -->
-  @if (filteredApis.length === 0) {
+  @if (filteredApis.length === 0 && !isLoading && !errorMessage) {
     <div class="empty-state">
       <div class="empty-icon">🔍</div>
       <h3 class="empty-title">Aucune API trouvée</h3>

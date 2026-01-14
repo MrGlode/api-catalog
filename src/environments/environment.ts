@@ -1,25 +1,38 @@
 /**
  * Environment configuration for WSO2 API Manager integration
- * Uses proxy for local development (avoid CORS/SSL issues)
+ * Structure compatible with ConfigService
  */
 export const environment = {
   production: false,
   
   // WSO2 API Manager Configuration
   wso2: {
-    // Base URLs - Empty for proxy mode, full URL for direct mode
-    baseUrl: '', // Use proxy in development
-    // baseUrl: 'https://localhost:9443', // Direct mode (requires CORS config)
+    // Base URL
+    baseUrl: '', // Empty for proxy mode in development
+    // baseUrl: 'https://localhost:9443', // Direct mode
     
+    // API URLs
     devportalApi: '/api/am/devportal/v3',
+    devportalApiUrl: '/api/am/devportal/v3', // Alias for config.service.ts
     
-    // OAuth2 Configuration
+    // OAuth2 endpoints (flat structure for config.service.ts)
+    tokenUrl: '/oauth2/token',
+    dcrUrl: '/client-registration/v0.17/register',
+    
+    // OAuth2 Configuration (nested structure)
     oauth: {
       tokenEndpoint: '/oauth2/token',
       dcrEndpoint: '/client-registration/v0.17/register',
       authorizeEndpoint: '/oauth2/authorize',
       revokeEndpoint: '/oauth2/revoke',
       userinfoEndpoint: '/oauth2/userinfo',
+    },
+    
+    // OAuth2 client configuration (for config.service.ts)
+    oauth2: {
+      clientId: '', // Will be set after DCR registration
+      clientSecret: '', // Will be set after DCR registration
+      scopes: 'openid apim:subscribe apim:api_key apim:app_manage apim:sub_manage',
     },
     
     // DCR Application Settings
@@ -29,8 +42,12 @@ export const environment = {
       callbackUrl: 'http://localhost:4200/callback',
     },
     
+    // Tenant
+    tenant: 'carbon.super',
+    
     // API Scopes
     scopes: {
+      openid: 'openid',
       subscribe: 'apim:subscribe',
       apiKey: 'apim:api_key',
       appManage: 'apim:app_manage',
@@ -49,6 +66,8 @@ export const environment = {
   app: {
     name: 'API Catalog',
     version: '1.0.0',
+    itemsPerPage: 25,
+    tokenExpirationBuffer: 300, // 5 minutes in seconds
   },
 };
 

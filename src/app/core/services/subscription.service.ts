@@ -123,6 +123,15 @@ export class SubscriptionService {
   }
 
   /**
+   * Get available application throttling policies
+   */
+  getApplicationThrottlingPolicies(): Observable<ThrottlingPolicyList> {
+    const url = getApiUrl('/throttling-policies/application');
+    
+    return this.http.get<ThrottlingPolicyList>(url);
+  }
+
+  /**
    * Get subscription policy by name
    */
   getSubscriptionPolicy(policyName: string): Observable<any> {

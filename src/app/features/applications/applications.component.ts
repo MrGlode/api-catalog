@@ -2,66 +2,49 @@ import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-
-/**
- * Application interface
- */
-interface Application {
-  id: string;
-  name: string;
-  description: string;
-  status: 'active' | 'inactive' | 'blocked';
-  tier: string;
-  createdAt: string;
-  owner: string;
-  subscriptionCount: number;
-  keys: {
-    production?: ApiKeys;
-    sandbox?: ApiKeys;
-  };
-}
-
-/**
- * API Keys interface
- */
-interface ApiKeys {
-  consumerKey: string;
-  consumerSecret: string;
-  keyState: 'CREATED' | 'APPROVED' | 'REJECTED' | 'BLOCKED';
-  keyType: 'PRODUCTION' | 'SANDBOX';
-  supportedGrantTypes: string[];
-  callbackUrl?: string;
-  token?: {
-    accessToken: string;
-    validityTime: number;
-    scopes: string[];
-  };
-}
+import { ApplicationService } from '../../core/services/application.service';
+import { SubscriptionService } from '../../core/services/subscription.service';
+import { 
+  Application, 
+  ApplicationInfo, 
+  ApplicationList, 
+  ApplicationKey,
+  ApplicationKeyGenerateRequest,
+  ThrottlingPolicy
+} from '../../core/models';
 
 /**
  * Applications Component - Manage user applications
+ * Connected to WSO2 API Manager
  */
 @Component({
   selector: 'app-applications',
   standalone: true,
   imports: [CommonModule, RouterLink, FormsModule],
   templateUrl: './applications.component.html',
-  styleUrl: './applications.component.scss'
+  styleUrls: ['./applications.component.scss']
 })
 export class ApplicationsComponent implements OnInit {
   
   /**
-   * Loading state
+   * Loading states
    */
   isLoading = true;
+  isCreating = false;
+  isGeneratingKeys = false;
+  
+  /**
+   * Error message
+   */
+  errorMessage: string | null = null;
   
   /**
    * Applications list
    */
-  applications: Application[] = [];
+  applications: ApplicationInfo[] = [];
   
   /**
-   * Selected application for detail view
+   * Selected application for detail view (full details with keys)
    */
   selectedApp: Application | null = null;
   
@@ -85,14 +68,9 @@ export class ApplicationsComponent implements OnInit {
   };
   
   /**
-   * Available tiers
+   * Available throttling policies (loaded from WSO2)
    */
-  availableTiers = [
-    { id: 'Unlimited', name: 'Unlimited', description: 'Aucune limite de requêtes' },
-    { id: '10PerMin', name: '10 par minute', description: '10 requêtes/min' },
-    { id: '20PerMin', name: '20 par minute', description: '20 requêtes/min' },
-    { id: '50PerMin', name: '50 par minute', description: '50 requêtes/min' }
-  ];
+  availableTiers: ThrottlingPolicy[] = [];
   
   /**
    * Visibility toggles for secrets
@@ -105,113 +83,83 @@ export class ApplicationsComponent implements OnInit {
    */
   copiedField: string | null = null;
 
-  /**
-   * Mock applications data
-   */
-  private mockApplications: Application[] = [
-    {
-      id: 'app-001',
-      name: 'E-Commerce App',
-      description: 'Application principale de la boutique en ligne pour gérer les paiements et les commandes.',
-      status: 'active',
-      tier: 'Unlimited',
-      createdAt: '2025-11-15',
-      owner: 'admin',
-      subscriptionCount: 3,
-      keys: {
-        production: {
-          consumerKey: 'prod_ck_a1b2c3d4e5f6g7h8i9j0',
-          consumerSecret: 'prod_cs_z9y8x7w6v5u4t3s2r1q0',
-          keyState: 'APPROVED',
-          keyType: 'PRODUCTION',
-          supportedGrantTypes: ['client_credentials', 'password'],
-          callbackUrl: 'https://myapp.com/callback',
-          token: {
-            accessToken: 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...',
-            validityTime: 3600,
-            scopes: ['openid', 'profile', 'email']
-          }
-        },
-        sandbox: {
-          consumerKey: 'sand_ck_x1y2z3a4b5c6d7e8f9g0',
-          consumerSecret: 'sand_cs_p0o9i8u7y6t5r4e3w2q1',
-          keyState: 'APPROVED',
-          keyType: 'SANDBOX',
-          supportedGrantTypes: ['client_credentials'],
-          callbackUrl: 'http://localhost:3000/callback'
-        }
-      }
-    },
-    {
-      id: 'app-002',
-      name: 'Mobile Banking',
-      description: 'Application mobile pour les services bancaires et les transactions financières.',
-      status: 'active',
-      tier: '50PerMin',
-      createdAt: '2025-12-01',
-      owner: 'admin',
-      subscriptionCount: 2,
-      keys: {
-        production: {
-          consumerKey: 'prod_ck_m1n2o3p4q5r6s7t8u9v0',
-          consumerSecret: 'prod_cs_a0b1c2d3e4f5g6h7i8j9',
-          keyState: 'APPROVED',
-          keyType: 'PRODUCTION',
-          supportedGrantTypes: ['authorization_code', 'refresh_token'],
-          callbackUrl: 'mybank://oauth/callback'
-        }
-      }
-    },
-    {
-      id: 'app-003',
-      name: 'Analytics Dashboard',
-      description: 'Tableau de bord interne pour visualiser les métriques et KPIs.',
-      status: 'inactive',
-      tier: '20PerMin',
-      createdAt: '2025-12-20',
-      owner: 'developer',
-      subscriptionCount: 1,
-      keys: {
-        sandbox: {
-          consumerKey: 'sand_ck_d1a2s3h4b5o6a7r8d9',
-          consumerSecret: 'sand_cs_t1e2s3t4k5e6y7s8',
-          keyState: 'CREATED',
-          keyType: 'SANDBOX',
-          supportedGrantTypes: ['client_credentials']
-        }
-      }
-    }
-  ];
-
-  constructor(private cdr: ChangeDetectorRef) {}
+  constructor(
+    private cdr: ChangeDetectorRef,
+    private applicationService: ApplicationService,
+    private subscriptionService: SubscriptionService
+  ) {}
 
   ngOnInit(): void {
     this.loadApplications();
+    this.loadThrottlingPolicies();
   }
 
   /**
-   * Load applications
+   * Load applications from WSO2
    */
   loadApplications(): void {
     this.isLoading = true;
+    this.errorMessage = null;
     
-    // Simulate API call
-    setTimeout(() => {
-      this.applications = this.mockApplications;
-      this.isLoading = false;
-      this.cdr.detectChanges();
-    }, 500);
+    this.applicationService.getApplications({ limit: 100 }).subscribe({
+      next: (response: ApplicationList) => {
+        this.applications = response.list || [];
+        this.isLoading = false;
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        console.error('Failed to load applications', error);
+        this.errorMessage = 'Impossible de charger les applications.';
+        this.isLoading = false;
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   /**
-   * Select application for detail view
+   * Load throttling policies from WSO2
    */
-  selectApp(app: Application): void {
-    this.selectedApp = app;
-    this.activeTab = 'overview';
-    this.showProductionSecret = false;
-    this.showSandboxSecret = false;
-    this.cdr.detectChanges();
+  loadThrottlingPolicies(): void {
+    this.subscriptionService.getApplicationThrottlingPolicies().subscribe({
+      next: (response) => {
+        this.availableTiers = response.list || [];
+        // Set default tier if available
+        if (this.availableTiers.length > 0 && !this.newApp.tier) {
+          this.newApp.tier = this.availableTiers[0].policyName || 'Unlimited';
+        }
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        console.warn('Could not load throttling policies, using defaults', error);
+        // Fallback defaults
+        this.availableTiers = [
+          { policyName: 'Unlimited', description: 'Aucune limite de requêtes' },
+          { policyName: '10PerMin', description: '10 requêtes par minute' },
+          { policyName: '20PerMin', description: '20 requêtes par minute' },
+          { policyName: '50PerMin', description: '50 requêtes par minute' }
+        ] as ThrottlingPolicy[];
+      }
+    });
+  }
+
+  /**
+   * Select application and load full details
+   */
+  selectApp(app: ApplicationInfo): void {
+    if (!app.applicationId) return;
+    
+    this.applicationService.getApplicationById(app.applicationId).subscribe({
+      next: (fullApp: Application) => {
+        this.selectedApp = fullApp;
+        this.activeTab = 'overview';
+        this.showProductionSecret = false;
+        this.showSandboxSecret = false;
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        console.error('Failed to load application details', error);
+      }
+    });
   }
 
   /**
@@ -234,7 +182,11 @@ export class ApplicationsComponent implements OnInit {
    * Open create modal
    */
   openCreateModal(): void {
-    this.newApp = { name: '', description: '', tier: 'Unlimited' };
+    this.newApp = { 
+      name: '', 
+      description: '', 
+      tier: this.availableTiers[0]?.policyName || 'Unlimited' 
+    };
     this.showCreateModal = true;
     this.cdr.detectChanges();
   }
@@ -253,57 +205,137 @@ export class ApplicationsComponent implements OnInit {
   createApplication(): void {
     if (!this.newApp.name.trim()) return;
     
-    const newApplication: Application = {
-      id: `app-${Date.now()}`,
+    this.isCreating = true;
+    
+    this.applicationService.createApplication({
       name: this.newApp.name,
       description: this.newApp.description,
-      status: 'active',
-      tier: this.newApp.tier,
-      createdAt: new Date().toISOString().split('T')[0],
-      owner: 'admin',
-      subscriptionCount: 0,
-      keys: {}
-    };
-    
-    this.applications.unshift(newApplication);
-    this.closeCreateModal();
-    this.selectApp(newApplication);
+      throttlingPolicy: this.newApp.tier
+    }).subscribe({
+      next: (newApplication: Application) => {
+        this.isCreating = false;
+        this.closeCreateModal();
+        this.loadApplications();
+        
+        // Select the new application
+        if (newApplication.applicationId) {
+          this.selectApp(newApplication);
+        }
+      },
+      error: (error) => {
+        console.error('Failed to create application', error);
+        this.isCreating = false;
+        alert('Erreur lors de la création de l\'application: ' + (error.error?.description || error.message));
+      }
+    });
   }
 
   /**
-   * Generate keys for environment
+   * Generate OAuth keys for environment
    */
-  generateKeys(keyType: 'production' | 'sandbox'): void {
-    if (!this.selectedApp) return;
+  generateKeys(keyType: 'PRODUCTION' | 'SANDBOX'): void {
+    if (!this.selectedApp?.applicationId) return;
     
-    const prefix = keyType === 'production' ? 'prod' : 'sand';
-    const newKeys: ApiKeys = {
-      consumerKey: `${prefix}_ck_${this.generateRandomString(20)}`,
-      consumerSecret: `${prefix}_cs_${this.generateRandomString(20)}`,
-      keyState: 'APPROVED',
-      keyType: keyType === 'production' ? 'PRODUCTION' : 'SANDBOX',
-      supportedGrantTypes: ['client_credentials']
+    this.isGeneratingKeys = true;
+    
+    const request: ApplicationKeyGenerateRequest = {
+      keyType,
+      grantTypesToBeSupported: ['client_credentials', 'password'],
+      callbackUrl: keyType === 'PRODUCTION' 
+        ? 'https://myapp.com/callback' 
+        : 'http://localhost:4200/callback',
+      validityTime: 3600
     };
     
-    this.selectedApp.keys[keyType] = newKeys;
+    this.applicationService.generateKeys(this.selectedApp.applicationId, request).subscribe({
+      next: (key: ApplicationKey) => {
+        this.isGeneratingKeys = false;
+        // Reload application to get updated keys
+        this.selectApp(this.selectedApp!);
+      },
+      error: (error) => {
+        console.error('Failed to generate keys', error);
+        this.isGeneratingKeys = false;
+        alert('Erreur lors de la génération des clés: ' + (error.error?.description || error.message));
+      }
+    });
+  }
+
+  /**
+   * Regenerate consumer secret
+   */
+  regenerateSecret(keyType: 'PRODUCTION' | 'SANDBOX'): void {
+    if (!this.selectedApp?.applicationId) return;
     
-    // Update in list
-    const index = this.applications.findIndex(a => a.id === this.selectedApp!.id);
-    if (index !== -1) {
-      this.applications[index] = { ...this.selectedApp };
+    const key = this.getKeyByType(keyType);
+    if (!key?.keyMappingId) {
+      alert('Aucune clé trouvée pour ce type.');
+      return;
     }
-    this.cdr.detectChanges();
+    
+    if (!confirm('Êtes-vous sûr de vouloir régénérer le secret ? L\'ancien secret ne sera plus valide.')) {
+      return;
+    }
+    
+    this.applicationService.regenerateSecret(this.selectedApp.applicationId, key.keyMappingId).subscribe({
+      next: (response) => {
+        // Reload application to get updated keys
+        this.selectApp(this.selectedApp!);
+      },
+      error: (error) => {
+        console.error('Failed to regenerate secret', error);
+        alert('Erreur lors de la régénération du secret: ' + (error.error?.description || error.message));
+      }
+    });
   }
 
   /**
-   * Regenerate secret
+   * Get key by type from selected application
    */
-  regenerateSecret(keyType: 'production' | 'sandbox'): void {
-    if (!this.selectedApp || !this.selectedApp.keys[keyType]) return;
-    
-    const prefix = keyType === 'production' ? 'prod' : 'sand';
-    this.selectedApp.keys[keyType]!.consumerSecret = `${prefix}_cs_${this.generateRandomString(20)}`;
-    this.cdr.detectChanges();
+  getKeyByType(keyType: 'PRODUCTION' | 'SANDBOX'): ApplicationKey | undefined {
+    return this.selectedApp?.keys?.find(k => k.keyType === keyType);
+  }
+
+  /**
+   * Check if application has key of type
+   */
+  hasKey(keyType: 'PRODUCTION' | 'SANDBOX'): boolean {
+    return !!this.getKeyByType(keyType);
+  }
+
+  /**
+   * Get grant types for a key type
+   */
+  getGrantTypes(keyType: 'PRODUCTION' | 'SANDBOX'): string[] {
+    return this.getKeyByType(keyType)?.supportedGrantTypes || [];
+  }
+
+  /**
+   * Get callback URL for a key type
+   */
+  getCallbackUrl(keyType: 'PRODUCTION' | 'SANDBOX'): string | undefined {
+    return this.getKeyByType(keyType)?.callbackUrl;
+  }
+
+  /**
+   * Get consumer key for a key type
+   */
+  getConsumerKey(keyType: 'PRODUCTION' | 'SANDBOX'): string {
+    return this.getKeyByType(keyType)?.consumerKey || '';
+  }
+
+  /**
+   * Get consumer secret for a key type
+   */
+  getConsumerSecret(keyType: 'PRODUCTION' | 'SANDBOX'): string {
+    return this.getKeyByType(keyType)?.consumerSecret || '';
+  }
+
+  /**
+   * Get key state for a key type
+   */
+  getKeyState(keyType: 'PRODUCTION' | 'SANDBOX'): string | undefined {
+    return this.getKeyByType(keyType)?.keyState;
   }
 
   /**
@@ -323,8 +355,8 @@ export class ApplicationsComponent implements OnInit {
   /**
    * Toggle secret visibility
    */
-  toggleSecretVisibility(keyType: 'production' | 'sandbox'): void {
-    if (keyType === 'production') {
+  toggleSecretVisibility(keyType: 'PRODUCTION' | 'SANDBOX'): void {
+    if (keyType === 'PRODUCTION') {
       this.showProductionSecret = !this.showProductionSecret;
     } else {
       this.showSandboxSecret = !this.showSandboxSecret;
@@ -335,11 +367,12 @@ export class ApplicationsComponent implements OnInit {
   /**
    * Get status class
    */
-  getStatusClass(status: string): string {
+  getStatusClass(status?: string): string {
     switch (status) {
-      case 'active': return 'badge-green';
-      case 'inactive': return 'badge-gray';
-      case 'blocked': return 'badge-red';
+      case 'APPROVED': return 'badge-green';
+      case 'CREATED': return 'badge-blue';
+      case 'REJECTED': return 'badge-red';
+      case 'ON_HOLD': return 'badge-orange';
       default: return 'badge-gray';
     }
   }
@@ -347,19 +380,20 @@ export class ApplicationsComponent implements OnInit {
   /**
    * Get status label
    */
-  getStatusLabel(status: string): string {
+  getStatusLabel(status?: string): string {
     switch (status) {
-      case 'active': return 'Active';
-      case 'inactive': return 'Inactive';
-      case 'blocked': return 'Bloquée';
-      default: return status;
+      case 'APPROVED': return 'Approuvée';
+      case 'CREATED': return 'Créée';
+      case 'REJECTED': return 'Rejetée';
+      case 'ON_HOLD': return 'En attente';
+      default: return status || 'Inconnu';
     }
   }
 
   /**
    * Get key state class
    */
-  getKeyStateClass(state: string): string {
+  getKeyStateClass(state?: string): string {
     switch (state) {
       case 'APPROVED': return 'badge-green';
       case 'CREATED': return 'badge-blue';
@@ -372,34 +406,59 @@ export class ApplicationsComponent implements OnInit {
   /**
    * Mask secret
    */
-  maskSecret(secret: string): string {
-    if (secret.length <= 8) return '••••••••';
+  maskSecret(secret?: string): string {
+    if (!secret || secret.length <= 8) return '••••••••';
     return secret.substring(0, 4) + '••••••••••••' + secret.substring(secret.length - 4);
-  }
-
-  /**
-   * Generate random string
-   */
-  private generateRandomString(length: number): string {
-    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-    let result = '';
-    for (let i = 0; i < length; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return result;
   }
 
   /**
    * Delete application
    */
-  deleteApp(app: Application, event: Event): void {
+  deleteApp(app: ApplicationInfo, event: Event): void {
     event.stopPropagation();
-    if (confirm(`Êtes-vous sûr de vouloir supprimer "${app.name}" ?`)) {
-      this.applications = this.applications.filter(a => a.id !== app.id);
-      if (this.selectedApp?.id === app.id) {
-        this.selectedApp = null;
-      }
-      this.cdr.detectChanges();
+    
+    if (!app.applicationId) return;
+    
+    if (!confirm(`Êtes-vous sûr de vouloir supprimer "${app.name}" ?`)) {
+      return;
     }
+    
+    this.applicationService.deleteApplication(app.applicationId).subscribe({
+      next: () => {
+        this.applications = this.applications.filter(a => a.applicationId !== app.applicationId);
+        if (this.selectedApp?.applicationId === app.applicationId) {
+          this.selectedApp = null;
+        }
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        console.error('Failed to delete application', error);
+        alert('Erreur lors de la suppression: ' + (error.error?.description || error.message));
+      }
+    });
+  }
+
+  /**
+   * Format date for display
+   */
+  formatDate(dateString?: string): string {
+    if (!dateString) return '-';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('fr-FR', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch {
+      return dateString;
+    }
+  }
+
+  /**
+   * Reload applications
+   */
+  reload(): void {
+    this.loadApplications();
   }
 }

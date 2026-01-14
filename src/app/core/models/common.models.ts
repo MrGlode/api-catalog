@@ -155,3 +155,10 @@ export interface SubscriptionQueryParams {
   limit?: number;
   offset?: number;
 }
+
+export interface ApiError {
+  status: number;
+  message: string;
+  details?: any;
+  timestamp?: Date;
+}

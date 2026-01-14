@@ -28,7 +28,7 @@ interface DocPage {
 @Component({
   selector: 'app-docs',
   standalone: true,
-  imports: [CommonModule, RouterLink, MarkdownPipe],
+  imports: [CommonModule, MarkdownPipe],
   templateUrl: './docs.component.html',
   styleUrls: ['./docs.component.scss']
 })
