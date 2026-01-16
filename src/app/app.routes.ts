@@ -53,13 +53,14 @@ export const routes: Routes = [
       .then(m => m.ApplicationsComponent),
     title: 'Mes Applications'
   },
+  
+  // Redirect old subscriptions route to applications
   {
     path: 'subscriptions',
-    canActivate: [authGuard],
-    loadComponent: () => import('./features/subscriptions/subscriptions.component')
-      .then(m => m.SubscriptionsComponent),
-    title: 'Mes Souscriptions'
+    redirectTo: '/applications',
+    pathMatch: 'full'
   },
+
   // Documentation routes
   {
     path: 'docs',
@@ -73,8 +74,8 @@ export const routes: Routes = [
       .then(m => m.DocsComponent),
     title: 'Documentation'
   },
-  /*
-  // Changelog
+
+  /** Changelog
   {
     path: 'changelog',
     loadComponent: () => import('./features/changelog/changelog.component')
@@ -82,7 +83,6 @@ export const routes: Routes = [
     title: 'Changelog'
   },
   */
-
   // Error pages
   {
     path: 'config-error',

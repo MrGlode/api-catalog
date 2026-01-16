@@ -163,12 +163,7 @@ export class AuthService {
   /**
    * Get OAuth2 token
    */
-  private getToken(
-    clientId: string,
-    clientSecret: string,
-    username: string,
-    password: string
-  ): Observable<AuthState> {
+  private getToken(clientId: string, clientSecret: string, username: string, password: string ): Observable<AuthState> {
     const url = getOAuthUrl('tokenEndpoint');
     
     const headers = new HttpHeaders({

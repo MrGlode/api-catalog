@@ -1,11 +1,16 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, Router } from '@angular/router';
+import { ApiService } from '../../core/services/api.service';
+import { ApplicationService } from '../../core/services/application.service';
+import { AuthService } from '../../core/services/auth.service';
+import { APIInfo, APICategory } from '../../core/models';
+import { forkJoin } from 'rxjs';
 
 /**
- * Category interface
+ * Display category interface
  */
-interface Category {
+interface DisplayCategory {
   id: string;
   name: string;
   description: string;
@@ -15,184 +20,314 @@ interface Category {
 }
 
 /**
- * Popular API interface
+ * Display API interface
  */
-interface PopularApi {
+interface DisplayApi {
   id: string;
   name: string;
   description: string;
   category: string;
   categoryColor: string;
   version: string;
+  createdTime?: string;
+  type?: string;
 }
 
 /**
- * New API interface
- */
-interface NewApi {
-  id: string;
-  name: string;
-  description: string;
-  date: string;
-  category: string;
-  categoryColor: string;
-}
-
-/**
- * Home Component - Landing page with hero, categories, popular APIs
+ * Home Component - Landing page connected to WSO2
  */
 @Component({
   selector: 'app-home',
   standalone: true,
   imports: [CommonModule, RouterLink],
   templateUrl: './home.component.html',
-  styleUrl: './home.component.scss'
+  styleUrls: ['./home.component.scss']
 })
 export class HomeComponent implements OnInit {
+  
+  /**
+   * Loading state
+   */
+  isLoading = true;
   
   /**
    * Statistics
    */
   stats = {
-    totalApis: 14,
-    uptime: '99.9%',
-    connectedApps: 150
+    totalApis: 0,
+    totalCategories: 0,
+    totalApplications: 0
   };
 
   /**
-   * Categories
+   * Categories from WSO2
    */
-  categories: Category[] = [
-    {
-      id: 'finance',
-      name: 'Paiements & Finance',
-      description: 'Transactions, facturation, comptabilité',
-      icon: '💳',
-      color: 'finance',
-      count: 4
-    },
-    {
-      id: 'security',
-      name: 'Auth & Sécurité',
-      description: 'Authentification, autorisation, SSO',
-      icon: '🔐',
-      color: 'security',
-      count: 2
-    },
-    {
-      id: 'communication',
-      name: 'Messagerie',
-      description: 'SMS, Email, Notifications push',
-      icon: '💬',
-      color: 'communication',
-      count: 3
-    },
-    {
-      id: 'data',
-      name: 'Analytics',
-      description: 'Rapports, métriques, tableaux de bord',
-      icon: '📊',
-      color: 'data',
-      count: 2
-    },
-    {
-      id: 'integration',
-      name: 'Connecteurs',
-      description: 'ERP, CRM, systèmes tiers',
-      icon: '🔌',
-      color: 'integration',
-      count: 2
-    },
-    {
-      id: 'geo',
-      name: 'Géolocalisation',
-      description: 'Cartes, adresses, itinéraires',
-      icon: '📍',
-      color: 'geo',
-      count: 1
-    }
-  ];
+  categories: DisplayCategory[] = [];
 
   /**
-   * Popular APIs
+   * Popular APIs (first 4)
    */
-  popularApis: PopularApi[] = [
-    {
-      id: 'payment-api',
-      name: 'Payment Gateway',
-      description: 'Acceptez les paiements de vos clients en toute simplicité',
-      category: 'Finance',
-      categoryColor: 'finance',
-      version: 'v2.1'
-    },
-    {
-      id: 'oauth-api',
-      name: 'OAuth 2.0 Service',
-      description: 'Authentification sécurisée pour vos applications',
-      category: 'Sécurité',
-      categoryColor: 'security',
-      version: 'v1.0'
-    },
-    {
-      id: 'sms-api',
-      name: 'SMS Gateway',
-      description: 'Envoyez des SMS à vos utilisateurs dans le monde entier',
-      category: 'Messagerie',
-      categoryColor: 'communication',
-      version: 'v3.0'
-    },
-    {
-      id: 'analytics-api',
-      name: 'Analytics Engine',
-      description: 'Obtenez des insights sur l\'utilisation de vos services',
-      category: 'Data',
-      categoryColor: 'data',
-      version: 'v1.2'
-    }
-  ];
+  popularApis: DisplayApi[] = [];
 
   /**
-   * New APIs
+   * New APIs (sorted by creation date)
    */
-  newApis: NewApi[] = [
-    {
-      id: 'invoice-api',
-      name: 'Invoice Management API',
-      description: 'Gestion complète du cycle de facturation',
-      date: 'Il y a 2 jours',
-      category: 'Finance',
-      categoryColor: 'finance'
-    },
-    {
-      id: 'push-api',
-      name: 'Push Notifications API',
-      description: 'Notifications temps réel multi-plateforme',
-      date: 'Il y a 5 jours',
-      category: 'Messagerie',
-      categoryColor: 'communication'
-    },
-    {
-      id: 'erp-connector',
-      name: 'SAP Connector',
-      description: 'Intégration native avec SAP S/4HANA',
-      date: 'Il y a 1 semaine',
-      category: 'Intégration',
-      categoryColor: 'integration'
-    }
-  ];
+  newApis: DisplayApi[] = [];
 
-  constructor(private router: Router) {}
+  constructor(
+    private router: Router,
+    private cdr: ChangeDetectorRef,
+    private apiService: ApiService,
+    private applicationService: ApplicationService,
+    private authService: AuthService
+  ) {}
 
   ngOnInit(): void {
-    // Load real data from API service when available
+    this.loadData();
+  }
+
+  /**
+   * Load all data from WSO2
+   */
+  loadData(): void {
+    this.isLoading = true;
+    
+    // Load APIs and categories in parallel
+    forkJoin({
+      apis: this.apiService.getApis({ limit: 100 }),
+      categories: this.apiService.getCategories()
+    }).subscribe({
+      next: ({ apis, categories }) => {
+        const apiList = apis.list || [];
+        const categoryList = categories.list || [];
+        
+        // Update stats
+        this.stats.totalApis = apis.count || apiList.length;
+        this.stats.totalCategories = categories.count || categoryList.length;
+        
+        // Map categories
+        this.categories = this.mapCategories(categoryList);
+        
+        // Map APIs for display
+        const displayApis = this.mapApis(apiList);
+        
+        // Popular APIs (first 4)
+        this.popularApis = displayApis.slice(0, 4);
+        
+        // New APIs (sorted by creation date, last 3)
+        this.newApis = this.getNewestApis(displayApis, 3);
+        
+        this.isLoading = false;
+        this.cdr.detectChanges();
+        
+        // Load applications count separately (requires auth)
+        this.loadApplicationsCount();
+      },
+      error: (error) => {
+        console.error('Failed to load home data', error);
+        this.isLoading = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  /**
+   * Load applications count (only if authenticated)
+   */
+  loadApplicationsCount(): void {
+    // Only load if user is authenticated
+    if (!this.authService.isAuthenticated()) {
+      return;
+    }
+    
+    this.applicationService.getApplications().subscribe({
+      next: (response) => {
+        this.stats.totalApplications = response.count || 0;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        // Silently fail
+      }
+    });
+  }
+
+  /**
+   * Map WSO2 categories to display format
+   */
+  mapCategories(categories: APICategory[]): DisplayCategory[] {
+    return categories.map(cat => ({
+      id: cat.name?.toLowerCase().replace(/\s+/g, '-') || cat.id || '',
+      name: cat.name || 'Sans nom',
+      description: cat.description || this.getDefaultDescription(cat.name || ''),
+      icon: this.getCategoryIcon(cat.name || ''),
+      color: this.getCategoryColor(cat.name || ''),
+      count: cat.numberOfAPIs || 0
+    }));
+  }
+
+  /**
+   * Map WSO2 APIs to display format
+   */
+  mapApis(apis: APIInfo[]): DisplayApi[] {
+    return apis.map(api => {
+      const apiAny = api as any;
+      const category = apiAny.categories?.[0] || api.type || 'API';
+      
+      return {
+        id: api.id || '',
+        name: api.displayName || api.name || 'Sans nom',
+        description: api.description || 'Aucune description disponible.',
+        category: category,
+        categoryColor: this.getCategoryColor(category),
+        version: api.version || '1.0.0',
+        createdTime: api.createdTime,
+        type: api.type
+      };
+    });
+  }
+
+  /**
+   * Get newest APIs sorted by creation date
+   */
+  getNewestApis(apis: DisplayApi[], count: number): DisplayApi[] {
+    return [...apis]
+      .sort((a, b) => {
+        if (!a.createdTime) return 1;
+        if (!b.createdTime) return -1;
+        return new Date(b.createdTime).getTime() - new Date(a.createdTime).getTime();
+      })
+      .slice(0, count);
+  }
+
+  /**
+   * Get category icon based on name
+   */
+  getCategoryIcon(name: string): string {
+    const lower = name.toLowerCase();
+    
+    if (lower.includes('payment') || lower.includes('finance') || lower.includes('billing')) {
+      return '💳';
+    }
+    if (lower.includes('auth') || lower.includes('security') || lower.includes('identity')) {
+      return '🔐';
+    }
+    if (lower.includes('message') || lower.includes('notification') || lower.includes('email') || lower.includes('sms')) {
+      return '💬';
+    }
+    if (lower.includes('analytics') || lower.includes('data') || lower.includes('report')) {
+      return '📊';
+    }
+    if (lower.includes('integration') || lower.includes('connect') || lower.includes('erp')) {
+      return '🔌';
+    }
+    if (lower.includes('geo') || lower.includes('location') || lower.includes('map')) {
+      return '📍';
+    }
+    if (lower.includes('storage') || lower.includes('file') || lower.includes('document')) {
+      return '📁';
+    }
+    if (lower.includes('search')) {
+      return '🔍';
+    }
+    if (lower.includes('user') || lower.includes('account') || lower.includes('profile')) {
+      return '👤';
+    }
+    if (lower.includes('order') || lower.includes('commerce') || lower.includes('shop')) {
+      return '🛒';
+    }
+    if (lower.includes('inventory') || lower.includes('stock') || lower.includes('product')) {
+      return '📦';
+    }
+    
+    return '📂';
+  }
+
+  /**
+   * Get category color based on name
+   */
+  getCategoryColor(name: string): string {
+    const lower = name.toLowerCase();
+    
+    if (lower.includes('payment') || lower.includes('finance') || lower.includes('billing')) {
+      return 'finance';
+    }
+    if (lower.includes('auth') || lower.includes('security') || lower.includes('identity')) {
+      return 'security';
+    }
+    if (lower.includes('message') || lower.includes('notification') || lower.includes('email') || lower.includes('sms')) {
+      return 'communication';
+    }
+    if (lower.includes('analytics') || lower.includes('data') || lower.includes('report')) {
+      return 'data';
+    }
+    if (lower.includes('integration') || lower.includes('connect') || lower.includes('erp')) {
+      return 'integration';
+    }
+    if (lower.includes('geo') || lower.includes('location') || lower.includes('map')) {
+      return 'geo';
+    }
+    
+    return 'default';
+  }
+
+  /**
+   * Get default description for category
+   */
+  getDefaultDescription(name: string): string {
+    const lower = name.toLowerCase();
+    
+    if (lower.includes('payment') || lower.includes('finance')) {
+      return 'Transactions, facturation, comptabilité';
+    }
+    if (lower.includes('auth') || lower.includes('security')) {
+      return 'Authentification, autorisation, SSO';
+    }
+    if (lower.includes('message') || lower.includes('notification')) {
+      return 'SMS, Email, Notifications push';
+    }
+    if (lower.includes('analytics') || lower.includes('data')) {
+      return 'Rapports, métriques, tableaux de bord';
+    }
+    if (lower.includes('integration') || lower.includes('connect')) {
+      return 'ERP, CRM, systèmes tiers';
+    }
+    if (lower.includes('geo') || lower.includes('location')) {
+      return 'Cartes, adresses, itinéraires';
+    }
+    
+    return 'APIs et services';
+  }
+
+  /**
+   * Format relative date
+   */
+  formatRelativeDate(dateString?: string): string {
+    if (!dateString) return '';
+    
+    try {
+      const date = new Date(dateString);
+      const now = new Date();
+      const diffMs = now.getTime() - date.getTime();
+      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      
+      if (diffDays === 0) return "Aujourd'hui";
+      if (diffDays === 1) return 'Hier';
+      if (diffDays < 7) return `Il y a ${diffDays} jours`;
+      if (diffDays < 30) return `Il y a ${Math.floor(diffDays / 7)} semaine${Math.floor(diffDays / 7) > 1 ? 's' : ''}`;
+      if (diffDays < 365) return `Il y a ${Math.floor(diffDays / 30)} mois`;
+      
+      return date.toLocaleDateString('fr-FR');
+    } catch {
+      return '';
+    }
   }
 
   /**
    * Navigate to category
    */
-  goToCategory(categoryId: string): void {
+  goToCategory(categoryName: string): void {
     this.router.navigate(['/catalog'], { 
-      queryParams: { category: categoryId } 
+      queryParams: { category: categoryName } 
     });
   }
 

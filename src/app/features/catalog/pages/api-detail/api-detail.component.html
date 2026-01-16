@@ -1,672 +1,536 @@
 <!-- API Detail Page -->
 <div class="api-detail-page">
   
+  <!-- Error State -->
+  @if (errorMessage) {
+    <div class="error-state">
+      <div class="error-icon">⚠️</div>
+      <h3>Erreur</h3>
+      <p>{{ errorMessage }}</p>
+      <div class="error-actions">
+        <button class="btn btn-secondary" (click)="goBack()">Retour au catalogue</button>
+        <button class="btn btn-primary" (click)="reload()">Réessayer</button>
+      </div>
+    </div>
+  }
+
+  <!-- Loading State -->
   @if (isLoading) {
     <div class="loading">
       <div class="loading-spinner"></div>
-      <span>Chargement...</span>
+      <span>Chargement de l'API...</span>
     </div>
   }
-  
-  @if (!isLoading && api) {
+
+  <!-- Main Content -->
+  @if (!isLoading && !errorMessage && api) {
     
-    <!-- Breadcrumb -->
-    <nav class="breadcrumb">
-      <a routerLink="/catalog" class="breadcrumb-link">Catalogue</a>
-      <span class="breadcrumb-separator">/</span>
-      <span class="breadcrumb-current">{{ api.name }}</span>
-    </nav>
-    
-    <!-- Header -->
-    <header class="api-header">
-      <div class="api-icon" [class]="'icon-' + api.categoryColor">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="32" height="32">
-          <path d="M13 10V3L4 14h7v7l9-11h-7z" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- Back Button -->
+    <div class="back-nav">
+      <button class="back-button" (click)="goBack()">
+        <svg viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/>
         </svg>
-      </div>
-      
-      <div class="api-info">
-        <div class="api-badges">
-          <span class="badge" [class]="'badge-' + api.categoryColor">{{ api.category }}</span>
-          <span class="badge" [class]="getStatusClass(api.status)">{{ getStatusLabel(api.status) }}</span>
-          <span class="badge badge-gray">{{ api.version }}</span>
-        </div>
-        <h1 class="api-name">{{ api.name }}</h1>
-        <p class="api-description">{{ api.description }}</p>
-      </div>
-    </header>
-    
-    <!-- Tabs -->
-    <div class="tabs">
-      <button class="tab" [class.active]="activeTab === 'overview'" (click)="setTab('overview')">
-        <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
-          <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
-        </svg>
-        Vue d'ensemble
-      </button>
-      <button class="tab" [class.active]="activeTab === 'docs'" (click)="setTab('docs')">
-        <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
-          <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z"/>
-        </svg>
-        Documentation
-      </button>
-      <button class="tab" [class.active]="activeTab === 'reference'" (click)="setTab('reference')">
-        <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
-          <path fill-rule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd"/>
-        </svg>
-        Référence API
-      </button>
-      <button class="tab" [class.active]="activeTab === 'plans'" (click)="setTab('plans')">
-        <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
-          <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"/>
-          <path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clip-rule="evenodd"/>
-        </svg>
-        Tarifs
+        Retour au catalogue
       </button>
     </div>
-    
+
+    <!-- API Header -->
+    <header class="api-header">
+      <div class="api-header-content">
+        <div class="api-title-row">
+          <h1 class="api-name">{{ api.name }}</h1>
+          <span class="badge badge-gray">{{ api.version }}</span>
+          <span class="badge" [class]="getStatusClass(api.lifeCycleStatus)">
+            {{ getStatusLabel(api.lifeCycleStatus) }}
+          </span>
+        </div>
+        <p class="api-description">{{ api.description || 'Aucune description disponible.' }}</p>
+        <div class="api-meta">
+          <span class="meta-item">
+            <svg viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
+            </svg>
+            {{ api.provider }}
+          </span>
+          <span class="meta-item">
+            <svg viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/>
+            </svg>
+            {{ formatDate(api.lastUpdatedTime || api.createdTime) }}
+          </span>
+          @if (api.type) {
+            <span class="meta-item">
+              <svg viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd"/>
+              </svg>
+              {{ api.type }}
+            </span>
+          }
+        </div>
+      </div>
+      <div class="api-header-actions">
+        <button class="btn btn-primary" (click)="openSubscribeModal()">
+          <svg viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
+          </svg>
+          Souscrire
+        </button>
+      </div>
+    </header>
+
+    <!-- Tabs -->
+    <nav class="tabs-nav">
+      <button 
+        class="tab-btn" 
+        [class.active]="activeTab === 'overview'"
+        (click)="setTab('overview')"
+      >
+        Vue d'ensemble
+      </button>
+      <button 
+        class="tab-btn" 
+        [class.active]="activeTab === 'documentation'"
+        (click)="setTab('documentation')"
+      >
+        Documentation
+        @if (documents.length > 0) {
+          <span class="tab-count">{{ documents.length }}</span>
+        }
+      </button>
+      <button 
+        class="tab-btn" 
+        [class.active]="activeTab === 'endpoints'"
+        (click)="setTab('endpoints')"
+      >
+        Endpoints
+        @if (endpoints.length > 0) {
+          <span class="tab-count">{{ endpoints.length }}</span>
+        }
+      </button>
+    </nav>
+
     <!-- Tab Content -->
     <div class="tab-content">
       
-      <!-- ========================================
-           OVERVIEW TAB
-           ======================================== -->
+      <!-- Overview Tab -->
       @if (activeTab === 'overview') {
-        <div class="overview-content">
+        <div class="overview-tab">
           
-          <!-- Quick Actions -->
-          <div class="quick-actions">
-            <button class="action-card primary" (click)="setTab('docs'); setDocsSection('guides')">
-              <span class="action-icon">🚀</span>
-              <div class="action-content">
-                <h3>Démarrage rapide</h3>
-                <p>Intégrez votre premier paiement en 15 minutes</p>
-              </div>
-              <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20">
-                <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/>
-              </svg>
-            </button>
-            <button class="action-card" (click)="setTab('docs'); setDocsSection('usecases')">
-              <span class="action-icon">💡</span>
-              <div class="action-content">
-                <h3>Cas d'usage</h3>
-                <p>E-commerce, SaaS, Marketplace...</p>
-              </div>
-              <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20">
-                <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/>
-              </svg>
-            </button>
-            <button class="action-card" (click)="setTab('reference')">
-              <span class="action-icon">📖</span>
-              <div class="action-content">
-                <h3>Référence API</h3>
-                <p>Endpoints, authentification, erreurs</p>
-              </div>
-              <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20">
-                <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/>
-              </svg>
-            </button>
-          </div>
-          
-          <!-- Benefits -->
-          <div class="benefits-grid">
-            @for (benefit of api.benefits; track benefit.title) {
-              <div class="benefit-card">
-                <span class="benefit-icon">{{ benefit.icon }}</span>
-                <h3 class="benefit-title">{{ benefit.title }}</h3>
-                <p class="benefit-description">{{ benefit.description }}</p>
-              </div>
-            }
-          </div>
-          
-          <!-- Quick Info -->
-          <div class="quick-info">
+          <!-- API Info Cards -->
+          <div class="info-cards">
+            
+            <!-- Endpoints Card -->
             <div class="info-card">
-              <div class="info-label">Base URL</div>
-              <code class="info-value">{{ api.baseUrl }}</code>
+              <div class="info-card-icon blue">
+                <svg viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                </svg>
+              </div>
+              <div class="info-card-content">
+                <span class="info-card-value">{{ endpoints.length }}</span>
+                <span class="info-card-label">Endpoints</span>
+              </div>
             </div>
+            
+            <!-- Documents Card -->
             <div class="info-card">
-              <div class="info-label">Sandbox</div>
-              <code class="info-value">{{ api.sandboxUrl }}</code>
+              <div class="info-card-icon green">
+                <svg viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/>
+                </svg>
+              </div>
+              <div class="info-card-content">
+                <span class="info-card-value">{{ documents.length }}</span>
+                <span class="info-card-label">Documents</span>
+              </div>
             </div>
+            
+            <!-- Subscriptions Card -->
             <div class="info-card">
-              <div class="info-label">Authentification</div>
-              <span class="info-value">{{ api.authentication.type }}</span>
+              <div class="info-card-icon purple">
+                <svg viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/>
+                </svg>
+              </div>
+              <div class="info-card-content">
+                <span class="info-card-value">{{ api.subscriptions || 0 }}</span>
+                <span class="info-card-label">Souscriptions</span>
+              </div>
             </div>
           </div>
-          
-          <!-- Description -->
-          <div class="description-section">
-            <h2 class="section-title">À propos</h2>
-            <div class="description-content">
-              @for (paragraph of api.longDescription.split('\n\n'); track paragraph) {
-                <p>{{ paragraph }}</p>
+
+          <!-- Details Section -->
+          <div class="details-section">
+            <h2 class="section-title">Informations</h2>
+            <div class="details-grid">
+              <div class="detail-item">
+                <span class="detail-label">Context</span>
+                <span class="detail-value">{{ api.context }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Version</span>
+                <span class="detail-value">{{ api.version }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Type</span>
+                <span class="detail-value">{{ api.type || 'HTTP' }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Transport</span>
+                <span class="detail-value">{{ api.transport?.join(', ') || 'HTTP, HTTPS' }}</span>
+              </div>
+              @if (api.businessInformation?.businessOwner) {
+                <div class="detail-item">
+                  <span class="detail-label">Business Owner</span>
+                  <span class="detail-value">{{ api.businessInformation?.businessOwner }}</span>
+                </div>
+              }
+              @if (api.businessInformation?.technicalOwner) {
+                <div class="detail-item">
+                  <span class="detail-label">Technical Owner</span>
+                  <span class="detail-value">{{ api.businessInformation?.technicalOwner }}</span>
+                </div>
               }
             </div>
           </div>
-          
+
+          <!-- Endpoints Section -->
+          @if (api.endpointURLs && api.endpointURLs.length > 0) {
+            <div class="details-section">
+              <h2 class="section-title">URLs des environnements</h2>
+              <div class="endpoints-list">
+                @for (env of api.endpointURLs; track env.environmentName) {
+                  <div class="env-item">
+                    <span class="env-name">{{ env.environmentDisplayName || env.environmentName }}</span>
+                    <div class="env-urls">
+                      @if (env.URLs?.https) {
+                        <code class="env-url">{{ env.URLs?.https }}</code>
+                      }
+                      @if (env.URLs?.http) {
+                        <code class="env-url">{{ env.URLs?.http }}</code>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+
+          <!-- Tags Section -->
+          @if (api.tags && api.tags.length > 0) {
+            <div class="details-section">
+              <h2 class="section-title">Tags</h2>
+              <div class="tags-list">
+                @for (tag of api.tags; track tag) {
+                  <span class="tag">{{ tag }}</span>
+                }
+              </div>
+            </div>
+          }
+
+          <!-- Throttling Policies Section -->
+          @if (api.throttlingPolicies && api.throttlingPolicies.length > 0) {
+            <div class="details-section">
+              <h2 class="section-title">Politiques de throttling disponibles</h2>
+              <div class="policies-list">
+                @for (policy of api.throttlingPolicies; track policy) {
+                  <span class="policy-badge">{{ policy }}</span>
+                }
+              </div>
+            </div>
+          }
         </div>
       }
-      
-      <!-- ========================================
-           DOCUMENTATION TAB
-           ======================================== -->
-      @if (activeTab === 'docs') {
-        <div class="docs-layout">
-          
-          <!-- Sidebar -->
-          <aside class="docs-sidebar">
-            <nav class="docs-nav">
-              
-              <button 
-                class="nav-section-btn" 
-                [class.active]="activeDocsSection === 'guides'"
-                (click)="setDocsSection('guides')"
-              >
-                <span class="nav-icon">📚</span>
-                Guides & Tutoriels
-                <span class="nav-count">{{ api.guides.length }}</span>
-              </button>
-              
-              <button 
-                class="nav-section-btn" 
-                [class.active]="activeDocsSection === 'usecases'"
-                (click)="setDocsSection('usecases')"
-              >
-                <span class="nav-icon">💡</span>
-                Cas d'usage
-                <span class="nav-count">{{ api.useCases.length }}</span>
-              </button>
-              
-              <button 
-                class="nav-section-btn" 
-                [class.active]="activeDocsSection === 'concepts'"
-                (click)="setDocsSection('concepts')"
-              >
-                <span class="nav-icon">📖</span>
-                Concepts clés
-                <span class="nav-count">{{ api.concepts.length }}</span>
-              </button>
-              
-              <button 
-                class="nav-section-btn" 
-                [class.active]="activeDocsSection === 'faq'"
-                (click)="setDocsSection('faq')"
-              >
-                <span class="nav-icon">❓</span>
-                FAQ
-                <span class="nav-count">{{ api.faq.length }}</span>
-              </button>
-              
-            </nav>
-          </aside>
-          
-          <!-- Content -->
-          <div class="docs-content">
-            
-            <!-- GUIDES -->
-            @if (activeDocsSection === 'guides') {
-              <div class="docs-section">
-                <h2 class="docs-title">Guides & Tutoriels</h2>
-                <p class="docs-intro">Apprenez à intégrer l'API étape par étape avec nos tutoriels pratiques.</p>
-                
-                <div class="guides-layout">
-                  <!-- Liste des guides -->
-                  <div class="guides-list">
-                    @for (guide of api.guides; track guide.id) {
+
+      <!-- Documentation Tab -->
+      @if (activeTab === 'documentation') {
+        <div class="documentation-tab">
+          @if (isLoadingDocs) {
+            <div class="loading-inline">
+              <div class="loading-spinner small"></div>
+              <span>Chargement des documents...</span>
+            </div>
+          } @else if (documents.length === 0) {
+            <div class="empty-state">
+              <div class="empty-icon">📄</div>
+              <h3>Aucune documentation</h3>
+              <p>Cette API n'a pas encore de documentation associée.</p>
+            </div>
+          } @else {
+            <div class="docs-layout">
+              <!-- Documents List -->
+              <aside class="docs-sidebar">
+                <h3 class="sidebar-title">Documents</h3>
+                <ul class="docs-list">
+                  @for (doc of documents; track doc.documentId) {
+                    <li>
                       <button 
-                        class="guide-card"
-                        [class.active]="selectedGuide?.id === guide.id"
-                        (click)="selectGuide(guide)"
+                        class="doc-item" 
+                        [class.active]="selectedDocument?.documentId === doc.documentId"
+                        (click)="selectDocument(doc)"
                       >
-                        <span class="guide-icon">{{ guide.icon }}</span>
-                        <div class="guide-info">
-                          <h4 class="guide-title">{{ guide.title }}</h4>
-                          <p class="guide-desc">{{ guide.description }}</p>
-                          <div class="guide-meta">
-                            <span class="guide-duration">⏱️ {{ guide.duration }}</span>
-                            <span class="guide-difficulty" [class]="getDifficultyClass(guide.difficulty)">
-                              {{ guide.difficulty }}
-                            </span>
-                          </div>
+                        <span class="doc-icon">{{ getDocTypeIcon(doc.type) }}</span>
+                        <div class="doc-info">
+                          <span class="doc-name">{{ doc.name }}</span>
+                          <span class="doc-type">{{ getDocTypeLabel(doc.type) }}</span>
                         </div>
-                        <svg class="guide-arrow" viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
-                          <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
-                        </svg>
                       </button>
-                    }
-                  </div>
-                  
-                  <!-- Contenu du guide sélectionné -->
-                  @if (selectedGuide) {
-                    <div class="guide-content">
-                      <div class="guide-header">
-                        <span class="guide-content-icon">{{ selectedGuide.icon }}</span>
-                        <div>
-                          <h3>{{ selectedGuide.title }}</h3>
-                          <div class="guide-content-meta">
-                            <span>⏱️ {{ selectedGuide.duration }}</span>
-                            <span [class]="getDifficultyClass(selectedGuide.difficulty)">{{ selectedGuide.difficulty }}</span>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div class="guide-steps">
-                        @for (step of selectedGuide.steps; track step.title; let i = $index) {
-                          <div class="step">
-                            <div class="step-number">{{ i + 1 }}</div>
-                            <div class="step-content">
-                              <h4 class="step-title">{{ step.title }}</h4>
-                              <p class="step-text">{{ step.content }}</p>
-                              
-                              @if (step.tip) {
-                                <div class="step-tip">
-                                  <span class="tip-icon">💡</span>
-                                  <span>{{ step.tip }}</span>
-                                </div>
-                              }
-                              
-                              @if (step.warning) {
-                                <div class="step-warning">
-                                  <span class="warning-icon">⚠️</span>
-                                  <span>{{ step.warning }}</span>
-                                </div>
-                              }
-                              
-                              @if (step.codeExample) {
-                                <pre class="step-code"><code [innerText]="step.codeExample.code"></code></pre>
-                              }
-                            </div>
-                          </div>
-                        }
-                      </div>
-                    </div>
-                  }
-                </div>
-              </div>
-            }
-            
-            <!-- USE CASES -->
-            @if (activeDocsSection === 'usecases') {
-              <div class="docs-section">
-                <h2 class="docs-title">Cas d'usage</h2>
-                <p class="docs-intro">Découvrez comment utiliser l'API selon votre secteur d'activité.</p>
-                
-                <div class="usecases-grid">
-                  @for (useCase of api.useCases; track useCase.id) {
-                    <button 
-                      class="usecase-card"
-                      [class.active]="selectedUseCase?.id === useCase.id"
-                      (click)="selectUseCase(useCase)"
-                    >
-                      <span class="usecase-icon">{{ useCase.icon }}</span>
-                      <h4 class="usecase-title">{{ useCase.title }}</h4>
-                      <p class="usecase-desc">{{ useCase.description }}</p>
-                      @if (useCase.industry) {
-                        <span class="usecase-industry">{{ useCase.industry }}</span>
-                      }
-                    </button>
-                  }
-                </div>
-                
-                @if (selectedUseCase) {
-                  <div class="usecase-detail">
-                    <div class="usecase-detail-header">
-                      <span class="usecase-detail-icon">{{ selectedUseCase.icon }}</span>
-                      <div>
-                        <h3>{{ selectedUseCase.title }}</h3>
-                        <p>{{ selectedUseCase.description }}</p>
-                      </div>
-                    </div>
-                    
-                    <div class="usecase-columns">
-                      <div class="usecase-benefits">
-                        <h4>✅ Avantages</h4>
-                        <ul>
-                          @for (benefit of selectedUseCase.benefits; track benefit) {
-                            <li>{{ benefit }}</li>
-                          }
-                        </ul>
-                      </div>
-                      
-                      <div class="usecase-workflow">
-                        <h4>📋 Workflow type</h4>
-                        <ol>
-                          @for (step of selectedUseCase.workflow; track step) {
-                            <li>{{ step }}</li>
-                          }
-                        </ol>
-                      </div>
-                    </div>
-                  </div>
-                }
-              </div>
-            }
-            
-            <!-- CONCEPTS -->
-            @if (activeDocsSection === 'concepts') {
-              <div class="docs-section">
-                <h2 class="docs-title">Concepts clés</h2>
-                <p class="docs-intro">Glossaire des termes et notions essentielles pour comprendre l'API.</p>
-                
-                <div class="concepts-list">
-                  @for (concept of api.concepts; track concept.id) {
-                    <div class="concept-card">
-                      <h4 class="concept-term">{{ concept.term }}</h4>
-                      <p class="concept-definition">{{ concept.definition }}</p>
-                      @if (concept.example) {
-                        <div class="concept-example">
-                          <strong>Exemple :</strong> {{ concept.example }}
-                        </div>
-                      }
-                      @if (concept.relatedTerms && concept.relatedTerms.length > 0) {
-                        <div class="concept-related">
-                          <span>Voir aussi :</span>
-                          @for (term of concept.relatedTerms; track term) {
-                            <span class="related-tag">{{ term }}</span>
-                          }
-                        </div>
-                      }
-                    </div>
-                  }
-                </div>
-              </div>
-            }
-            
-            <!-- FAQ -->
-            @if (activeDocsSection === 'faq') {
-              <div class="docs-section">
-                <h2 class="docs-title">Questions fréquentes</h2>
-                <p class="docs-intro">Retrouvez les réponses aux questions les plus courantes.</p>
-                
-                <div class="faq-list">
-                  @for (faq of api.faq; track faq.question; let i = $index) {
-                    <div class="faq-item" [class.expanded]="expandedFaqIndex === i">
-                      <button class="faq-question" (click)="toggleFaq(i)">
-                        <span class="faq-category">{{ faq.category }}</span>
-                        <span class="faq-text">{{ faq.question }}</span>
-                        <svg class="faq-icon" viewBox="0 0 20 20" fill="currentColor" width="20" height="20">
-                          <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
-                        </svg>
-                      </button>
-                      @if (expandedFaqIndex === i) {
-                        <div class="faq-answer">
-                          <p>{{ faq.answer }}</p>
-                        </div>
-                      }
-                    </div>
-                  }
-                </div>
-              </div>
-            }
-            
-          </div>
-        </div>
-      }
-      
-      <!-- ========================================
-           REFERENCE TAB
-           ======================================== -->
-      @if (activeTab === 'reference') {
-        <div class="docs-layout">
-          
-          <!-- Sidebar -->
-          <aside class="docs-sidebar">
-            <nav class="docs-nav">
-              
-              <button 
-                class="nav-section-btn" 
-                [class.active]="activeRefSection === 'auth'"
-                (click)="setRefSection('auth')"
-              >
-                <span class="nav-icon">🔐</span>
-                Authentification
-              </button>
-              
-              <button 
-                class="nav-section-btn" 
-                [class.active]="activeRefSection === 'endpoints'"
-                (click)="setRefSection('endpoints')"
-              >
-                <span class="nav-icon">🔌</span>
-                Endpoints
-                <span class="nav-count">{{ api.endpoints.length }}</span>
-              </button>
-              
-              @if (activeRefSection === 'endpoints') {
-                <div class="nav-subitems">
-                  @for (endpoint of api.endpoints; track endpoint.path) {
-                    <button 
-                      class="nav-subitem"
-                      [class.active]="selectedEndpoint === endpoint"
-                      (click)="selectEndpoint(endpoint)"
-                    >
-                      <span class="method-badge mini" [class]="getMethodClass(endpoint.method)">{{ endpoint.method }}</span>
-                      <span>{{ endpoint.path }}</span>
-                    </button>
-                  }
-                </div>
-              }
-              
-              <button 
-                class="nav-section-btn" 
-                [class.active]="activeRefSection === 'errors'"
-                (click)="setRefSection('errors')"
-              >
-                <span class="nav-icon">⚠️</span>
-                Codes d'erreur
-              </button>
-              
-            </nav>
-          </aside>
-          
-          <!-- Content -->
-          <div class="docs-content">
-            
-            <!-- AUTH -->
-            @if (activeRefSection === 'auth') {
-              <div class="docs-section">
-                <h2 class="docs-title">Authentification</h2>
-                <p class="docs-intro">{{ api.authentication.description }}</p>
-                
-                <div class="auth-type-badge">🔐 {{ api.authentication.type }}</div>
-                
-                <h3 class="docs-subtitle">Étapes</h3>
-                <ol class="auth-steps">
-                  @for (step of api.authentication.steps; track step; let i = $index) {
-                    <li>
-                      <span class="step-number">{{ i + 1 }}</span>
-                      <span>{{ step }}</span>
-                    </li>
-                  }
-                </ol>
-                
-                <h3 class="docs-subtitle">Exemple de code</h3>
-                <div class="code-block-wrapper">
-                  <div class="code-header">
-                    <div class="code-tabs">
-                      <button class="code-tab" [class.active]="activeCodeLang === 'curl'" (click)="setCodeLang('curl')">cURL</button>
-                      <button class="code-tab" [class.active]="activeCodeLang === 'javascript'" (click)="setCodeLang('javascript')">JavaScript</button>
-                      <button class="code-tab" [class.active]="activeCodeLang === 'python'" (click)="setCodeLang('python')">Python</button>
-                    </div>
-                    <button class="copy-btn" (click)="copyCode(getAuthCode())">
-                      {{ codeCopied ? '✓ Copié' : 'Copier' }}
-                    </button>
-                  </div>
-                  <pre class="code-block"><code [innerText]="getAuthCode()"></code></pre>
-                </div>
-              </div>
-            }
-            
-            <!-- ENDPOINTS -->
-            @if (activeRefSection === 'endpoints' && selectedEndpoint) {
-              <div class="docs-section">
-                <div class="endpoint-header">
-                  <span class="method-badge large" [class]="getMethodClass(selectedEndpoint.method)">{{ selectedEndpoint.method }}</span>
-                  <code class="endpoint-path-display">{{ selectedEndpoint.path }}</code>
-                </div>
-                
-                <h2 class="docs-title">{{ selectedEndpoint.summary }}</h2>
-                <p class="docs-intro">{{ selectedEndpoint.description }}</p>
-                
-                @if (selectedEndpoint.pathParams && selectedEndpoint.pathParams.length > 0) {
-                  <h3 class="docs-subtitle">Paramètres de chemin</h3>
-                  <div class="params-table">
-                    @for (param of selectedEndpoint.pathParams; track param.name) {
-                      <div class="params-row">
-                        <code class="param-name">{{ param.name }}</code>
-                        <span class="param-type">{{ param.type }}</span>
-                        <span class="param-desc">{{ param.description }}</span>
-                        @if (param.required) {
-                          <span class="required-badge">requis</span>
-                        }
-                      </div>
-                    }
-                  </div>
-                }
-                
-                @if (selectedEndpoint.queryParams && selectedEndpoint.queryParams.length > 0) {
-                  <h3 class="docs-subtitle">Paramètres de requête</h3>
-                  <div class="params-table">
-                    @for (param of selectedEndpoint.queryParams; track param.name) {
-                      <div class="params-row">
-                        <code class="param-name">{{ param.name }}</code>
-                        <span class="param-type">{{ param.type }}</span>
-                        <span class="param-desc">{{ param.description }}</span>
-                        @if (param.required) {
-                          <span class="required-badge">requis</span>
-                        }
-                      </div>
-                    }
-                  </div>
-                }
-                
-                <h3 class="docs-subtitle">Réponses</h3>
-                <div class="responses-list">
-                  @for (response of selectedEndpoint.responses; track response.status) {
-                    <div class="response-item">
-                      <div class="response-header" [class]="getResponseClass(response.status)">
-                        <span class="response-status">{{ response.status }}</span>
-                        <span>{{ response.description }}</span>
-                      </div>
-                      <pre class="code-block json"><code [innerText]="response.example"></code></pre>
-                    </div>
-                  }
-                </div>
-              </div>
-            }
-            
-            <!-- ERRORS -->
-            @if (activeRefSection === 'errors') {
-              <div class="docs-section">
-                <h2 class="docs-title">Codes d'erreur</h2>
-                <p class="docs-intro">L'API retourne des codes HTTP standard avec des messages détaillés.</p>
-                
-                <h3 class="docs-subtitle">Codes HTTP</h3>
-                <div class="errors-table">
-                  <div class="error-row">
-                    <span class="error-code success">200</span>
-                    <span class="error-name">OK</span>
-                    <span class="error-desc">Requête réussie</span>
-                  </div>
-                  <div class="error-row">
-                    <span class="error-code success">201</span>
-                    <span class="error-name">Created</span>
-                    <span class="error-desc">Ressource créée</span>
-                  </div>
-                  <div class="error-row">
-                    <span class="error-code warning">400</span>
-                    <span class="error-name">Bad Request</span>
-                    <span class="error-desc">Requête invalide</span>
-                  </div>
-                  <div class="error-row">
-                    <span class="error-code warning">401</span>
-                    <span class="error-name">Unauthorized</span>
-                    <span class="error-desc">Non authentifié</span>
-                  </div>
-                  <div class="error-row">
-                    <span class="error-code warning">404</span>
-                    <span class="error-name">Not Found</span>
-                    <span class="error-desc">Ressource non trouvée</span>
-                  </div>
-                  <div class="error-row">
-                    <span class="error-code warning">429</span>
-                    <span class="error-name">Too Many Requests</span>
-                    <span class="error-desc">Limite dépassée</span>
-                  </div>
-                  <div class="error-row">
-                    <span class="error-code error">500</span>
-                    <span class="error-name">Server Error</span>
-                    <span class="error-desc">Erreur serveur</span>
-                  </div>
-                </div>
-                
-                <h3 class="docs-subtitle">Format des erreurs</h3>
-                <pre class="code-block json"><code [innerText]="errorFormatExample"></code></pre>
-              </div>
-            }
-            
-          </div>
-        </div>
-      }
-      
-      <!-- ========================================
-           PLANS TAB
-           ======================================== -->
-      @if (activeTab === 'plans') {
-        <div class="plans-content">
-          <h2 class="plans-title">Choisissez votre plan</h2>
-          <p class="plans-intro">Des tarifs adaptés à votre volume, sans engagement.</p>
-          
-          <div class="plans-grid">
-            @for (plan of api.plans; track plan.name) {
-              <div class="plan-card" [class.recommended]="plan.recommended">
-                @if (plan.recommended) {
-                  <div class="plan-badge">Recommandé</div>
-                }
-                <h3 class="plan-name">{{ plan.name }}</h3>
-                <p class="plan-description">{{ plan.description }}</p>
-                <div class="plan-price">
-                  <span class="price-value">{{ plan.price }}</span>
-                  @if (plan.period) {
-                    <span class="price-period">{{ plan.period }}</span>
-                  }
-                </div>
-                <div class="plan-requests">{{ plan.requestsPerMonth }} requêtes/mois</div>
-                <ul class="plan-features">
-                  @for (feature of plan.features; track feature) {
-                    <li>
-                      <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
-                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                      </svg>
-                      {{ feature }}
                     </li>
                   }
                 </ul>
-                <button 
-                  class="btn plan-btn"
-                  [class.btn-primary]="plan.recommended"
-                  [class.btn-secondary]="!plan.recommended"
-                  (click)="subscribeToPlan(plan)"
-                >
-                  {{ plan.price === 'Gratuit' ? 'Commencer gratuitement' : (plan.price === 'Sur devis' ? 'Nous contacter' : 'S\'abonner') }}
-                </button>
-              </div>
-            }
-          </div>
+              </aside>
+              
+              <!-- Document Content -->
+              <main class="docs-content">
+                @if (selectedDocument) {
+                  <div class="doc-header">
+                    <h2>{{ selectedDocument.name }}</h2>
+                    <span class="badge badge-gray">{{ getDocTypeLabel(selectedDocument.type) }}</span>
+                  </div>
+                  
+                  @if (selectedDocument.summary) {
+                    <p class="doc-summary">{{ selectedDocument.summary }}</p>
+                  }
+                  
+                  @if (selectedDocument.sourceType === 'URL' && selectedDocument.sourceUrl) {
+                    <div class="doc-external">
+                      <p>Ce document est hébergé sur un site externe.</p>
+                      <a [href]="selectedDocument.sourceUrl" target="_blank" rel="noopener" class="btn btn-primary">
+                        Ouvrir le document
+                        <svg viewBox="0 0 20 20" fill="currentColor">
+                          <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z"/>
+                          <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z"/>
+                        </svg>
+                      </a>
+                    </div>
+                  } @else if (isLoadingDocContent) {
+                    <div class="loading-inline">
+                      <div class="loading-spinner small"></div>
+                      <span>Chargement du contenu...</span>
+                    </div>
+                  } @else {
+                    <div class="doc-body" [innerHTML]="documentContent"></div>
+                  }
+                }
+              </main>
+            </div>
+          }
         </div>
       }
-      
+
+      <!-- Endpoints Tab -->
+      @if (activeTab === 'endpoints') {
+        <div class="endpoints-tab">
+          @if (isLoadingSwagger) {
+            <div class="loading-inline">
+              <div class="loading-spinner small"></div>
+              <span>Chargement des endpoints...</span>
+            </div>
+          } @else if (endpoints.length === 0) {
+            <div class="empty-state">
+              <div class="empty-icon">🔌</div>
+              <h3>Aucun endpoint</h3>
+              <p>La définition OpenAPI de cette API n'est pas disponible.</p>
+            </div>
+          } @else {
+            <div class="endpoints-layout">
+              <!-- Endpoints List -->
+              <aside class="endpoints-sidebar">
+                <h3 class="sidebar-title">Endpoints</h3>
+                <ul class="endpoints-list">
+                  @for (ep of endpoints; track ep.path + ep.method) {
+                    <li>
+                      <button 
+                        class="endpoint-item" 
+                        [class.active]="selectedEndpoint === ep"
+                        (click)="selectEndpoint(ep)"
+                      >
+                        <span class="method-badge" [class]="getMethodClass(ep.method)">
+                          {{ ep.method }}
+                        </span>
+                        <span class="endpoint-path">{{ ep.path }}</span>
+                      </button>
+                    </li>
+                  }
+                </ul>
+              </aside>
+              
+              <!-- Endpoint Detail -->
+              <main class="endpoint-content">
+                @if (selectedEndpoint) {
+                  <div class="endpoint-header">
+                    <span class="method-badge large" [class]="getMethodClass(selectedEndpoint.method)">
+                      {{ selectedEndpoint.method }}
+                    </span>
+                    <code class="endpoint-path-large">{{ selectedEndpoint.path }}</code>
+                  </div>
+                  
+                  @if (selectedEndpoint.summary) {
+                    <h3 class="endpoint-summary">{{ selectedEndpoint.summary }}</h3>
+                  }
+                  
+                  @if (selectedEndpoint.description) {
+                    <p class="endpoint-description">{{ selectedEndpoint.description }}</p>
+                  }
+
+                  <!-- Parameters -->
+                  @if (selectedEndpoint.parameters && selectedEndpoint.parameters.length > 0) {
+                    <div class="endpoint-section">
+                      <h4>Paramètres</h4>
+                      <table class="params-table">
+                        <thead>
+                          <tr>
+                            <th>Nom</th>
+                            <th>Type</th>
+                            <th>In</th>
+                            <th>Requis</th>
+                            <th>Description</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          @for (param of selectedEndpoint.parameters; track param.name) {
+                            <tr>
+                              <td><code>{{ param.name }}</code></td>
+                              <td>{{ param.schema?.type || param.type || '-' }}</td>
+                              <td>{{ param.in }}</td>
+                              <td>
+                                @if (param.required) {
+                                  <span class="badge badge-red">Oui</span>
+                                } @else {
+                                  <span class="badge badge-gray">Non</span>
+                                }
+                              </td>
+                              <td>{{ param.description || '-' }}</td>
+                            </tr>
+                          }
+                        </tbody>
+                      </table>
+                    </div>
+                  }
+
+                  <!-- Code Examples -->
+                  <div class="endpoint-section">
+                    <h4>Exemple de code</h4>
+                    <div class="code-tabs">
+                      <button 
+                        class="code-tab" 
+                        [class.active]="activeCodeLang === 'curl'"
+                        (click)="setCodeLang('curl')"
+                      >
+                        cURL
+                      </button>
+                      <button 
+                        class="code-tab" 
+                        [class.active]="activeCodeLang === 'javascript'"
+                        (click)="setCodeLang('javascript')"
+                      >
+                        JavaScript
+                      </button>
+                      <button 
+                        class="code-tab" 
+                        [class.active]="activeCodeLang === 'python'"
+                        (click)="setCodeLang('python')"
+                      >
+                        Python
+                      </button>
+                    </div>
+                    <div class="code-block">
+                      <button class="copy-btn" (click)="copyCode(getCodeExample(selectedEndpoint))">
+                        {{ codeCopied ? '✓ Copié' : 'Copier' }}
+                      </button>
+                      <pre><code>{{ getCodeExample(selectedEndpoint) }}</code></pre>
+                    </div>
+                  </div>
+
+                  <!-- Responses -->
+                  @if (selectedEndpoint.responses) {
+                    <div class="endpoint-section">
+                      <h4>Réponses</h4>
+                      <div class="responses-list">
+                        @for (responseCode of getResponseCodes(selectedEndpoint.responses); track responseCode) {
+                          <div class="response-item">
+                            <span class="response-code" [class.success]="responseCode.startsWith('2')">
+                              {{ responseCode }}
+                            </span>
+                            <span class="response-desc">
+                              {{ selectedEndpoint.responses[responseCode].description || '-' }}
+                            </span>
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  }
+                }
+              </main>
+            </div>
+          }
+        </div>
+      }
     </div>
   }
-  
-  @if (!isLoading && !api) {
-    <div class="not-found">
-      <div class="not-found-icon">🔍</div>
-      <h2>API non trouvée</h2>
-      <p>L'API recherchée n'existe pas.</p>
-      <button class="btn btn-primary" (click)="goBack()">Retour au catalogue</button>
-    </div>
-  }
-  
 </div>
+
+<!-- Subscribe Modal -->
+@if (showSubscribeModal) {
+  <div class="modal-overlay" (click)="closeSubscribeModal()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Souscrire à {{ api?.name }}</h2>
+        <button class="modal-close" (click)="closeSubscribeModal()">
+          <svg viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+          </svg>
+        </button>
+      </div>
+      
+      <div class="modal-body">
+        @if (applications.length === 0) {
+          <div class="no-apps-warning">
+            <p>Vous n'avez aucune application. Créez-en une d'abord.</p>
+            <a routerLink="/applications" class="btn btn-primary">
+              Créer une application
+            </a>
+          </div>
+        } @else {
+          <div class="form-group">
+            <label for="sub-app">Application</label>
+            <select id="sub-app" [(ngModel)]="selectedAppId" [disabled]="isSubscribing">
+              @for (app of applications; track app.applicationId) {
+                <option [value]="app.applicationId">{{ app.name }}</option>
+              }
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label for="sub-policy">Politique de throttling</label>
+            <select id="sub-policy" [(ngModel)]="selectedPolicy" [disabled]="isSubscribing">
+              @for (policy of subscriptionPolicies; track policy.name) {
+                <option [value]="policy.name">{{ policy.name }}</option>
+              }
+            </select>
+          </div>
+        }
+      </div>
+      
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="closeSubscribeModal()" [disabled]="isSubscribing">
+          Annuler
+        </button>
+        @if (applications.length > 0) {
+          <button 
+            class="btn btn-primary" 
+            (click)="subscribe()"
+            [disabled]="!selectedAppId || !selectedPolicy || isSubscribing"
+          >
+            @if (isSubscribing) {
+              <span class="spinner"></span> Souscription...
+            } @else {
+              Souscrire
+            }
+          </button>
+        }
+      </div>
+    </div>
+  </div>
+}

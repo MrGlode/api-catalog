@@ -73,23 +73,34 @@
       <div class="nav-section-header">
         <span class="nav-section-title">Catégories</span>
       </div>
-      <ul class="nav-list">
-        @for (category of categories; track category.id) {
-          <li class="nav-item">
-            <a 
-              class="nav-link nav-link-category"
-              [class]="'category-' + category.color"
-              (click)="navigateToCategory(category.id)"
-            >
-              <span class="nav-icon category-icon">{{ category.icon }}</span>
-              <span class="nav-label">{{ category.label }}</span>
-              @if (category.count) {
-                <span class="nav-count">{{ category.count }}</span>
-              }
-            </a>
-          </li>
-        }
-      </ul>
+      @if (isLoadingCategories) {
+        <div class="nav-loading">
+          <span class="loading-spinner-small"></span>
+          <span>Chargement...</span>
+        </div>
+      } @else if (categories.length === 0) {
+        <div class="nav-empty">
+          <span>Aucune catégorie</span>
+        </div>
+      } @else {
+        <ul class="nav-list">
+          @for (category of categories; track category.id) {
+            <li class="nav-item">
+              <a 
+                class="nav-link nav-link-category"
+                [class]="'category-' + getCategoryColor(category)"
+                (click)="navigateToCategory(category.name || '')"
+              >
+                <span class="nav-icon category-icon">{{ getCategoryIcon(category) }}</span>
+                <span class="nav-label">{{ category.name }}</span>
+                @if (category.numberOfAPIs) {
+                  <span class="nav-count">{{ category.numberOfAPIs }}</span>
+                }
+              </a>
+            </li>
+          }
+        </ul>
+      }
     </div>
 
     <!-- User Section (if authenticated) -->

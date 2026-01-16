@@ -54,12 +54,12 @@ export class LoginComponent implements OnInit {
   /**
    * URL de retour après connexion
    */
-  returnUrl = '/dashboard';
+  returnUrl = '/home';
 
   /**
    * Mode test activé
    */
-  isTestMode = true; // Mettre à false en production
+  isTestMode = false; // Mettre à false en production
 
   /**
    * Afficher/masquer le mot de passe

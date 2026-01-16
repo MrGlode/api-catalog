@@ -127,6 +127,16 @@
             </button>
             <button 
               class="tab" 
+              [class.active]="activeTab === 'subscriptions'"
+              (click)="setTab('subscriptions')"
+            >
+              Souscriptions
+              @if (appSubscriptions.length > 0) {
+                <span class="tab-badge">{{ appSubscriptions.length }}</span>
+              }
+            </button>
+            <button 
+              class="tab" 
               [class.active]="activeTab === 'production'"
               (click)="setTab('production')"
             >
@@ -180,25 +190,6 @@
                 </div>
                 
                 <div class="info-section">
-                  <h3 class="section-title">Souscriptions</h3>
-                  @if ((selectedApp.subscriptionCount || 0) > 0) {
-                    <p class="section-description">
-                      Cette application est souscrite à {{ selectedApp.subscriptionCount }} API.
-                    </p>
-                    <a routerLink="/subscriptions" class="btn btn-secondary btn-sm">
-                      Voir les souscriptions
-                    </a>
-                  } @else {
-                    <p class="section-description">
-                      Cette application n'a pas encore de souscription.
-                    </p>
-                    <a routerLink="/catalog" class="btn btn-primary btn-sm">
-                      Parcourir les API
-                    </a>
-                  }
-                </div>
-                
-                <div class="info-section">
                   <h3 class="section-title">Clés d'accès</h3>
                   <div class="keys-summary">
                     <div class="key-summary-item" [class.active]="hasKey('PRODUCTION')">
@@ -219,6 +210,70 @@
                     </div>
                   </div>
                 </div>
+              </div>
+            }
+
+            <!-- Subscriptions Tab -->
+            @if (activeTab === 'subscriptions') {
+              <div class="subscriptions-content">
+                @if (isLoadingSubscriptions) {
+                  <div class="loading-inline">
+                    <div class="loading-spinner small"></div>
+                    <span>Chargement des souscriptions...</span>
+                  </div>
+                } @else if (appSubscriptions.length === 0) {
+                  <div class="empty-subscriptions">
+                    <div class="empty-icon">🔗</div>
+                    <h3>Aucune souscription</h3>
+                    <p>Cette application n'est souscrite à aucune API.</p>
+                    <a routerLink="/catalog" class="btn btn-primary">
+                      Parcourir le catalogue
+                    </a>
+                  </div>
+                } @else {
+                  <div class="subscriptions-header">
+                    <span class="subscriptions-count">{{ appSubscriptions.length }} API souscrite{{ appSubscriptions.length > 1 ? 's' : '' }}</span>
+                    <a routerLink="/catalog" class="btn btn-secondary btn-sm">
+                      + Ajouter une API
+                    </a>
+                  </div>
+                  
+                  <div class="subscriptions-list">
+                    @for (sub of appSubscriptions; track sub.subscriptionId) {
+                      <div class="subscription-item">
+                        <div class="subscription-main">
+                          <div class="subscription-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                              <path d="M13 10V3L4 14h7v7l9-11h-7z" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                          </div>
+                          <div class="subscription-info">
+                            <div class="subscription-header">
+                              <h4 class="subscription-name">{{ sub.apiName }}</h4>
+                              <span class="badge" [class]="getSubscriptionStatusClass(sub.status)">
+                                {{ getSubscriptionStatusLabel(sub.status) }}
+                              </span>
+                            </div>
+                            <p class="subscription-description">{{ sub.apiDescription || 'Aucune description' }}</p>
+                            <div class="subscription-meta">
+                              <span class="badge badge-gray">{{ sub.apiVersion }}</span>
+                              <span class="badge" [class]="getApiTypeClass(sub.apiType)">{{ sub.apiType }}</span>
+                              <span class="meta-text">Policy: {{ sub.throttlingPolicy }}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="subscription-actions">
+                          <button class="btn btn-secondary btn-sm" (click)="goToApi(sub.apiId)">
+                            Voir l'API
+                          </button>
+                          <button class="btn btn-danger btn-sm" (click)="openUnsubscribeModal(sub, $event)">
+                            Se désabonner
+                          </button>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
               </div>
             }
             
@@ -453,9 +508,9 @@
             [(ngModel)]="newApp.tier"
             [disabled]="isCreating"
           >
-            @for (tier of availableTiers; track tier.policyName) {
-              <option [value]="tier.policyName">
-                {{ tier.policyName }} - {{ tier.description }}
+            @for (tier of availableTiers; track (tier.name || tier.policyName)) {
+              <option [value]="tier.name || tier.policyName">
+                {{ tier.name || tier.policyName }} - {{ tier.description }}
               </option>
             }
           </select>
@@ -475,6 +530,49 @@
             <span class="spinner"></span> Création...
           } @else {
             Créer
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Unsubscribe Confirmation Modal -->
+@if (showUnsubscribeModal && subscriptionToUnsubscribe) {
+  <div class="modal-overlay" (click)="closeUnsubscribeModal()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Confirmer la désinscription</h2>
+        <button class="modal-close" (click)="closeUnsubscribeModal()">
+          <svg viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+          </svg>
+        </button>
+      </div>
+      
+      <div class="modal-body">
+        <p>Êtes-vous sûr de vouloir vous désabonner de :</p>
+        <div class="unsubscribe-details">
+          <strong>{{ subscriptionToUnsubscribe.apiName }}</strong>
+          <span>{{ subscriptionToUnsubscribe.apiVersion }}</span>
+        </div>
+        <p class="warning-text">
+          <svg viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+          </svg>
+          Cette action est irréversible. L'application ne pourra plus accéder à cette API.
+        </p>
+      </div>
+      
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="closeUnsubscribeModal()" [disabled]="isUnsubscribing">
+          Annuler
+        </button>
+        <button class="btn btn-danger" (click)="confirmUnsubscribe()" [disabled]="isUnsubscribing">
+          @if (isUnsubscribing) {
+            <span class="spinner"></span> Désinscription...
+          } @else {
+            Se désabonner
           }
         </button>
       </div>
