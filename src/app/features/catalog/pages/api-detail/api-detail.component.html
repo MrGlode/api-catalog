@@ -41,7 +41,7 @@
         <div class="api-title-row">
           <h1 class="api-name">{{ api.name }}</h1>
           <span class="badge badge-gray">{{ api.version }}</span>
-          <span class="badge" [class]="getStatusClass(api.lifeCycleStatus)">
+          <span class="badge" [class]="getApiStatusClass(api.lifeCycleStatus)">
             {{ getStatusLabel(api.lifeCycleStatus) }}
           </span>
         </div>
@@ -71,60 +71,115 @@
       </div>
       <div class="api-header-actions">
         <button class="btn btn-primary" (click)="openSubscribeModal()">
-          <svg viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
-          </svg>
           Souscrire
         </button>
       </div>
     </header>
 
-    <!-- Tabs -->
-    <nav class="tabs-nav">
-      <button 
-        class="tab-btn" 
-        [class.active]="activeTab === 'overview'"
-        (click)="setTab('overview')"
-      >
-        Vue d'ensemble
-      </button>
-      <button 
-        class="tab-btn" 
-        [class.active]="activeTab === 'documentation'"
-        (click)="setTab('documentation')"
-      >
-        Documentation
-        @if (documents.length > 0) {
-          <span class="tab-count">{{ documents.length }}</span>
-        }
-      </button>
-      <button 
-        class="tab-btn" 
-        [class.active]="activeTab === 'endpoints'"
-        (click)="setTab('endpoints')"
-      >
-        Endpoints
-        @if (endpoints.length > 0) {
-          <span class="tab-count">{{ endpoints.length }}</span>
-        }
-      </button>
+    <!-- Tabs - Parcours Découvrir → Intégrer -->
+    <nav class="tabs-nav-journey">
+      <!-- Zone Fonctionnelle -->
+      <div class="tab-zone zone-discover" [class.active-zone]="activeTab === 'overview' || activeTab === 'documentation'">
+        <span class="zone-label">
+          <svg viewBox="0 0 20 20" fill="currentColor">
+            <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/>
+            <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/>
+          </svg>
+          Découvrir
+        </span>
+        <div class="tab-group">
+          <button 
+            class="tab-btn" 
+            [class.active]="activeTab === 'overview'"
+            (click)="setTab('overview')"
+          >
+            <span class="tab-step">1</span>
+            <span class="tab-content">
+              <span class="tab-title">Vue d'ensemble</span>
+              <span class="tab-subtitle">Comprendre le service</span>
+            </span>
+          </button>
+          <button 
+            class="tab-btn" 
+            [class.active]="activeTab === 'documentation'"
+            (click)="setTab('documentation')"
+          >
+            <span class="tab-step">2</span>
+            <span class="tab-content">
+              <span class="tab-title">Documentation</span>
+              <span class="tab-subtitle">Guides & tutoriels</span>
+            </span>
+            @if (documents.length > 0) {
+              <span class="tab-count">{{ documents.length }}</span>
+            }
+          </button>
+        </div>
+      </div>
+
+      <!-- Séparateur avec flèche -->
+      <div class="zone-separator">
+        <div class="separator-line"></div>
+        <div class="separator-arrow">
+          <svg viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/>
+          </svg>
+        </div>
+        <div class="separator-line"></div>
+      </div>
+
+      <!-- Zone Technique -->
+      <div class="tab-zone zone-integrate" [class.active-zone]="activeTab === 'reference' || activeTab === 'sandbox'">
+        <span class="zone-label">
+          <svg viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd"/>
+          </svg>
+          Intégrer
+        </span>
+        <div class="tab-group">
+          <button 
+            class="tab-btn" 
+            [class.active]="activeTab === 'reference'"
+            (click)="setTab('reference')"
+          >
+            <span class="tab-step">3</span>
+            <span class="tab-content">
+              <span class="tab-title">Référence API</span>
+              <span class="tab-subtitle">Endpoints & schémas</span>
+            </span>
+            @if (endpoints.length > 0) {
+              <span class="tab-count">{{ endpoints.length }}</span>
+            }
+          </button>
+          <button 
+            class="tab-btn" 
+            [class.active]="activeTab === 'sandbox'"
+            (click)="setTab('sandbox')"
+          >
+            <span class="tab-step">4</span>
+            <span class="tab-content">
+              <span class="tab-title">Sandbox</span>
+              <span class="tab-subtitle">Tester en direct</span>
+            </span>
+          </button>
+        </div>
+      </div>
     </nav>
 
     <!-- Tab Content -->
     <div class="tab-content">
       
-      <!-- Overview Tab -->
+      <!-- ============================================ -->
+      <!-- OVERVIEW TAB -->
+      <!-- ============================================ -->
       @if (activeTab === 'overview') {
         <div class="overview-tab">
           
           <!-- API Info Cards -->
           <div class="info-cards">
-            
-            <!-- Endpoints Card -->
             <div class="info-card">
               <div class="info-card-icon blue">
                 <svg viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                  <path fill-rule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633z" clip-rule="evenodd"/>
                 </svg>
               </div>
               <div class="info-card-content">
@@ -133,7 +188,6 @@
               </div>
             </div>
             
-            <!-- Documents Card -->
             <div class="info-card">
               <div class="info-card-icon green">
                 <svg viewBox="0 0 20 20" fill="currentColor">
@@ -146,7 +200,6 @@
               </div>
             </div>
             
-            <!-- Subscriptions Card -->
             <div class="info-card">
               <div class="info-card-icon purple">
                 <svg viewBox="0 0 20 20" fill="currentColor">
@@ -154,8 +207,8 @@
                 </svg>
               </div>
               <div class="info-card-content">
-                <span class="info-card-value">{{ api.subscriptions || 0 }}</span>
-                <span class="info-card-label">Souscriptions</span>
+                <span class="info-card-value">{{ tagGroups.length }}</span>
+                <span class="info-card-label">Catégories</span>
               </div>
             </div>
           </div>
@@ -197,9 +250,9 @@
 
           <!-- Endpoints Section -->
           @if (api.endpointURLs && api.endpointURLs.length > 0) {
-            <div class="details-section">
+            <div class="details-section urls-section">
               <h2 class="section-title">URLs des environnements</h2>
-              <div class="endpoints-list">
+              <div class="env-list">
                 @for (env of api.endpointURLs; track env.environmentName) {
                   <div class="env-item">
                     <span class="env-name">{{ env.environmentDisplayName || env.environmentName }}</span>
@@ -243,7 +296,9 @@
         </div>
       }
 
-      <!-- Documentation Tab -->
+      <!-- ============================================ -->
+      <!-- DOCUMENTATION TAB -->
+      <!-- ============================================ -->
       @if (activeTab === 'documentation') {
         <div class="documentation-tab">
           @if (isLoadingDocs) {
@@ -266,15 +321,15 @@
                   @for (doc of documents; track doc.documentId) {
                     <li>
                       <button 
-                        class="doc-item" 
-                        [class.active]="selectedDocument?.documentId === doc.documentId"
+                        class="doc-item"
+                        [class.active]="selectedDocument === doc"
                         (click)="selectDocument(doc)"
                       >
                         <span class="doc-icon">{{ getDocTypeIcon(doc.type) }}</span>
-                        <div class="doc-info">
+                        <span class="doc-info">
                           <span class="doc-name">{{ doc.name }}</span>
                           <span class="doc-type">{{ getDocTypeLabel(doc.type) }}</span>
-                        </div>
+                        </span>
                       </button>
                     </li>
                   }
@@ -286,28 +341,22 @@
                 @if (selectedDocument) {
                   <div class="doc-header">
                     <h2>{{ selectedDocument.name }}</h2>
-                    <span class="badge badge-gray">{{ getDocTypeLabel(selectedDocument.type) }}</span>
+                    @if (selectedDocument.summary) {
+                      <p class="doc-summary">{{ selectedDocument.summary }}</p>
+                    }
                   </div>
                   
-                  @if (selectedDocument.summary) {
-                    <p class="doc-summary">{{ selectedDocument.summary }}</p>
-                  }
-                  
-                  @if (selectedDocument.sourceType === 'URL' && selectedDocument.sourceUrl) {
-                    <div class="doc-external">
-                      <p>Ce document est hébergé sur un site externe.</p>
-                      <a [href]="selectedDocument.sourceUrl" target="_blank" rel="noopener" class="btn btn-primary">
-                        Ouvrir le document
-                        <svg viewBox="0 0 20 20" fill="currentColor">
-                          <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z"/>
-                          <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z"/>
-                        </svg>
-                      </a>
-                    </div>
-                  } @else if (isLoadingDocContent) {
+                  @if (isLoadingDocContent) {
                     <div class="loading-inline">
                       <div class="loading-spinner small"></div>
-                      <span>Chargement du contenu...</span>
+                      <span>Chargement...</span>
+                    </div>
+                  } @else if (selectedDocument.sourceType === 'URL') {
+                    <div class="doc-external">
+                      <p>Ce document est hébergé sur une URL externe.</p>
+                      <a [href]="selectedDocument.sourceUrl" target="_blank" class="btn btn-primary">
+                        Ouvrir le document
+                      </a>
                     </div>
                   } @else {
                     <div class="doc-body" [innerHTML]="documentContent"></div>
@@ -319,151 +368,779 @@
         </div>
       }
 
-      <!-- Endpoints Tab -->
-      @if (activeTab === 'endpoints') {
-        <div class="endpoints-tab">
+      <!-- ============================================ -->
+      <!-- REFERENCE API TAB - Swagger Style -->
+      <!-- ============================================ -->
+      @if (activeTab === 'reference') {
+        <div class="reference-tab">
           @if (isLoadingSwagger) {
             <div class="loading-inline">
               <div class="loading-spinner small"></div>
-              <span>Chargement des endpoints...</span>
+              <span>Chargement de la spécification OpenAPI...</span>
             </div>
-          } @else if (endpoints.length === 0) {
+          } @else if (tagGroups.length === 0) {
             <div class="empty-state">
-              <div class="empty-icon">🔌</div>
+              <div class="empty-icon">🔧</div>
               <h3>Aucun endpoint</h3>
-              <p>La définition OpenAPI de cette API n'est pas disponible.</p>
+              <p>La spécification OpenAPI de cette API n'est pas disponible.</p>
             </div>
           } @else {
-            <div class="endpoints-layout">
-              <!-- Endpoints List -->
-              <aside class="endpoints-sidebar">
-                <h3 class="sidebar-title">Endpoints</h3>
-                <ul class="endpoints-list">
-                  @for (ep of endpoints; track ep.path + ep.method) {
-                    <li>
-                      <button 
-                        class="endpoint-item"
-                        [class]="'endpoint-item method-' + ep.method.toLowerCase()"
-                        [class.active]="selectedEndpoint === ep"
-                        (click)="selectEndpoint(ep)"
-                      >
-                        <span class="method-badge" [class]="getMethodClass(ep.method)">
-                          {{ ep.method }}
-                        </span>
-                        <span class="endpoint-path">{{ ep.path }}</span>
-                      </button>
-                    </li>
-                  }
-                </ul>
-              </aside>
-              
-              <!-- Endpoint Detail -->
-              <main class="endpoint-content">
-                @if (selectedEndpoint) {
-                  <div class="endpoint-header">
-                    <span class="method-badge large" [class]="getMethodClass(selectedEndpoint.method)">
-                      {{ selectedEndpoint.method }}
-                    </span>
-                    <code class="endpoint-path-large">{{ selectedEndpoint.path }}</code>
-                  </div>
+            <!-- Tag Groups -->
+            <div class="swagger-container">
+              @for (group of tagGroups; track trackByName($index, group)) {
+                <div class="tag-group" [class.collapsed]="!group.expanded">
+                  <!-- Tag Header -->
+                  <button class="tag-header" (click)="toggleTagGroup(group)">
+                    <div class="tag-info">
+                      <h3 class="tag-name">{{ group.name }}</h3>
+                      @if (group.description) {
+                        <span class="tag-description">{{ group.description }}</span>
+                      }
+                    </div>
+                    <div class="tag-meta">
+                      <span class="tag-count">{{ group.endpoints.length }} endpoint{{ group.endpoints.length > 1 ? 's' : '' }}</span>
+                      <svg class="chevron" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                      </svg>
+                    </div>
+                  </button>
                   
-                  @if (selectedEndpoint.summary) {
-                    <h3 class="endpoint-summary">{{ selectedEndpoint.summary }}</h3>
-                  }
-                  
-                  @if (selectedEndpoint.description) {
-                    <p class="endpoint-description">{{ selectedEndpoint.description }}</p>
-                  }
+                  <!-- Endpoints List -->
+                  @if (group.expanded) {
+                    <div class="tag-endpoints">
+                      @for (endpoint of group.endpoints; track trackByPath($index, endpoint)) {
+                        <div class="endpoint-block" [class.expanded]="endpoint.expanded">
+                          <!-- Endpoint Header -->
+                          <button 
+                            class="endpoint-header"
+                            [class]="'endpoint-header method-' + endpoint.method.toLowerCase()"
+                            (click)="toggleEndpoint(endpoint)"
+                          >
+                            <span class="method-badge" [class]="getMethodClass(endpoint.method)">
+                              {{ endpoint.method }}
+                            </span>
+                            <span class="endpoint-path">{{ endpoint.path }}</span>
+                            <span class="endpoint-summary">{{ endpoint.summary }}</span>
+                            <div class="endpoint-actions">
+                              @if (hasRequiredParams(endpoint)) {
+                                <span class="endpoint-tag required">Requis</span>
+                              }
+                              <svg class="chevron" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                              </svg>
+                            </div>
+                          </button>
+                          
+                          <!-- Endpoint Details -->
+                          @if (endpoint.expanded) {
+                            <div class="endpoint-details">
+                              @if (endpoint.description) {
+                                <p class="endpoint-description">{{ endpoint.description }}</p>
+                              }
+                              
+                              <!-- Parameters -->
+                              @if (endpoint.parameters && endpoint.parameters.length > 0) {
+                                <div class="detail-section">
+                                  <h4>Paramètres</h4>
+                                  <table class="params-table">
+                                    <thead>
+                                      <tr>
+                                        <th>Nom</th>
+                                        <th>Type</th>
+                                        <th>In</th>
+                                        <th>Requis</th>
+                                        <th>Description</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      @for (param of endpoint.parameters; track param.name) {
+                                        <tr>
+                                          <td><code>{{ param.name }}</code></td>
+                                          <td>{{ getParamTypeLabel(param) }}</td>
+                                          <td><span class="param-in">{{ param.in }}</span></td>
+                                          <td>
+                                            @if (param.required) {
+                                              <span class="badge badge-red">Oui</span>
+                                            } @else {
+                                              <span class="badge badge-gray">Non</span>
+                                            }
+                                          </td>
+                                          <td>{{ param.description || '-' }}</td>
+                                        </tr>
+                                      }
+                                    </tbody>
+                                  </table>
+                                </div>
+                              }
 
-                  <!-- Parameters -->
-                  @if (selectedEndpoint.parameters && selectedEndpoint.parameters.length > 0) {
-                    <div class="endpoint-section">
-                      <h4>Paramètres</h4>
-                      <table class="params-table">
-                        <thead>
-                          <tr>
-                            <th>Nom</th>
-                            <th>Type</th>
-                            <th>In</th>
-                            <th>Requis</th>
-                            <th>Description</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          @for (param of selectedEndpoint.parameters; track param.name) {
-                            <tr>
-                              <td><code>{{ param.name }}</code></td>
-                              <td>{{ param.schema?.type || param.type || '-' }}</td>
-                              <td>{{ param.in }}</td>
-                              <td>
-                                @if (param.required) {
-                                  <span class="badge badge-red">Oui</span>
-                                } @else {
-                                  <span class="badge badge-gray">Non</span>
-                                }
-                              </td>
-                              <td>{{ param.description || '-' }}</td>
-                            </tr>
+                              <!-- Responses -->
+                              @if (endpoint.responses) {
+                                <div class="detail-section">
+                                  <h4>Réponses</h4>
+                                  <div class="responses-list">
+                                    @for (code of getResponseCodes(endpoint.responses); track code) {
+                                      <div class="response-item" [class.success]="code.startsWith('2')">
+                                        <span class="response-code">{{ code }}</span>
+                                        <span class="response-desc">{{ endpoint.responses[code].description || '-' }}</span>
+                                      </div>
+                                    }
+                                  </div>
+                                </div>
+                              }
+
+                              <!-- Code Examples -->
+                              <div class="detail-section">
+                                <h4>Exemple de code</h4>
+                                <div class="code-tabs">
+                                  <button 
+                                    class="code-tab" 
+                                    [class.active]="activeCodeLang === 'curl'"
+                                    (click)="setCodeLang('curl')"
+                                  >cURL</button>
+                                  <button 
+                                    class="code-tab" 
+                                    [class.active]="activeCodeLang === 'javascript'"
+                                    (click)="setCodeLang('javascript')"
+                                  >JavaScript</button>
+                                  <button 
+                                    class="code-tab" 
+                                    [class.active]="activeCodeLang === 'python'"
+                                    (click)="setCodeLang('python')"
+                                  >Python</button>
+                                </div>
+                                <div class="code-block">
+                                  <button class="copy-btn" (click)="copyCode(getCodeExample(endpoint))">
+                                    {{ codeCopied ? '✓ Copié' : 'Copier' }}
+                                  </button>
+                                  <pre><code>{{ getCodeExample(endpoint) }}</code></pre>
+                                </div>
+                              </div>
+
+                              <!-- Try it button -->
+                              <div class="endpoint-footer">
+                                <button class="btn btn-primary" (click)="selectEndpointForSandbox(endpoint); setTab('sandbox')">
+                                  <svg viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd"/>
+                                  </svg>
+                                  Tester cet endpoint
+                                </button>
+                              </div>
+                            </div>
                           }
-                        </tbody>
-                      </table>
+                        </div>
+                      }
                     </div>
                   }
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
 
-                  <!-- Code Examples -->
-                  <div class="endpoint-section">
-                    <h4>Exemple de code</h4>
-                    <div class="code-tabs">
-                      <button 
-                        class="code-tab" 
-                        [class.active]="activeCodeLang === 'curl'"
-                        (click)="setCodeLang('curl')"
-                      >
-                        cURL
-                      </button>
-                      <button 
-                        class="code-tab" 
-                        [class.active]="activeCodeLang === 'javascript'"
-                        (click)="setCodeLang('javascript')"
-                      >
-                        JavaScript
-                      </button>
-                      <button 
-                        class="code-tab" 
-                        [class.active]="activeCodeLang === 'python'"
-                        (click)="setCodeLang('python')"
-                      >
-                        Python
-                      </button>
-                    </div>
-                    <div class="code-block">
-                      <button class="copy-btn" (click)="copyCode(getCodeExample(selectedEndpoint))">
-                        {{ codeCopied ? '✓ Copié' : 'Copier' }}
-                      </button>
-                      <pre><code>{{ getCodeExample(selectedEndpoint) }}</code></pre>
-                    </div>
+      <!-- ============================================ -->
+      <!-- SANDBOX TAB -->
+      <!-- ============================================ -->
+      @if (activeTab === 'sandbox') {
+        <div class="sandbox-tab">
+          <!-- Environment & Auth Bar -->
+          <div class="sandbox-toolbar">
+            <!-- Environment Selector -->
+            <div class="toolbar-section">
+              <label class="toolbar-label">Environnement</label>
+              <div class="env-selector">
+                @for (env of sandboxEnvironments; track env.name) {
+                  <button 
+                    class="env-btn"
+                    [class.active]="selectedEnvironment?.name === env.name"
+                    [class]="'env-' + env.type"
+                    (click)="selectEnvironment(env)"
+                  >
+                    <span class="env-icon">{{ getEnvironmentIcon(env.type) }}</span>
+                    <span class="env-name">{{ env.displayName }}</span>
+                  </button>
+                }
+              </div>
+            </div>
+            
+            <!-- Token Selector (if authenticated and has subscriptions) -->
+            @if (isAuthenticated && availableAppKeys.length > 0) {
+              <div class="toolbar-section">
+                <label class="toolbar-label">
+                  Token
+                  @if (isLoadingKeys) {
+                    <span class="loading-mini"></span>
+                  }
+                </label>
+                <select 
+                  class="token-select"
+                  [ngModel]="selectedAppKey"
+                  (ngModelChange)="selectAppKey($event)"
+                >
+                  @for (key of availableAppKeys; track key.applicationId + key.keyType) {
+                    <option [ngValue]="key">
+                      {{ key.applicationName }} ({{ key.keyType }})
+                      @if (key.token) { ✓ }
+                    </option>
+                  }
+                </select>
+                @if (selectedAppKey && !selectedAppKey.token) {
+                  <span class="token-warning" title="Aucun token généré. Générez un token dans vos applications.">
+                    ⚠️ Token manquant
+                  </span>
+                }
+              </div>
+            } @else if (isAuthenticated && userSubscriptions.length === 0) {
+              <div class="toolbar-section">
+                <span class="toolbar-hint">
+                  <svg viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                  </svg>
+                  Souscrivez à cette API pour utiliser vos tokens
+                </span>
+              </div>
+            } @else if (!isAuthenticated) {
+              <div class="toolbar-section">
+                <span class="toolbar-hint">
+                  <svg viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
+                  </svg>
+                  Connectez-vous pour utiliser vos tokens
+                </span>
+              </div>
+            }
+          </div>
+
+          <!-- Power Tools Bar (Level 3) -->
+          <div class="power-tools-bar">
+            <div class="power-tools-left">
+              <button 
+                class="power-btn"
+                [class.active]="showEnvPanel"
+                (click)="toggleEnvPanel()"
+                title="Variables d'environnement"
+              >
+                <svg viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/>
+                </svg>
+                Variables
+                @if (hasEnvVariablesWithValue()) {
+                  <span class="power-badge">{{ countEnvVariablesWithValue() }}</span>
+                }
+              </button>
+              <button 
+                class="power-btn"
+                [class.active]="showCollectionsPanel"
+                (click)="toggleCollectionsPanel()"
+                title="Requêtes sauvegardées"
+              >
+                <svg viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM2 11a2 2 0 012-2h12a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2v-4z"/>
+                </svg>
+                Collections
+                @if (savedRequests.length > 0) {
+                  <span class="power-badge">{{ savedRequests.length }}</span>
+                }
+              </button>
+            </div>
+            <div class="power-tools-right">
+              @if (sandboxRequest.endpoint) {
+                <button 
+                  class="power-btn save"
+                  (click)="saveCurrentRequest()"
+                  title="Sauvegarder cette requête"
+                >
+                  <svg viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z"/>
+                  </svg>
+                  Sauvegarder
+                </button>
+              }
+              @if (sandboxResponse) {
+                <button 
+                  class="power-btn code"
+                  (click)="openCodeGenModal()"
+                  title="Générer le code avec les vraies valeurs"
+                >
+                  <svg viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                  </svg>
+                  Générer code
+                </button>
+              }
+            </div>
+          </div>
+
+          <!-- Environment Variables Panel (Level 3) -->
+          @if (showEnvPanel) {
+            <div class="env-panel">
+              <div class="panel-header">
+                <h4>Variables d'environnement</h4>
+                <button class="btn-icon" (click)="addEnvVariable()">+ Ajouter</button>
+              </div>
+              <p class="panel-hint">Utilisez <code>{{'{{variable}}'}}</code> dans vos headers ou body</p>
+              <div class="env-list">
+                @for (v of envVariables; track v.key; let i = $index) {
+                  <div class="env-row">
+                    <span class="env-key">{{'{{' + v.key + '}}'}}</span>
+                    <input 
+                      type="text" 
+                      [(ngModel)]="v.value"
+                      [placeholder]="v.description || 'Valeur'"
+                    />
+                    @if (i >= 2) {
+                      <button class="btn-icon danger small" (click)="removeEnvVariable(i)">×</button>
+                    }
                   </div>
+                }
+              </div>
+            </div>
+          }
 
-                  <!-- Responses -->
-                  @if (selectedEndpoint.responses) {
-                    <div class="endpoint-section">
-                      <h4>Réponses</h4>
-                      <div class="responses-list">
-                        @for (responseCode of getResponseCodes(selectedEndpoint.responses); track responseCode) {
-                          <div class="response-item">
-                            <span class="response-code" [class.success]="responseCode.startsWith('2')">
-                              {{ responseCode }}
-                            </span>
-                            <span class="response-desc">
-                              {{ selectedEndpoint.responses[responseCode].description || '-' }}
-                            </span>
-                          </div>
-                        }
+          <!-- Collections Panel (Level 3) -->
+          @if (showCollectionsPanel) {
+            <div class="collections-panel">
+              <div class="panel-header">
+                <h4>Requêtes sauvegardées</h4>
+                <button class="btn-icon" (click)="showCollectionsPanel = false">×</button>
+              </div>
+              @if (savedRequests.length === 0) {
+                <p class="panel-empty">Aucune requête sauvegardée pour cette API.</p>
+              } @else {
+                <div class="collections-list">
+                  @for (saved of savedRequests; track saved.id) {
+                    <div class="collection-item" (click)="loadSavedRequest(saved)">
+                      <div class="collection-info">
+                        <span class="method-badge small" [class]="getMethodClass(saved.endpoint.method)">
+                          {{ saved.endpoint.method }}
+                        </span>
+                        <span class="collection-name">{{ saved.name }}</span>
+                      </div>
+                      <div class="collection-meta">
+                        <span class="collection-path">{{ saved.endpoint.path }}</span>
+                        <button class="btn-icon danger small" (click)="deleteSavedRequest(saved.id); $event.stopPropagation()">×</button>
                       </div>
                     </div>
                   }
+                </div>
+              }
+            </div>
+          }
+
+          <div class="sandbox-layout">
+            <!-- Left Panel: Request -->
+            <div class="sandbox-request">
+              <h3 class="sandbox-title">Requête</h3>
+              
+              <!-- Endpoint Selector -->
+              <div class="form-group">
+                <label>Endpoint</label>
+                <div class="endpoint-selector-row">
+                  <select 
+                    [ngModel]="sandboxRequest.endpoint"
+                    (ngModelChange)="selectEndpointForSandbox($event)"
+                  >
+                    @for (ep of endpoints; track trackByPath($index, ep)) {
+                      <option [ngValue]="ep">{{ ep.method }} {{ ep.path }}</option>
+                    }
+                  </select>
+                  @if (hasExamples()) {
+                    <button 
+                      class="btn-example"
+                      (click)="loadExampleValues()"
+                      title="Charger les valeurs d'exemple depuis la spécification OpenAPI"
+                    >
+                      <svg viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/>
+                      </svg>
+                      Charger exemple
+                    </button>
+                  }
+                </div>
+              </div>
+
+              @if (sandboxRequest.endpoint) {
+                <!-- URL Preview -->
+                <div class="url-preview">
+                  <span class="method-badge" [class]="getMethodClass(sandboxRequest.endpoint.method)">
+                    {{ sandboxRequest.endpoint.method }}
+                  </span>
+                  <code class="url-value">{{ buildSandboxUrl() }}</code>
+                </div>
+
+                <!-- Parameters grouped by type -->
+                @if (sandboxRequest.endpoint.parameters && sandboxRequest.endpoint.parameters.length > 0) {
+                  <!-- Path Parameters -->
+                  @if (getParamsByType('path').length > 0) {
+                    <div class="params-section">
+                      <h4>
+                        <span class="param-type-badge path">PATH</span>
+                        Paramètres de chemin
+                      </h4>
+                      @for (param of getParamsByType('path'); track param.name) {
+                        <div class="param-row">
+                          <label [class.required]="param.required">
+                            {{ param.name }}
+                            <span class="param-meta">{{ getParamTypeLabel(param) }}</span>
+                          </label>
+                          <input 
+                            type="text" 
+                            [placeholder]="param.description || param.name"
+                            [(ngModel)]="sandboxRequest.parameters[param.name]"
+                          />
+                        </div>
+                      }
+                    </div>
+                  }
+                  
+                  <!-- Query Parameters -->
+                  @if (getParamsByType('query').length > 0) {
+                    <div class="params-section">
+                      <h4>
+                        <span class="param-type-badge query">QUERY</span>
+                        Paramètres de requête
+                      </h4>
+                      @for (param of getParamsByType('query'); track param.name) {
+                        <div class="param-row">
+                          <label [class.required]="param.required">
+                            {{ param.name }}
+                            <span class="param-meta">{{ getParamTypeLabel(param) }}</span>
+                          </label>
+                          <input 
+                            type="text" 
+                            [placeholder]="param.description || param.name"
+                            [(ngModel)]="sandboxRequest.parameters[param.name]"
+                          />
+                        </div>
+                      }
+                    </div>
+                  }
+                  
+                  <!-- Header Parameters -->
+                  @if (getParamsByType('header').length > 0) {
+                    <div class="params-section">
+                      <h4>
+                        <span class="param-type-badge header">HEADER</span>
+                        Paramètres d'en-tête
+                      </h4>
+                      @for (param of getParamsByType('header'); track param.name) {
+                        <div class="param-row">
+                          <label [class.required]="param.required">
+                            {{ param.name }}
+                            <span class="param-meta">{{ getParamTypeLabel(param) }}</span>
+                          </label>
+                          <input 
+                            type="text" 
+                            [placeholder]="param.description || param.name"
+                            [(ngModel)]="sandboxRequest.parameters[param.name]"
+                          />
+                        </div>
+                      }
+                    </div>
+                  }
                 }
-              </main>
+
+                <!-- Headers -->
+                <div class="headers-section">
+                  <div class="section-header">
+                    <h4>Headers HTTP</h4>
+                    <button class="btn-icon" (click)="addSandboxHeader()">+ Ajouter</button>
+                  </div>
+                  @for (header of sandboxRequest.headers | keyvalue; track header.key) {
+                    <div class="header-row">
+                      <input type="text" [value]="header.key" disabled class="header-key" />
+                      <input 
+                        type="text" 
+                        [(ngModel)]="sandboxRequest.headers[header.key]"
+                        class="header-value"
+                        [class.has-token]="header.key === 'Authorization' && getEnvVariableValue('token')"
+                      />
+                      <button class="btn-icon danger" (click)="removeSandboxHeader(header.key)">×</button>
+                    </div>
+                  }
+                </div>
+
+                <!-- Request Body with JSON validation -->
+                @if (['POST', 'PUT', 'PATCH'].includes(sandboxRequest.endpoint.method)) {
+                  <div class="body-section">
+                    <div class="section-header">
+                      <h4>
+                        Body (JSON)
+                        @if (sandboxRequest.body) {
+                          <span class="json-status" [class.valid]="jsonValidation.isValid" [class.invalid]="!jsonValidation.isValid">
+                            @if (jsonValidation.isValid) {
+                              <svg viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                              </svg>
+                              JSON valide
+                            } @else {
+                              <svg viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                              </svg>
+                              JSON invalide
+                            }
+                          </span>
+                        }
+                      </h4>
+                      <div class="body-actions">
+                        <button class="btn-mini" (click)="formatJsonBody()" title="Formater le JSON">
+                          <svg viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"/>
+                          </svg>
+                          Formater
+                        </button>
+                        <button class="btn-mini" (click)="minifyJsonBody()" title="Minifier le JSON">
+                          <svg viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M3 7a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 6a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"/>
+                          </svg>
+                          Minifier
+                        </button>
+                      </div>
+                    </div>
+                    <textarea 
+                      [(ngModel)]="sandboxRequest.body"
+                      (ngModelChange)="validateJsonBody()"
+                      rows="8"
+                      placeholder='{"key": "value"}'
+                      [class.invalid]="!jsonValidation.isValid"
+                    ></textarea>
+                    @if (!jsonValidation.isValid && jsonValidation.error) {
+                      <div class="json-error">
+                        {{ jsonValidation.error }}
+                      </div>
+                    }
+                  </div>
+                }
+
+                <!-- Execute Button -->
+                <div class="sandbox-actions">
+                  <button 
+                    class="btn btn-primary btn-large"
+                    (click)="executeSandboxRequest()"
+                    [disabled]="isSandboxLoading || (!jsonValidation.isValid && sandboxRequest.body)"
+                  >
+                    @if (isSandboxLoading) {
+                      <span class="spinner"></span> Exécution...
+                    } @else {
+                      <svg viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"/>
+                      </svg>
+                      Exécuter
+                    }
+                  </button>
+                </div>
+              }
+            </div>
+
+            <!-- Right Panel: Response -->
+            <div class="sandbox-response">
+              <h3 class="sandbox-title">Réponse</h3>
+              
+              @if (sandboxResponse) {
+                <!-- Status Bar -->
+                <div class="response-status-bar">
+                  <div class="response-status" [class]="getHttpStatusClass(sandboxResponse.status)">
+                    <span class="status-code">{{ sandboxResponse.status }}</span>
+                    <span class="status-text">{{ sandboxResponse.statusText }}</span>
+                  </div>
+                  <div class="response-meta">
+                    <span class="meta-item" title="Temps de réponse">
+                      <svg viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+                      </svg>
+                      {{ sandboxResponse.time }}ms
+                    </span>
+                    <span class="meta-item" title="Taille de la réponse">
+                      <svg viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 0v12h8V4H6z" clip-rule="evenodd"/>
+                      </svg>
+                      {{ getResponseSize() }}
+                    </span>
+                  </div>
+                </div>
+
+                @if (sandboxResponse.error) {
+                  <div class="response-error">
+                    <svg viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                    </svg>
+                    <span>{{ sandboxResponse.error }}</span>
+                  </div>
+                }
+
+                <!-- Response Headers (collapsible) -->
+                @if (sandboxResponse.headers && (sandboxResponse.headers | keyvalue).length > 0) {
+                  <details class="response-section collapsible">
+                    <summary>
+                      <h4>
+                        Headers
+                        <span class="count">{{ (sandboxResponse.headers | keyvalue).length }}</span>
+                      </h4>
+                    </summary>
+                    <div class="response-headers">
+                      @for (header of sandboxResponse.headers | keyvalue; track header.key) {
+                        <div class="header-item">
+                          <span class="header-name">{{ header.key }}</span>
+                          <span class="header-value">{{ header.value }}</span>
+                        </div>
+                      }
+                    </div>
+                  </details>
+                }
+
+                <!-- Response Body with Syntax Highlighting -->
+                @if (sandboxResponse.body) {
+                  <div class="response-section">
+                    <div class="response-body-header">
+                      <h4>Body</h4>
+                      <div class="response-actions">
+                        <!-- Copy Dropdown -->
+                        <div class="dropdown-group">
+                          <button 
+                            class="btn-mini"
+                            (click)="copyResponseFormatted()"
+                            title="Copier formaté"
+                          >
+                            <svg viewBox="0 0 20 20" fill="currentColor">
+                              <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"/>
+                              <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z"/>
+                            </svg>
+                            @if (copyFeedbackType === 'formatted') {
+                              ✓ Copié
+                            } @else {
+                              Copier
+                            }
+                          </button>
+                          <button 
+                            class="btn-mini"
+                            (click)="copyResponseRaw()"
+                            title="Copier minifié (une ligne)"
+                          >
+                            <svg viewBox="0 0 20 20" fill="currentColor">
+                              <path fill-rule="evenodd" d="M3 7a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 6a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                            @if (copyFeedbackType === 'minified') {
+                              ✓ Minifié
+                            } @else {
+                              Mini
+                            }
+                          </button>
+                        </div>
+                        <!-- Download -->
+                        <button 
+                          class="btn-mini primary"
+                          (click)="downloadResponse()"
+                          title="Télécharger en .json"
+                        >
+                          <svg viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                          </svg>
+                          .json
+                        </button>
+                      </div>
+                    </div>
+                    <div class="code-block response-body syntax-highlighted">
+                      <pre><code [innerHTML]="highlightJson(sandboxResponse.body)"></code></pre>
+                    </div>
+                  </div>
+                }
+              } @else {
+                <div class="response-placeholder">
+                  <svg viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd"/>
+                  </svg>
+                  <p>Exécutez une requête pour voir la réponse</p>
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- History with Diff Mode (Level 3) -->
+          @if (sandboxHistory.length > 0) {
+            <div class="sandbox-history">
+              <div class="history-header">
+                <h4>Historique ({{ sandboxHistory.length }})</h4>
+                <div class="history-actions">
+                  <button 
+                    class="btn-mini" 
+                    [class.active]="diffMode"
+                    (click)="toggleDiffMode()"
+                    title="Comparer deux réponses"
+                  >
+                    <svg viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z"/>
+                    </svg>
+                    {{ diffMode ? 'Annuler Diff' : 'Comparer' }}
+                  </button>
+                  <button class="btn-link" (click)="clearSandboxHistory()">Effacer</button>
+                </div>
+              </div>
+              
+              @if (diffMode) {
+                <p class="diff-hint">
+                  Sélectionnez 2 réponses à comparer
+                  @if (diffSelection.first) {
+                    <span class="diff-selection">1ère: #{{ sandboxHistory.indexOf(diffSelection.first) + 1 }}</span>
+                  }
+                  @if (diffSelection.second) {
+                    <span class="diff-selection">2ème: #{{ sandboxHistory.indexOf(diffSelection.second) + 1 }}</span>
+                  }
+                </p>
+              }
+              
+              <div class="history-list">
+                @for (item of sandboxHistory; track item.id; let i = $index) {
+                  <button 
+                    class="history-item"
+                    [class.diff-selected-first]="diffMode && diffSelection.first?.id === item.id"
+                    [class.diff-selected-second]="diffMode && diffSelection.second?.id === item.id"
+                    (click)="diffMode ? selectForDiff(item) : loadFromHistory(i)"
+                  >
+                    <span class="history-index">#{{ i + 1 }}</span>
+                    <span class="method-badge small" [class]="getMethodClass(item.request.endpoint?.method || '')">
+                      {{ item.request.endpoint?.method }}
+                    </span>
+                    <span class="history-path">{{ item.request.endpoint?.path }}</span>
+                    <span class="history-status" [class]="getHttpStatusClass(item.response.status)">
+                      {{ item.response.status }}
+                    </span>
+                    <span class="history-time">{{ item.response.time }}ms</span>
+                  </button>
+                }
+              </div>
+              
+              <!-- Diff Result -->
+              @if (diffMode && diffSelection.first && diffSelection.second) {
+                <div class="diff-result">
+                  <div class="diff-header">
+                    <h5>Comparaison des réponses</h5>
+                    <button class="btn-icon small" (click)="clearDiffSelection()">×</button>
+                  </div>
+                  @if (getDiffResult(); as diff) {
+                    <div class="diff-stats">
+                      <span class="diff-stat added">+{{ diff.added.length }} ajoutées</span>
+                      <span class="diff-stat removed">-{{ diff.removed.length }} supprimées</span>
+                      <span class="diff-stat unchanged">={{ diff.unchanged.length }} inchangées</span>
+                    </div>
+                    <div class="diff-content">
+                      @if (diff.removed.length > 0) {
+                        <div class="diff-section removed">
+                          <h6>Supprimées (1ère réponse)</h6>
+                          <pre><code>@for (line of diff.removed; track line) {<span class="diff-line removed">{{ line }}</span>
+}</code></pre>
+                        </div>
+                      }
+                      @if (diff.added.length > 0) {
+                        <div class="diff-section added">
+                          <h6>Ajoutées (2ème réponse)</h6>
+                          <pre><code>@for (line of diff.added; track line) {<span class="diff-line added">{{ line }}</span>
+}</code></pre>
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
+              }
             </div>
           }
         </div>
@@ -471,6 +1148,57 @@
     </div>
   }
 </div>
+
+<!-- Code Generation Modal (Level 3) -->
+@if (showCodeGenModal) {
+  <div class="modal-overlay" (click)="closeCodeGenModal()">
+    <div class="modal modal-lg" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Générer le code</h2>
+        <button class="modal-close" (click)="closeCodeGenModal()">
+          <svg viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+          </svg>
+        </button>
+      </div>
+      
+      <div class="modal-body">
+        <p class="codegen-hint">Code généré avec les vraies valeurs de votre dernière requête</p>
+        
+        <div class="codegen-tabs">
+          <button 
+            class="codegen-tab"
+            [class.active]="codeGenLang === 'curl'"
+            (click)="codeGenLang = 'curl'"
+          >cURL</button>
+          <button 
+            class="codegen-tab"
+            [class.active]="codeGenLang === 'javascript'"
+            (click)="codeGenLang = 'javascript'"
+          >JavaScript</button>
+          <button 
+            class="codegen-tab"
+            [class.active]="codeGenLang === 'python'"
+            (click)="codeGenLang = 'python'"
+          >Python</button>
+        </div>
+        
+        <div class="codegen-content">
+          <div class="code-block">
+            <button class="copy-btn" (click)="copyCode(getRealCodeExample())">
+              {{ codeCopied ? '✓ Copié' : 'Copier' }}
+            </button>
+            <pre><code>{{ getRealCodeExample() }}</code></pre>
+          </div>
+        </div>
+      </div>
+      
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="closeCodeGenModal()">Fermer</button>
+      </div>
+    </div>
+  </div>
+}
 
 <!-- Subscribe Modal -->
 @if (showSubscribeModal) {

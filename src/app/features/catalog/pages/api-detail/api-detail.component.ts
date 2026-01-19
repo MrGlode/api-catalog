@@ -27,9 +27,151 @@ interface ParsedEndpoint {
   description: string;
   operationId?: string;
   tags?: string[];
-  parameters?: any[];
-  requestBody?: any;
-  responses?: any;
+  parameters?: ParameterDef[];
+  requestBody?: RequestBodyDef;
+  responses?: Record<string, ResponseDef>;
+  security?: any[];
+  expanded?: boolean;
+}
+
+/**
+ * Parameter definition
+ */
+interface ParameterDef {
+  name: string;
+  in: 'query' | 'path' | 'header' | 'cookie';
+  description?: string;
+  required?: boolean;
+  schema?: SchemaRef;
+  type?: string;
+  example?: any;
+  // For sandbox
+  value?: string;
+}
+
+/**
+ * Request body definition
+ */
+interface RequestBodyDef {
+  description?: string;
+  required?: boolean;
+  content?: Record<string, { schema?: SchemaRef; example?: any }>;
+}
+
+/**
+ * Response definition
+ */
+interface ResponseDef {
+  description?: string;
+  content?: Record<string, { schema?: SchemaRef; example?: any }>;
+}
+
+/**
+ * Schema reference
+ */
+interface SchemaRef {
+  type?: string;
+  format?: string;
+  items?: SchemaRef;
+  $ref?: string;
+  properties?: Record<string, SchemaRef>;
+  example?: any;
+}
+
+/**
+ * Tag group for endpoints
+ */
+interface TagGroup {
+  name: string;
+  description?: string;
+  endpoints: ParsedEndpoint[];
+  expanded: boolean;
+}
+
+/**
+ * Sandbox request/response
+ */
+interface SandboxRequest {
+  endpoint: ParsedEndpoint | null;
+  parameters: Record<string, string>;
+  headers: Record<string, string>;
+  body: string;
+}
+
+interface SandboxResponse {
+  status: number;
+  statusText: string;
+  headers: Record<string, string>;
+  body: string;
+  time: number;
+  error?: string;
+}
+
+/**
+ * Environment for Sandbox
+ */
+interface SandboxEnvironment {
+  name: string;
+  displayName: string;
+  httpUrl?: string;
+  httpsUrl?: string;
+  type: 'production' | 'sandbox' | 'hybrid';
+}
+
+/**
+ * JSON Validation state
+ */
+interface JsonValidation {
+  isValid: boolean;
+  error: string | null;
+}
+
+/**
+ * Application key for token
+ */
+interface AppKeyInfo {
+  applicationId: string;
+  applicationName: string;
+  keyType: 'PRODUCTION' | 'SANDBOX';
+  consumerKey?: string;
+  consumerSecret?: string;
+  token?: string;
+}
+
+/**
+ * Environment Variable for Sandbox
+ */
+interface EnvironmentVariable {
+  key: string;
+  value: string;
+  description?: string;
+}
+
+/**
+ * Saved Request Collection Item
+ */
+interface SavedRequest {
+  id: string;
+  name: string;
+  description?: string;
+  endpoint: {
+    method: string;
+    path: string;
+  };
+  parameters: Record<string, string>;
+  headers: Record<string, string>;
+  body: string;
+  createdAt: Date;
+}
+
+/**
+ * History item for diff
+ */
+interface HistoryItem {
+  id: string;
+  request: SandboxRequest;
+  response: SandboxResponse;
+  timestamp: Date;
 }
 
 /**
@@ -45,13 +187,14 @@ interface ParsedEndpoint {
 export class ApiDetailComponent implements OnInit {
   @Input() id!: string;
   
-  // Navigation
-  activeTab: 'overview' | 'documentation' | 'endpoints' | 'tryit' = 'overview';
+  // Navigation - 4 tabs now
+  activeTab: 'overview' | 'documentation' | 'reference' | 'sandbox' = 'overview';
   
   // API Data
   api: API | null = null;
   documents: Document[] = [];
   endpoints: ParsedEndpoint[] = [];
+  tagGroups: TagGroup[] = [];
   swaggerSpec: any = null;
   
   // States
@@ -78,6 +221,52 @@ export class ApiDetailComponent implements OnInit {
   
   // Authentication
   isAuthenticated = false;
+  
+  // Sandbox
+  sandboxRequest: SandboxRequest = {
+    endpoint: null,
+    parameters: {},
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer {{token}}'
+    },
+    body: ''
+  };
+  sandboxResponse: SandboxResponse | null = null;
+  isSandboxLoading = false;
+  sandboxHistory: HistoryItem[] = [];
+  
+  // Sandbox Level 1 - Environments
+  sandboxEnvironments: SandboxEnvironment[] = [];
+  selectedEnvironment: SandboxEnvironment | null = null;
+  
+  // Sandbox Level 1 - Token Auto-fill
+  userSubscriptions: any[] = [];
+  availableAppKeys: AppKeyInfo[] = [];
+  selectedAppKey: AppKeyInfo | null = null;
+  isLoadingKeys = false;
+  
+  // Sandbox Level 1 - JSON Validation
+  jsonValidation: JsonValidation = { isValid: true, error: null };
+  
+  // Sandbox Level 3 - Environment Variables
+  envVariables: EnvironmentVariable[] = [
+    { key: 'baseUrl', value: '', description: 'URL de base de l\'API' },
+    { key: 'token', value: '', description: 'Token d\'authentification' }
+  ];
+  showEnvPanel = false;
+  
+  // Sandbox Level 3 - Saved Collections
+  savedRequests: SavedRequest[] = [];
+  showCollectionsPanel = false;
+  
+  // Sandbox Level 3 - Code Generation Modal
+  showCodeGenModal = false;
+  codeGenLang: 'curl' | 'javascript' | 'python' = 'curl';
+  
+  // Sandbox Level 3 - Diff Mode
+  diffMode = false;
+  diffSelection: { first: HistoryItem | null; second: HistoryItem | null } = { first: null, second: null };
 
   constructor(
     private router: Router,
@@ -118,6 +307,14 @@ export class ApiDetailComponent implements OnInit {
         // Load additional data
         this.loadDocuments();
         this.loadSwaggerDefinition();
+        
+        // Initialize sandbox environments from API
+        this.initSandboxEnvironments();
+        
+        // Load user subscriptions if authenticated
+        if (this.isAuthenticated) {
+          this.loadUserSubscriptions();
+        }
       },
       error: (error) => {
         console.error('Failed to load API', error);
@@ -163,6 +360,7 @@ export class ApiDetailComponent implements OnInit {
         try {
           this.swaggerSpec = JSON.parse(swagger);
           this.endpoints = this.parseEndpoints(this.swaggerSpec);
+          this.tagGroups = this.groupEndpointsByTag(this.swaggerSpec, this.endpoints);
           
           // Select first endpoint if available
           if (this.endpoints.length > 0) {
@@ -197,16 +395,24 @@ export class ApiDetailComponent implements OnInit {
       for (const method of ['get', 'post', 'put', 'delete', 'patch', 'options', 'head']) {
         if (pathItem[method]) {
           const operation = pathItem[method];
+          
+          // Merge path-level parameters with operation parameters
+          const pathParams = pathItem.parameters || [];
+          const operationParams = operation.parameters || [];
+          const allParams = [...pathParams, ...operationParams];
+          
           endpoints.push({
             method: method.toUpperCase(),
             path,
             summary: operation.summary || '',
             description: operation.description || '',
             operationId: operation.operationId,
-            tags: operation.tags,
-            parameters: operation.parameters || [],
+            tags: operation.tags || ['default'],
+            parameters: allParams,
             requestBody: operation.requestBody,
-            responses: operation.responses || {}
+            responses: operation.responses || {},
+            security: operation.security,
+            expanded: false
           });
         }
       }
@@ -215,12 +421,60 @@ export class ApiDetailComponent implements OnInit {
     return endpoints;
   }
 
+  groupEndpointsByTag(spec: any, endpoints: ParsedEndpoint[]): TagGroup[] {
+    const tagMap = new Map<string, TagGroup>();
+    
+    // Get tag definitions from spec
+    const tagDefs = spec.tags || [];
+    const tagDescriptions: Record<string, string> = {};
+    for (const tag of tagDefs) {
+      tagDescriptions[tag.name] = tag.description || '';
+    }
+    
+    // Group endpoints by first tag
+    for (const endpoint of endpoints) {
+      const tagName = endpoint.tags?.[0] || 'default';
+      
+      if (!tagMap.has(tagName)) {
+        tagMap.set(tagName, {
+          name: tagName,
+          description: tagDescriptions[tagName] || '',
+          endpoints: [],
+          expanded: true // First load: all expanded
+        });
+      }
+      
+      tagMap.get(tagName)!.endpoints.push(endpoint);
+    }
+    
+    // Convert to array and sort alphabetically
+    return Array.from(tagMap.values()).sort((a, b) => 
+      a.name.localeCompare(b.name)
+    );
+  }
+
   // ========================================
   // NAVIGATION
   // ========================================
 
-  setTab(tab: 'overview' | 'documentation' | 'endpoints' | 'tryit'): void {
+  setTab(tab: 'overview' | 'documentation' | 'reference' | 'sandbox'): void {
     this.activeTab = tab;
+    
+    // If switching to sandbox, prepare the first endpoint
+    if (tab === 'sandbox' && this.endpoints.length > 0 && !this.sandboxRequest.endpoint) {
+      this.selectEndpointForSandbox(this.endpoints[0]);
+    }
+    
+    this.cdr.detectChanges();
+  }
+
+  toggleTagGroup(group: TagGroup): void {
+    group.expanded = !group.expanded;
+    this.cdr.detectChanges();
+  }
+
+  toggleEndpoint(endpoint: ParsedEndpoint): void {
+    endpoint.expanded = !endpoint.expanded;
     this.cdr.detectChanges();
   }
 
@@ -272,17 +526,1154 @@ export class ApiDetailComponent implements OnInit {
   }
 
   // ========================================
-  // SUBSCRIPTION
+  // SANDBOX
   // ========================================
 
-  openSubscribeModal(): void {
-    if (!this.isAuthenticated) {
-      this.router.navigate(['/login'], { 
-        queryParams: { returnUrl: `/catalog/${this.id}` } 
+  // --- Level 1: Environment Management ---
+  
+  initSandboxEnvironments(): void {
+    if (!this.api?.endpointURLs || this.api.endpointURLs.length === 0) {
+      // Default environment
+      this.sandboxEnvironments = [{
+        name: 'default',
+        displayName: 'Production',
+        httpsUrl: this.getBaseUrl(),
+        type: 'production'
+      }];
+    } else {
+      this.sandboxEnvironments = this.api.endpointURLs.map(env => ({
+        name: env.environmentName || 'default',
+        displayName: env.environmentDisplayName || env.environmentName || 'Default',
+        httpUrl: env.URLs?.http,
+        httpsUrl: env.URLs?.https,
+        type: this.detectEnvironmentType(env.environmentName || '')
+      }));
+    }
+    
+    // Select first environment by default
+    if (this.sandboxEnvironments.length > 0) {
+      this.selectedEnvironment = this.sandboxEnvironments[0];
+      
+      // Initialize {{baseUrl}} variable with selected environment
+      const baseUrlVar = this.envVariables.find(v => v.key === 'baseUrl');
+      if (baseUrlVar) {
+        baseUrlVar.value = this.selectedEnvironment.httpsUrl || 
+                           this.selectedEnvironment.httpUrl || 
+                           this.getBaseUrl();
+      }
+    }
+    
+    this.cdr.detectChanges();
+  }
+  
+  detectEnvironmentType(name: string): 'production' | 'sandbox' | 'hybrid' {
+    const lowerName = name.toLowerCase();
+    if (lowerName.includes('sandbox') || lowerName.includes('test') || lowerName.includes('dev')) {
+      return 'sandbox';
+    }
+    if (lowerName.includes('prod')) {
+      return 'production';
+    }
+    return 'hybrid';
+  }
+  
+  selectEnvironment(env: SandboxEnvironment): void {
+    this.selectedEnvironment = env;
+    
+    // Sync {{baseUrl}} variable with selected environment
+    const baseUrlVar = this.envVariables.find(v => v.key === 'baseUrl');
+    if (baseUrlVar) {
+      baseUrlVar.value = env.httpsUrl || env.httpUrl || '';
+    }
+    
+    // Auto-select matching app key (production env -> PRODUCTION key)
+    this.autoSelectAppKey();
+    
+    this.cdr.detectChanges();
+  }
+  
+  getEnvironmentIcon(type: 'production' | 'sandbox' | 'hybrid'): string {
+    switch (type) {
+      case 'production': return '🔴';
+      case 'sandbox': return '🟢';
+      case 'hybrid': return '🟡';
+    }
+  }
+  
+  // --- Level 1: Token Auto-fill ---
+  
+  loadUserSubscriptions(): void {
+    if (!this.id) return;
+    
+    this.subscriptionService.getSubscriptions({ apiId: this.id, limit: 100 }).subscribe({
+      next: (response) => {
+        this.userSubscriptions = response.list || [];
+        
+        // Load keys for all subscribed applications
+        if (this.userSubscriptions.length > 0) {
+          this.loadApplicationKeys();
+        }
+        
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        console.warn('Could not load user subscriptions', error);
+      }
+    });
+  }
+  
+  loadApplicationKeys(): void {
+    this.isLoadingKeys = true;
+    this.availableAppKeys = [];
+    
+    // Get unique application IDs
+    const appIds = [...new Set(this.userSubscriptions.map(s => s.applicationId))];
+    
+    let loadedCount = 0;
+    
+    for (const appId of appIds) {
+      const sub = this.userSubscriptions.find(s => s.applicationId === appId);
+      const appName = sub?.applicationInfo?.name || 'Application';
+      
+      this.applicationService.getApplicationKeys(appId).subscribe({
+        next: (keys: any[]) => {
+          // Process each key returned by the API
+          for (const key of keys) {
+            if (key.consumerKey) {
+              this.availableAppKeys.push({
+                applicationId: appId,
+                applicationName: appName,
+                keyType: key.keyType || 'PRODUCTION',
+                consumerKey: key.consumerKey,
+                consumerSecret: key.consumerSecret,
+                token: key.token?.accessToken
+              });
+            }
+          }
+          
+          loadedCount++;
+          if (loadedCount === appIds.length) {
+            this.isLoadingKeys = false;
+            
+            // Auto-select first key matching environment type
+            this.autoSelectAppKey();
+            
+            this.cdr.detectChanges();
+          }
+        },
+        error: () => {
+          loadedCount++;
+          if (loadedCount === appIds.length) {
+            this.isLoadingKeys = false;
+            this.cdr.detectChanges();
+          }
+        }
       });
+    }
+    
+    // If no apps to load
+    if (appIds.length === 0) {
+      this.isLoadingKeys = false;
+      this.cdr.detectChanges();
+    }
+  }
+  
+  autoSelectAppKey(): void {
+    if (this.availableAppKeys.length === 0) return;
+    
+    // Try to match environment type
+    const envType = this.selectedEnvironment?.type;
+    let key: AppKeyInfo | undefined;
+    
+    if (envType === 'production') {
+      key = this.availableAppKeys.find(k => k.keyType === 'PRODUCTION');
+    } else if (envType === 'sandbox') {
+      key = this.availableAppKeys.find(k => k.keyType === 'SANDBOX');
+    }
+    
+    // Fallback to first available
+    this.selectedAppKey = key || this.availableAppKeys[0];
+    
+    // Apply token
+    if (this.selectedAppKey) {
+      this.applyTokenToHeaders();
+    }
+  }
+  
+  selectAppKey(key: AppKeyInfo): void {
+    this.selectedAppKey = key;
+    this.applyTokenToHeaders();
+    
+    // Sync {{token}} variable
+    const tokenVar = this.envVariables.find(v => v.key === 'token');
+    if (tokenVar) {
+      tokenVar.value = key.token || '';
+    }
+    
+    this.cdr.detectChanges();
+  }
+  
+  applyTokenToHeaders(): void {
+    if (this.selectedAppKey?.token) {
+      // Use {{token}} variable syntax so user can customize
+      this.sandboxRequest.headers['Authorization'] = `Bearer {{token}}`;
+      
+      // Also update the token variable value
+      const tokenVar = this.envVariables.find(v => v.key === 'token');
+      if (tokenVar) {
+        tokenVar.value = this.selectedAppKey.token;
+      }
+    } else if (this.selectedAppKey?.consumerKey && this.selectedAppKey?.consumerSecret) {
+      // If no token, show the consumer key/secret (user will need to generate token)
+      this.sandboxRequest.headers['Authorization'] = `Bearer <generate_token_first>`;
+    }
+    this.cdr.detectChanges();
+  }
+  
+  // --- Level 1: JSON Validation ---
+  
+  validateJsonBody(): void {
+    if (!this.sandboxRequest.body || this.sandboxRequest.body.trim() === '') {
+      this.jsonValidation = { isValid: true, error: null };
       return;
     }
     
+    try {
+      JSON.parse(this.sandboxRequest.body);
+      this.jsonValidation = { isValid: true, error: null };
+    } catch (e: any) {
+      this.jsonValidation = { 
+        isValid: false, 
+        error: e.message || 'JSON invalide' 
+      };
+    }
+    
+    this.cdr.detectChanges();
+  }
+  
+  formatJsonBody(): void {
+    if (!this.sandboxRequest.body || this.sandboxRequest.body.trim() === '') {
+      return;
+    }
+    
+    try {
+      const parsed = JSON.parse(this.sandboxRequest.body);
+      this.sandboxRequest.body = JSON.stringify(parsed, null, 2);
+      this.jsonValidation = { isValid: true, error: null };
+    } catch (e: any) {
+      this.jsonValidation = { 
+        isValid: false, 
+        error: e.message || 'Impossible de formater: JSON invalide' 
+      };
+    }
+    
+    this.cdr.detectChanges();
+  }
+  
+  minifyJsonBody(): void {
+    if (!this.sandboxRequest.body || this.sandboxRequest.body.trim() === '') {
+      return;
+    }
+    
+    try {
+      const parsed = JSON.parse(this.sandboxRequest.body);
+      this.sandboxRequest.body = JSON.stringify(parsed);
+      this.jsonValidation = { isValid: true, error: null };
+    } catch (e: any) {
+      this.jsonValidation = { 
+        isValid: false, 
+        error: e.message || 'Impossible de minifier: JSON invalide' 
+      };
+    }
+    
+    this.cdr.detectChanges();
+  }
+
+  // --- Existing Sandbox Methods ---
+
+  // --- Level 2: Load Examples from OpenAPI ---
+  
+  loadExampleValues(): void {
+    if (!this.sandboxRequest.endpoint) return;
+    
+    const endpoint = this.sandboxRequest.endpoint;
+    
+    // Load parameter examples
+    if (endpoint.parameters) {
+      for (const param of endpoint.parameters) {
+        if (param.example !== undefined) {
+          this.sandboxRequest.parameters[param.name] = String(param.example);
+        } else if (param.schema?.example !== undefined) {
+          this.sandboxRequest.parameters[param.name] = String(param.schema.example);
+        }
+      }
+    }
+    
+    // Load request body example
+    if (endpoint.requestBody && ['POST', 'PUT', 'PATCH'].includes(endpoint.method)) {
+      const content = endpoint.requestBody.content?.['application/json'];
+      if (content?.example) {
+        this.sandboxRequest.body = JSON.stringify(content.example, null, 2);
+        this.jsonValidation = { isValid: true, error: null };
+      } else if (content?.schema) {
+        // Try to get example from schema
+        const example = this.extractExampleFromSchema(content.schema);
+        if (example) {
+          this.sandboxRequest.body = JSON.stringify(example, null, 2);
+          this.jsonValidation = { isValid: true, error: null };
+        }
+      }
+    }
+    
+    this.cdr.detectChanges();
+  }
+  
+  extractExampleFromSchema(schema: SchemaRef, depth = 0): any {
+    // Prevent infinite recursion
+    if (depth > 5) return null;
+    
+    // If schema has direct example
+    if (schema.example !== undefined) {
+      return schema.example;
+    }
+    
+    // Handle $ref (simplified - just return placeholder)
+    if (schema.$ref) {
+      const refName = schema.$ref.split('/').pop();
+      // Try to resolve from swagger spec
+      const resolved = this.resolveSchemaRef(schema.$ref);
+      if (resolved) {
+        return this.extractExampleFromSchema(resolved, depth + 1);
+      }
+      return { _ref: refName };
+    }
+    
+    // Build example based on type
+    switch (schema.type) {
+      case 'object':
+        if (schema.properties) {
+          const obj: Record<string, any> = {};
+          for (const [key, prop] of Object.entries(schema.properties)) {
+            obj[key] = this.extractExampleFromSchema(prop, depth + 1);
+          }
+          return obj;
+        }
+        return {};
+        
+      case 'array':
+        if (schema.items) {
+          return [this.extractExampleFromSchema(schema.items, depth + 1)];
+        }
+        return [];
+        
+      case 'string':
+        if (schema.format === 'date') return '2024-01-15';
+        if (schema.format === 'date-time') return '2024-01-15T10:30:00Z';
+        if (schema.format === 'email') return 'user@example.com';
+        if (schema.format === 'uri') return 'https://example.com';
+        if (schema.format === 'uuid') return '550e8400-e29b-41d4-a716-446655440000';
+        return 'string';
+        
+      case 'number':
+      case 'integer':
+        return 0;
+        
+      case 'boolean':
+        return true;
+        
+      default:
+        return null;
+    }
+  }
+  
+  resolveSchemaRef(ref: string): SchemaRef | null {
+    if (!this.swaggerSpec || !ref.startsWith('#/')) return null;
+    
+    const parts = ref.replace('#/', '').split('/');
+    let current: any = this.swaggerSpec;
+    
+    for (const part of parts) {
+      if (current && typeof current === 'object' && part in current) {
+        current = current[part];
+      } else {
+        return null;
+      }
+    }
+    
+    return current as SchemaRef;
+  }
+  
+  hasExamples(): boolean {
+    if (!this.sandboxRequest.endpoint) return false;
+    
+    const endpoint = this.sandboxRequest.endpoint;
+    
+    // Check parameters
+    const hasParamExamples = endpoint.parameters?.some(p => 
+      p.example !== undefined || p.schema?.example !== undefined
+    );
+    
+    // Check request body
+    const hasBodyExample = endpoint.requestBody?.content?.['application/json']?.example !== undefined ||
+                          endpoint.requestBody?.content?.['application/json']?.schema !== undefined;
+    
+    return hasParamExamples || hasBodyExample;
+  }
+  
+  // --- Level 2: Syntax Highlighting ---
+  
+  highlightJson(json: string): string {
+    if (!json) return '';
+    
+    try {
+      // Try to parse and re-stringify for consistent formatting
+      const parsed = JSON.parse(json);
+      json = JSON.stringify(parsed, null, 2);
+    } catch {
+      // If not valid JSON, just return escaped
+      return this.escapeHtml(json);
+    }
+    
+    // Simple regex-based highlighting
+    return json
+      // Strings (must be first to avoid conflicts)
+      .replace(/"([^"\\]|\\.)*"/g, (match) => {
+        // Check if it's a key (followed by :) or value
+        return `<span class="json-string">${this.escapeHtml(match)}</span>`;
+      })
+      // Numbers
+      .replace(/\b(-?\d+\.?\d*)\b/g, '<span class="json-number">$1</span>')
+      // Booleans
+      .replace(/\b(true|false)\b/g, '<span class="json-boolean">$1</span>')
+      // Null
+      .replace(/\bnull\b/g, '<span class="json-null">null</span>');
+  }
+  
+  escapeHtml(text: string): string {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+  
+  // --- Level 2: Export Response ---
+  
+  downloadResponse(): void {
+    if (!this.sandboxResponse?.body) return;
+    
+    const blob = new Blob([this.sandboxResponse.body], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    
+    // Generate filename from endpoint
+    const endpoint = this.sandboxRequest.endpoint;
+    const filename = endpoint 
+      ? `response_${endpoint.method}_${endpoint.path.replace(/\//g, '_').replace(/[{}]/g, '')}.json`
+      : 'response.json';
+    
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+  
+  copyResponseFormatted(): void {
+    if (!this.sandboxResponse?.body) return;
+    
+    try {
+      // Try to format JSON
+      const parsed = JSON.parse(this.sandboxResponse.body);
+      const formatted = JSON.stringify(parsed, null, 2);
+      navigator.clipboard.writeText(formatted).then(() => {
+        this.showCopyFeedback('formatted');
+      });
+    } catch {
+      // If not valid JSON, copy as-is
+      navigator.clipboard.writeText(this.sandboxResponse.body).then(() => {
+        this.showCopyFeedback('raw');
+      });
+    }
+  }
+  
+  copyResponseRaw(): void {
+    if (!this.sandboxResponse?.body) return;
+    
+    try {
+      // Minify if JSON
+      const parsed = JSON.parse(this.sandboxResponse.body);
+      const minified = JSON.stringify(parsed);
+      navigator.clipboard.writeText(minified).then(() => {
+        this.showCopyFeedback('minified');
+      });
+    } catch {
+      navigator.clipboard.writeText(this.sandboxResponse.body).then(() => {
+        this.showCopyFeedback('raw');
+      });
+    }
+  }
+  
+  copyFeedbackType: 'formatted' | 'minified' | 'raw' | null = null;
+  
+  showCopyFeedback(type: 'formatted' | 'minified' | 'raw'): void {
+    this.copyFeedbackType = type;
+    this.cdr.detectChanges();
+    
+    setTimeout(() => {
+      this.copyFeedbackType = null;
+      this.cdr.detectChanges();
+    }, 2000);
+  }
+  
+  getResponseSize(): string {
+    if (!this.sandboxResponse?.body) return '0 B';
+    
+    const bytes = new Blob([this.sandboxResponse.body]).size;
+    
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+  }
+  
+  // ========================================
+  // LEVEL 3: ENVIRONMENT VARIABLES
+  // ========================================
+  
+  toggleEnvPanel(): void {
+    this.showEnvPanel = !this.showEnvPanel;
+    if (this.showEnvPanel) {
+      this.initEnvVariablesFromContext();
+    }
+    this.cdr.detectChanges();
+  }
+  
+  addEnvVariable(): void {
+    const key = prompt('Nom de la variable (ex: apiKey):');
+    if (key && key.trim()) {
+      // Check if already exists
+      if (this.envVariables.some(v => v.key === key.trim())) {
+        alert('Cette variable existe déjà.');
+        return;
+      }
+      this.envVariables.push({
+        key: key.trim(),
+        value: '',
+        description: ''
+      });
+      this.cdr.detectChanges();
+    }
+  }
+  
+  removeEnvVariable(index: number): void {
+    // Don't allow removing default variables
+    if (index < 2) return;
+    this.envVariables.splice(index, 1);
+    this.cdr.detectChanges();
+  }
+  
+  applyEnvVariables(text: string): string {
+    let result = text;
+    for (const variable of this.envVariables) {
+      if (variable.value) {
+        const regex = new RegExp(`\\{\\{${variable.key}\\}\\}`, 'g');
+        result = result.replace(regex, variable.value);
+      }
+    }
+    return result;
+  }
+  
+  initEnvVariablesFromContext(): void {
+    // Set baseUrl from selected environment
+    const baseUrl = this.selectedEnvironment?.httpsUrl || 
+                    this.selectedEnvironment?.httpUrl || 
+                    this.getBaseUrl();
+    this.envVariables[0].value = baseUrl;
+    
+    // Set token if available
+    if (this.selectedAppKey?.token) {
+      this.envVariables[1].value = this.selectedAppKey.token;
+    }
+    
+    this.cdr.detectChanges();
+  }
+  
+  // ========================================
+  // LEVEL 3: SAVED COLLECTIONS
+  // ========================================
+  
+  toggleCollectionsPanel(): void {
+    this.showCollectionsPanel = !this.showCollectionsPanel;
+    this.loadSavedRequests();
+    this.cdr.detectChanges();
+  }
+  
+  saveCurrentRequest(): void {
+    if (!this.sandboxRequest.endpoint) {
+      alert('Sélectionnez un endpoint d\'abord.');
+      return;
+    }
+    
+    const name = prompt('Nom de la requête sauvegardée:', 
+      `${this.sandboxRequest.endpoint.method} ${this.sandboxRequest.endpoint.path}`);
+    
+    if (name && name.trim()) {
+      const saved: SavedRequest = {
+        id: this.generateId(),
+        name: name.trim(),
+        endpoint: { 
+          method: this.sandboxRequest.endpoint.method,
+          path: this.sandboxRequest.endpoint.path 
+        },
+        parameters: { ...this.sandboxRequest.parameters },
+        headers: { ...this.sandboxRequest.headers },
+        body: this.sandboxRequest.body,
+        createdAt: new Date()
+      };
+      
+      this.savedRequests.unshift(saved);
+      this.persistSavedRequests();
+      this.cdr.detectChanges();
+    }
+  }
+  
+  loadSavedRequest(saved: SavedRequest): void {
+    // Find the endpoint in current endpoints list
+    const endpoint = this.endpoints.find(e => 
+      e.method === saved.endpoint.method && e.path === saved.endpoint.path
+    );
+    
+    if (!endpoint) {
+      alert('Cet endpoint n\'existe plus dans l\'API.');
+      return;
+    }
+    
+    this.sandboxRequest.endpoint = endpoint;
+    this.sandboxRequest.parameters = { ...saved.parameters };
+    this.sandboxRequest.headers = { ...saved.headers };
+    this.sandboxRequest.body = saved.body;
+    this.sandboxResponse = null;
+    
+    this.validateJsonBody();
+    this.showCollectionsPanel = false;
+    this.cdr.detectChanges();
+  }
+  
+  deleteSavedRequest(id: string): void {
+    if (confirm('Supprimer cette requête sauvegardée ?')) {
+      this.savedRequests = this.savedRequests.filter(r => r.id !== id);
+      this.persistSavedRequests();
+      this.cdr.detectChanges();
+    }
+  }
+  
+  persistSavedRequests(): void {
+    // Store in localStorage with API-specific key
+    if (this.api?.id) {
+      const key = `sandbox_collections_${this.api.id}`;
+      try {
+        localStorage.setItem(key, JSON.stringify(this.savedRequests));
+      } catch (e) {
+        console.warn('Could not save to localStorage', e);
+      }
+    }
+  }
+  
+  loadSavedRequests(): void {
+    if (this.api?.id) {
+      const key = `sandbox_collections_${this.api.id}`;
+      try {
+        const stored = localStorage.getItem(key);
+        if (stored) {
+          this.savedRequests = JSON.parse(stored);
+        }
+      } catch (e) {
+        console.warn('Could not load from localStorage', e);
+      }
+    }
+  }
+  
+  // ========================================
+  // LEVEL 3: CODE GENERATION WITH REAL VALUES
+  // ========================================
+  
+  openCodeGenModal(): void {
+    this.showCodeGenModal = true;
+    this.cdr.detectChanges();
+  }
+  
+  closeCodeGenModal(): void {
+    this.showCodeGenModal = false;
+    this.cdr.detectChanges();
+  }
+  
+  generateRealCurlExample(): string {
+    if (!this.sandboxRequest.endpoint) return '';
+    
+    const url = this.buildSandboxUrl();
+    const method = this.sandboxRequest.endpoint.method;
+    
+    let curl = `curl -X ${method} "${url}"`;
+    
+    // Add real headers (with env variables applied)
+    for (const [key, value] of Object.entries(this.sandboxRequest.headers)) {
+      if (value && this.hasValidHeaderValue(value)) {
+        const resolvedValue = this.applyEnvVariables(value);
+        curl += ` \\\n  -H "${key}: ${resolvedValue}"`;
+      }
+    }
+    
+    // Add body if present (with env variables applied)
+    if (this.sandboxRequest.body && ['POST', 'PUT', 'PATCH'].includes(method)) {
+      const resolvedBody = this.applyEnvVariables(this.sandboxRequest.body);
+      // Escape single quotes in JSON
+      const escapedBody = resolvedBody.replace(/'/g, "'\\''");
+      curl += ` \\\n  -d '${escapedBody}'`;
+    }
+    
+    return curl;
+  }
+  
+  // Check if a header value is valid (not a placeholder without value)
+  hasValidHeaderValue(value: string): boolean {
+    // Check for YOUR_ACCESS_TOKEN placeholder
+    if (value.includes('YOUR_ACCESS_TOKEN')) return false;
+    
+    // Check for {{token}} without a value
+    if (value.includes('{{token}}')) {
+      const tokenValue = this.getEnvVariableValue('token');
+      return !!tokenValue;
+    }
+    
+    // Check for any unresolved variable
+    const unresolvedVars = value.match(/\{\{(\w+)\}\}/g);
+    if (unresolvedVars) {
+      for (const match of unresolvedVars) {
+        const key = match.replace(/\{\{|\}\}/g, '');
+        if (!this.getEnvVariableValue(key)) {
+          return false;
+        }
+      }
+    }
+    
+    return true;
+  }
+  
+  generateRealJsExample(): string {
+    if (!this.sandboxRequest.endpoint) return '';
+    
+    const url = this.buildSandboxUrl();
+    const method = this.sandboxRequest.endpoint.method;
+    
+    let js = `const response = await fetch("${url}", {\n`;
+    js += `  method: "${method}",\n`;
+    js += `  headers: {\n`;
+    
+    const headerEntries = Object.entries(this.sandboxRequest.headers)
+      .filter(([_, v]) => v && this.hasValidHeaderValue(v));
+    
+    headerEntries.forEach(([key, value], index) => {
+      const resolvedValue = this.applyEnvVariables(value);
+      js += `    "${key}": "${resolvedValue}"`;
+      js += index < headerEntries.length - 1 ? ',\n' : '\n';
+    });
+    
+    js += `  }`;
+    
+    if (this.sandboxRequest.body && ['POST', 'PUT', 'PATCH'].includes(method)) {
+      try {
+        const resolvedBody = this.applyEnvVariables(this.sandboxRequest.body);
+        const parsed = JSON.parse(resolvedBody);
+        js += `,\n  body: JSON.stringify(${JSON.stringify(parsed, null, 4).split('\n').join('\n  ')})`;
+      } catch {
+        js += `,\n  body: ${JSON.stringify(this.applyEnvVariables(this.sandboxRequest.body))}`;
+      }
+    }
+    
+    js += `\n});\n\nconst data = await response.json();\nconsole.log(data);`;
+    
+    return js;
+  }
+  
+  generateRealPythonExample(): string {
+    if (!this.sandboxRequest.endpoint) return '';
+    
+    const url = this.buildSandboxUrl();
+    const method = this.sandboxRequest.endpoint.method.toLowerCase();
+    
+    let py = `import requests\n\n`;
+    py += `url = "${url}"\n\n`;
+    py += `headers = {\n`;
+    
+    const headerEntries = Object.entries(this.sandboxRequest.headers)
+      .filter(([_, v]) => v && this.hasValidHeaderValue(v));
+    
+    headerEntries.forEach(([key, value], index) => {
+      const resolvedValue = this.applyEnvVariables(value);
+      py += `    "${key}": "${resolvedValue}"`;
+      py += index < headerEntries.length - 1 ? ',\n' : '\n';
+    });
+    
+    py += `}\n\n`;
+    
+    if (this.sandboxRequest.body && ['post', 'put', 'patch'].includes(method)) {
+      try {
+        const resolvedBody = this.applyEnvVariables(this.sandboxRequest.body);
+        const parsed = JSON.parse(resolvedBody);
+        py += `data = ${JSON.stringify(parsed, null, 4)}\n\n`;
+        py += `response = requests.${method}(url, headers=headers, json=data)`;
+      } catch {
+        py += `data = ${JSON.stringify(this.applyEnvVariables(this.sandboxRequest.body))}\n\n`;
+        py += `response = requests.${method}(url, headers=headers, data=data)`;
+      }
+    } else {
+      py += `response = requests.${method}(url, headers=headers)`;
+    }
+    
+    py += `\n\nprint(response.status_code)\nprint(response.json())`;
+    
+    return py;
+  }
+  
+  getRealCodeExample(): string {
+    switch (this.codeGenLang) {
+      case 'curl': return this.generateRealCurlExample();
+      case 'javascript': return this.generateRealJsExample();
+      case 'python': return this.generateRealPythonExample();
+      default: return '';
+    }
+  }
+  
+  // ========================================
+  // LEVEL 3: DIFF MODE
+  // ========================================
+  
+  toggleDiffMode(): void {
+    this.diffMode = !this.diffMode;
+    if (!this.diffMode) {
+      this.diffSelection = { first: null, second: null };
+    }
+    this.cdr.detectChanges();
+  }
+  
+  selectForDiff(item: HistoryItem): void {
+    if (!this.diffMode) return;
+    
+    if (!this.diffSelection.first) {
+      this.diffSelection.first = item;
+    } else if (!this.diffSelection.second && this.diffSelection.first.id !== item.id) {
+      this.diffSelection.second = item;
+    } else {
+      // Reset and start over
+      this.diffSelection = { first: item, second: null };
+    }
+    
+    this.cdr.detectChanges();
+  }
+  
+  isSelectedForDiff(item: HistoryItem): 'first' | 'second' | null {
+    if (this.diffSelection.first?.id === item.id) return 'first';
+    if (this.diffSelection.second?.id === item.id) return 'second';
+    return null;
+  }
+  
+  clearDiffSelection(): void {
+    this.diffSelection = { first: null, second: null };
+    this.cdr.detectChanges();
+  }
+  
+  getDiffResult(): { added: string[]; removed: string[]; unchanged: string[] } | null {
+    if (!this.diffSelection.first || !this.diffSelection.second) return null;
+    
+    const body1 = this.diffSelection.first.response.body;
+    const body2 = this.diffSelection.second.response.body;
+    
+    // Simple line-by-line diff
+    const lines1 = body1.split('\n');
+    const lines2 = body2.split('\n');
+    
+    const added: string[] = [];
+    const removed: string[] = [];
+    const unchanged: string[] = [];
+    
+    // Find lines unique to each
+    const set1 = new Set(lines1);
+    const set2 = new Set(lines2);
+    
+    for (const line of lines1) {
+      if (!set2.has(line)) {
+        removed.push(line);
+      } else {
+        unchanged.push(line);
+      }
+    }
+    
+    for (const line of lines2) {
+      if (!set1.has(line)) {
+        added.push(line);
+      }
+    }
+    
+    return { added, removed, unchanged };
+  }
+  
+  // ========================================
+  // HELPERS
+  // ========================================
+  
+  generateId(): string {
+    return Date.now().toString(36) + Math.random().toString(36).substr(2);
+  }
+  
+  // Helpers for template (avoid arrow functions)
+  hasEnvVariablesWithValue(): boolean {
+    return this.envVariables.some(v => !!v.value);
+  }
+  
+  countEnvVariablesWithValue(): number {
+    return this.envVariables.filter(v => !!v.value).length;
+  }
+
+  selectEndpointForSandbox(endpoint: ParsedEndpoint): void {
+    this.sandboxRequest.endpoint = endpoint;
+    this.sandboxRequest.parameters = {};
+    this.sandboxRequest.body = '';
+    this.sandboxResponse = null;
+    
+    // Initialize parameters with default values
+    if (endpoint.parameters) {
+      for (const param of endpoint.parameters) {
+        this.sandboxRequest.parameters[param.name] = param.example?.toString() || '';
+      }
+    }
+    
+    // Initialize body with example if POST/PUT/PATCH
+    if (endpoint.requestBody && ['POST', 'PUT', 'PATCH'].includes(endpoint.method)) {
+      const content = endpoint.requestBody.content?.['application/json'];
+      if (content?.example) {
+        this.sandboxRequest.body = JSON.stringify(content.example, null, 2);
+      } else if (content?.schema) {
+        this.sandboxRequest.body = this.generateExampleFromSchema(content.schema);
+      }
+    }
+    
+    this.cdr.detectChanges();
+  }
+
+  generateExampleFromSchema(schema: SchemaRef): string {
+    // Simple example generation from schema
+    const example: Record<string, any> = {};
+    
+    if (schema.properties) {
+      for (const [key, prop] of Object.entries(schema.properties)) {
+        if (prop.example !== undefined) {
+          example[key] = prop.example;
+        } else {
+          switch (prop.type) {
+            case 'string':
+              example[key] = 'string';
+              break;
+            case 'number':
+            case 'integer':
+              example[key] = 0;
+              break;
+            case 'boolean':
+              example[key] = true;
+              break;
+            case 'array':
+              example[key] = [];
+              break;
+            case 'object':
+              example[key] = {};
+              break;
+            default:
+              example[key] = null;
+          }
+        }
+      }
+    }
+    
+    return JSON.stringify(example, null, 2);
+  }
+
+  buildSandboxUrl(): string {
+    if (!this.sandboxRequest.endpoint) return '';
+    
+    // Priority: 1. Custom {{baseUrl}} variable, 2. Selected environment, 3. getBaseUrl()
+    let baseUrl = this.getEnvVariableValue('baseUrl');
+    
+    if (!baseUrl) {
+      baseUrl = this.selectedEnvironment?.httpsUrl || 
+                this.selectedEnvironment?.httpUrl || 
+                this.getBaseUrl();
+    }
+    
+    let url = baseUrl + this.sandboxRequest.endpoint.path;
+    
+    // Replace path parameters
+    for (const param of this.sandboxRequest.endpoint.parameters || []) {
+      if (param.in === 'path') {
+        const value = this.sandboxRequest.parameters[param.name] || '';
+        url = url.replace(`{${param.name}}`, encodeURIComponent(value));
+      }
+    }
+    
+    // Add query parameters
+    const queryParams: string[] = [];
+    for (const param of this.sandboxRequest.endpoint.parameters || []) {
+      if (param.in === 'query' && this.sandboxRequest.parameters[param.name]) {
+        queryParams.push(`${param.name}=${encodeURIComponent(this.sandboxRequest.parameters[param.name])}`);
+      }
+    }
+    
+    if (queryParams.length > 0) {
+      url += '?' + queryParams.join('&');
+    }
+    
+    return url;
+  }
+  
+  // Get a specific environment variable value
+  getEnvVariableValue(key: string): string {
+    const variable = this.envVariables.find(v => v.key === key);
+    return variable?.value || '';
+  }
+
+  async executeSandboxRequest(): Promise<void> {
+    if (!this.sandboxRequest.endpoint) return;
+    
+    this.isSandboxLoading = true;
+    this.sandboxResponse = null;
+    this.cdr.detectChanges();
+    
+    const startTime = performance.now();
+    const url = this.buildSandboxUrl();
+    
+    try {
+      // Apply environment variables to headers
+      const headers: Record<string, string> = {};
+      for (const [key, value] of Object.entries(this.sandboxRequest.headers)) {
+        headers[key] = this.applyEnvVariables(value);
+      }
+      
+      // Add header parameters
+      for (const param of this.sandboxRequest.endpoint.parameters || []) {
+        if (param.in === 'header' && this.sandboxRequest.parameters[param.name]) {
+          headers[param.name] = this.applyEnvVariables(this.sandboxRequest.parameters[param.name]);
+        }
+      }
+      
+      const options: RequestInit = {
+        method: this.sandboxRequest.endpoint.method,
+        headers,
+        mode: 'cors'
+      };
+      
+      // Add body for POST/PUT/PATCH (with env variables applied)
+      if (['POST', 'PUT', 'PATCH'].includes(this.sandboxRequest.endpoint.method) && this.sandboxRequest.body) {
+        options.body = this.applyEnvVariables(this.sandboxRequest.body);
+      }
+      
+      const response = await fetch(url, options);
+      const endTime = performance.now();
+      
+      // Parse response headers
+      const responseHeaders: Record<string, string> = {};
+      response.headers.forEach((value, key) => {
+        responseHeaders[key] = value;
+      });
+      
+      // Parse response body
+      let responseBody = '';
+      try {
+        const contentType = response.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+          const json = await response.json();
+          responseBody = JSON.stringify(json, null, 2);
+        } else {
+          responseBody = await response.text();
+        }
+      } catch {
+        responseBody = 'Unable to parse response body';
+      }
+      
+      this.sandboxResponse = {
+        status: response.status,
+        statusText: response.statusText,
+        headers: responseHeaders,
+        body: responseBody,
+        time: Math.round(endTime - startTime)
+      };
+      
+      // Add to history with unique id
+      this.sandboxHistory.unshift({
+        id: this.generateId(),
+        request: { ...this.sandboxRequest },
+        response: { ...this.sandboxResponse },
+        timestamp: new Date()
+      });
+      
+      // Keep only last 20 requests (increased for diff feature)
+      if (this.sandboxHistory.length > 20) {
+        this.sandboxHistory = this.sandboxHistory.slice(0, 20);
+      }
+      
+    } catch (error: any) {
+      const endTime = performance.now();
+      
+      this.sandboxResponse = {
+        status: 0,
+        statusText: 'Error',
+        headers: {},
+        body: '',
+        time: Math.round(endTime - startTime),
+        error: error.message || 'Network error or CORS issue'
+      };
+    }
+    
+    this.isSandboxLoading = false;
+    this.cdr.detectChanges();
+  }
+
+  addSandboxHeader(): void {
+    const key = prompt('Header name:');
+    if (key) {
+      this.sandboxRequest.headers[key] = '';
+      this.cdr.detectChanges();
+    }
+  }
+
+  removeSandboxHeader(key: string): void {
+    delete this.sandboxRequest.headers[key];
+    this.cdr.detectChanges();
+  }
+
+  clearSandboxHistory(): void {
+    this.sandboxHistory = [];
+    this.cdr.detectChanges();
+  }
+
+  loadFromHistory(index: number): void {
+    const item = this.sandboxHistory[index];
+    if (item) {
+      this.sandboxRequest = { ...item.request };
+      this.sandboxResponse = { ...item.response };
+      this.cdr.detectChanges();
+    }
+  }
+
+  getHttpStatusClass(status: number): string {
+    if (status >= 200 && status < 300) return 'status-success';
+    if (status >= 300 && status < 400) return 'status-redirect';
+    if (status >= 400 && status < 500) return 'status-client-error';
+    if (status >= 500) return 'status-server-error';
+    return 'status-unknown';
+  }
+
+  // ========================================
+  // SUBSCRIBE MODAL
+  // ========================================
+
+  openSubscribeModal(): void {
     this.showSubscribeModal = true;
     this.loadApplicationsForSubscription();
     this.loadSubscriptionPolicies();
@@ -379,7 +1770,14 @@ export class ApiDetailComponent implements OnInit {
   generateCurlExample(endpoint: ParsedEndpoint): string {
     const baseUrl = this.getBaseUrl();
     const method = endpoint.method;
-    const url = `${baseUrl}${endpoint.path}`;
+    let url = `${baseUrl}${endpoint.path}`;
+    
+    // Replace path params with placeholders
+    for (const param of endpoint.parameters || []) {
+      if (param.in === 'path') {
+        url = url.replace(`{${param.name}}`, `<${param.name}>`);
+      }
+    }
     
     let curl = `curl -X ${method} "${url}"`;
     curl += ` \\\n  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"`;
@@ -395,9 +1793,16 @@ export class ApiDetailComponent implements OnInit {
   generateJsExample(endpoint: ParsedEndpoint): string {
     const baseUrl = this.getBaseUrl();
     const method = endpoint.method;
-    const url = `${baseUrl}${endpoint.path}`;
+    let url = `${baseUrl}${endpoint.path}`;
     
-    let js = `const response = await fetch("${url}", {\n`;
+    // Replace path params with template literals
+    for (const param of endpoint.parameters || []) {
+      if (param.in === 'path') {
+        url = url.replace(`{${param.name}}`, `\${${param.name}}`);
+      }
+    }
+    
+    let js = `const response = await fetch(\`${url}\`, {\n`;
     js += `  method: "${method}",\n`;
     js += `  headers: {\n`;
     js += `    "Authorization": "Bearer YOUR_ACCESS_TOKEN",\n`;
@@ -416,7 +1821,16 @@ export class ApiDetailComponent implements OnInit {
   generatePythonExample(endpoint: ParsedEndpoint): string {
     const baseUrl = this.getBaseUrl();
     const method = endpoint.method.toLowerCase();
-    const url = `${baseUrl}${endpoint.path}`;
+    let url = `${baseUrl}${endpoint.path}`;
+    
+    // Replace path params with f-string syntax
+    let hasPathParams = false;
+    for (const param of endpoint.parameters || []) {
+      if (param.in === 'path') {
+        url = url.replace(`{${param.name}}`, `{${param.name}}`);
+        hasPathParams = true;
+      }
+    }
     
     let py = `import requests\n\n`;
     py += `headers = {\n`;
@@ -424,11 +1838,13 @@ export class ApiDetailComponent implements OnInit {
     py += `    "Content-Type": "application/json"\n`;
     py += `}\n\n`;
     
+    const urlStr = hasPathParams ? `f"${url}"` : `"${url}"`;
+    
     if (endpoint.requestBody && (method === 'post' || method === 'put' || method === 'patch')) {
       py += `data = {\n    "key": "value"\n}\n\n`;
-      py += `response = requests.${method}("${url}", headers=headers, json=data)`;
+      py += `response = requests.${method}(${urlStr}, headers=headers, json=data)`;
     } else {
-      py += `response = requests.${method}("${url}", headers=headers)`;
+      py += `response = requests.${method}(${urlStr}, headers=headers)`;
     }
     
     py += `\nprint(response.json())`;
@@ -474,17 +1890,10 @@ export class ApiDetailComponent implements OnInit {
   }
 
   getMethodClass(method: string): string {
-    switch (method.toUpperCase()) {
-      case 'GET': return 'method-get';
-      case 'POST': return 'method-post';
-      case 'PUT': return 'method-put';
-      case 'DELETE': return 'method-delete';
-      case 'PATCH': return 'method-patch';
-      default: return 'method-default';
-    }
+    return method.toLowerCase();
   }
 
-  getStatusClass(status?: string): string {
+  getApiStatusClass(status?: string): string {
     switch (status) {
       case 'PUBLISHED': return 'badge-green';
       case 'PROTOTYPED': return 'badge-blue';
@@ -554,5 +1963,37 @@ export class ApiDetailComponent implements OnInit {
 
   reload(): void {
     this.loadApi();
+  }
+
+  getParamTypeLabel(param: ParameterDef): string {
+    if (param.schema?.type) {
+      return param.schema.type;
+    }
+    return param.type || 'string';
+  }
+  
+  getParamsByType(type: 'path' | 'query' | 'header' | 'cookie'): ParameterDef[] {
+    if (!this.sandboxRequest.endpoint?.parameters) return [];
+    return this.sandboxRequest.endpoint.parameters.filter(p => p.in === type);
+  }
+
+  hasRequiredParams(endpoint: ParsedEndpoint): boolean {
+    return endpoint.parameters?.some(p => p.required) || false;
+  }
+
+  getSecurityInfo(endpoint: ParsedEndpoint): string {
+    // Check if endpoint requires authentication
+    if (endpoint.security && endpoint.security.length > 0) {
+      return 'Authentification requise';
+    }
+    return '';
+  }
+
+  trackByPath(index: number, endpoint: ParsedEndpoint): string {
+    return endpoint.path + endpoint.method;
+  }
+
+  trackByName(index: number, group: TagGroup): string {
+    return group.name;
   }
 }
