@@ -342,7 +342,8 @@
                   @for (ep of endpoints; track ep.path + ep.method) {
                     <li>
                       <button 
-                        class="endpoint-item" 
+                        class="endpoint-item"
+                        [class]="'endpoint-item method-' + ep.method.toLowerCase()"
                         [class.active]="selectedEndpoint === ep"
                         (click)="selectEndpoint(ep)"
                       >
