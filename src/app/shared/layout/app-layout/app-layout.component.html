@@ -1,28 +1,23 @@
-<!-- App Layout - GitBook Style -->
-<div class="app-layout" [class.sidebar-open]="sidebarOpen">
+<!-- App Layout - Clean Design without Sidebar -->
+<div class="app-layout">
   
-  <!-- Sidebar -->
-  <app-sidebar 
-    [class.open]="sidebarOpen"
-    (closeSidebar)="closeSidebar()"
-  ></app-sidebar>
-  
-  <!-- Mobile Overlay -->
-  @if (sidebarOpen) {
-    <div class="sidebar-overlay" (click)="closeSidebar()"></div>
-  }
+  <!-- Header with Navigation -->
+  <app-page-header></app-page-header>
   
   <!-- Main Content Area -->
-  <div class="app-content">
-    
-    <!-- Header -->
-    <app-page-header (toggleSidebar)="toggleSidebar()"></app-page-header>
-    
-    <!-- Page Content -->
-    <main class="page-content">
-      <router-outlet></router-outlet>
-    </main>
-    
-  </div>
+  <main class="app-content">
+    <router-outlet></router-outlet>
+  </main>
+  
+  <!-- Footer -->
+  <footer class="app-footer">
+    <div class="footer-content">
+      <span class="footer-status">
+        <span class="status-dot"></span>
+        Tous les services sont opérationnels
+      </span>
+      <span class="footer-copyright">© 2026 Verspieren API Catalog</span>
+    </div>
+  </footer>
   
 </div>

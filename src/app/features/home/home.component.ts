@@ -4,8 +4,8 @@ import { RouterLink, Router } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
 import { ApplicationService } from '../../core/services/application.service';
 import { AuthService } from '../../core/services/auth.service';
-import { APIInfo, APICategory } from '../../core/models';
-import { forkJoin } from 'rxjs';
+import { APIInfo, APICategory, ApplicationInfo, Tag } from '../../core/models';
+import { forkJoin, Observable } from 'rxjs';
 
 /**
  * Display category interface
@@ -29,12 +29,22 @@ interface DisplayApi {
   category: string;
   categoryColor: string;
   version: string;
-  createdTime?: string;
+  provider: string;
   type?: string;
+  createdTime?: string;
+  updatedTime?: string;
 }
 
 /**
- * Home Component - Landing page connected to WSO2
+ * Display Tag interface
+ */
+interface DisplayTag {
+  name: string;
+  count: number;
+}
+
+/**
+ * Home Component - Central hub for the application
  */
 @Component({
   selector: 'app-home',
@@ -45,34 +55,27 @@ interface DisplayApi {
 })
 export class HomeComponent implements OnInit {
   
-  /**
-   * Loading state
-   */
-  isLoading = true;
+  // Authentication
+  isAuthenticated$!: Observable<boolean>;
+  isAuthenticated = false;
   
-  /**
-   * Statistics
-   */
+  // Loading states
+  isLoading = true;
+  isLoadingApps = false;
+  
+  // Statistics
   stats = {
     totalApis: 0,
     totalCategories: 0,
-    totalApplications: 0
+    uptime: '99.9%',
+    avgResponseTime: '45ms'
   };
 
-  /**
-   * Categories from WSO2
-   */
+  // Data
   categories: DisplayCategory[] = [];
-
-  /**
-   * Popular APIs (first 4)
-   */
-  popularApis: DisplayApi[] = [];
-
-  /**
-   * New APIs (sorted by creation date)
-   */
-  newApis: DisplayApi[] = [];
+  tags: DisplayTag[] = [];
+  recentApis: DisplayApi[] = [];
+  applications: ApplicationInfo[] = [];
 
   constructor(
     private router: Router,
@@ -83,48 +86,47 @@ export class HomeComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    this.isAuthenticated$ = this.authService.isAuthenticated$;
+    this.isAuthenticated = this.authService.isAuthenticated();
+    
     this.loadData();
+    
+    if (this.isAuthenticated) {
+      this.loadApplications();
+    }
   }
 
   /**
-   * Load all data from WSO2
+   * Load APIs, categories and tags from WSO2
    */
   loadData(): void {
     this.isLoading = true;
     
-    // Load APIs and categories in parallel
     forkJoin({
       apis: this.apiService.getApis({ limit: 100 }),
-      categories: this.apiService.getCategories()
+      categories: this.apiService.getCategories(),
+      tags: this.apiService.getTags(50)
     }).subscribe({
-      next: ({ apis, categories }) => {
+      next: ({ apis, categories, tags }) => {
         const apiList = apis.list || [];
         const categoryList = categories.list || [];
+        const tagList = tags.list || [];
         
-        // Update stats
         this.stats.totalApis = apis.count || apiList.length;
         this.stats.totalCategories = categories.count || categoryList.length;
         
-        // Map categories
         this.categories = this.mapCategories(categoryList);
+        this.tags = this.mapTags(tagList);
         
-        // Map APIs for display
-        const displayApis = this.mapApis(apiList);
-        
-        // Popular APIs (first 4)
-        this.popularApis = displayApis.slice(0, 4);
-        
-        // New APIs (sorted by creation date, last 3)
-        this.newApis = this.getNewestApis(displayApis, 3);
+        // Get 6 most recent APIs (by updatedTime or createdTime)
+        const allApis = this.mapApis(apiList);
+        this.recentApis = this.getRecentApis(allApis, 6);
         
         this.isLoading = false;
         this.cdr.detectChanges();
-        
-        // Load applications count separately (requires auth)
-        this.loadApplicationsCount();
       },
       error: (error) => {
-        console.error('Failed to load home data', error);
+        console.error('Failed to load data', error);
         this.isLoading = false;
         this.cdr.detectChanges();
       }
@@ -132,21 +134,20 @@ export class HomeComponent implements OnInit {
   }
 
   /**
-   * Load applications count (only if authenticated)
+   * Load user applications
    */
-  loadApplicationsCount(): void {
-    // Only load if user is authenticated
-    if (!this.authService.isAuthenticated()) {
-      return;
-    }
+  loadApplications(): void {
+    this.isLoadingApps = true;
     
-    this.applicationService.getApplications().subscribe({
+    this.applicationService.getApplications({ limit: 10 }).subscribe({
       next: (response) => {
-        this.stats.totalApplications = response.count || 0;
+        this.applications = response.list || [];
+        this.isLoadingApps = false;
         this.cdr.detectChanges();
       },
       error: () => {
-        // Silently fail
+        this.isLoadingApps = false;
+        this.cdr.detectChanges();
       }
     });
   }
@@ -156,13 +157,25 @@ export class HomeComponent implements OnInit {
    */
   mapCategories(categories: APICategory[]): DisplayCategory[] {
     return categories.map(cat => ({
-      id: cat.name?.toLowerCase().replace(/\s+/g, '-') || cat.id || '',
+      id: cat.id || '',
       name: cat.name || 'Sans nom',
       description: cat.description || this.getDefaultDescription(cat.name || ''),
       icon: this.getCategoryIcon(cat.name || ''),
       color: this.getCategoryColor(cat.name || ''),
       count: cat.numberOfAPIs || 0
     }));
+  }
+
+  /**
+   * Map WSO2 tags to display format
+   */
+  mapTags(tags: Tag[]): DisplayTag[] {
+    return tags
+      .map(tag => ({
+        name: tag.value || '',
+        count: tag.count || 0
+      }))
+      .filter(tag => tag.name); // Filter out empty tags
   }
 
   /**
@@ -180,175 +193,102 @@ export class HomeComponent implements OnInit {
         category: category,
         categoryColor: this.getCategoryColor(category),
         version: api.version || '1.0.0',
+        provider: api.provider || 'Unknown',
+        type: api.type,
         createdTime: api.createdTime,
-        type: api.type
+        updatedTime: apiAny.updatedTime || apiAny.lastUpdatedTime
       };
     });
   }
 
   /**
-   * Get newest APIs sorted by creation date
+   * Get most recent APIs sorted by date
    */
-  getNewestApis(apis: DisplayApi[], count: number): DisplayApi[] {
+  getRecentApis(apis: DisplayApi[], count: number): DisplayApi[] {
     return [...apis]
       .sort((a, b) => {
-        if (!a.createdTime) return 1;
-        if (!b.createdTime) return -1;
-        return new Date(b.createdTime).getTime() - new Date(a.createdTime).getTime();
+        const dateA = a.updatedTime || a.createdTime || '';
+        const dateB = b.updatedTime || b.createdTime || '';
+        return new Date(dateB).getTime() - new Date(dateA).getTime();
       })
       .slice(0, count);
   }
 
-  /**
-   * Get category icon based on name
-   */
   getCategoryIcon(name: string): string {
     const lower = name.toLowerCase();
     
-    if (lower.includes('payment') || lower.includes('finance') || lower.includes('billing')) {
-      return '💳';
-    }
-    if (lower.includes('auth') || lower.includes('security') || lower.includes('identity')) {
-      return '🔐';
-    }
-    if (lower.includes('message') || lower.includes('notification') || lower.includes('email') || lower.includes('sms')) {
-      return '💬';
-    }
-    if (lower.includes('analytics') || lower.includes('data') || lower.includes('report')) {
-      return '📊';
-    }
-    if (lower.includes('integration') || lower.includes('connect') || lower.includes('erp')) {
-      return '🔌';
-    }
-    if (lower.includes('geo') || lower.includes('location') || lower.includes('map')) {
-      return '📍';
-    }
-    if (lower.includes('storage') || lower.includes('file') || lower.includes('document')) {
-      return '📁';
-    }
-    if (lower.includes('search')) {
-      return '🔍';
-    }
-    if (lower.includes('user') || lower.includes('account') || lower.includes('profile')) {
-      return '👤';
-    }
-    if (lower.includes('order') || lower.includes('commerce') || lower.includes('shop')) {
-      return '🛒';
-    }
-    if (lower.includes('inventory') || lower.includes('stock') || lower.includes('product')) {
-      return '📦';
-    }
+    // Catégories spécifiques (acronymes internes)
+    if (lower === 'adp') return '👥';           // Administration du Personnel
+    if (lower === 'dasc') return '🏢';          // Direction Administrative
+    if (lower === 'dpas') return '📋';          // Direction des Prestations
+    if (lower === 'dse') return '💻';           // Direction des Systèmes
+    if (lower === 'transverse') return '🔗';    // Services transverses
     
+    // Catégories génériques
+    if (lower.includes('payment') || lower.includes('finance') || lower.includes('billing')) return '💳';
+    if (lower.includes('auth') || lower.includes('security') || lower.includes('identity')) return '🔐';
+    if (lower.includes('message') || lower.includes('notification') || lower.includes('email') || lower.includes('sms')) return '💬';
+    if (lower.includes('analytics') || lower.includes('data') || lower.includes('report')) return '📊';
+    if (lower.includes('integration') || lower.includes('connect') || lower.includes('erp')) return '🔌';
+    if (lower.includes('geo') || lower.includes('location') || lower.includes('map')) return '📍';
+    if (lower.includes('storage') || lower.includes('file') || lower.includes('document')) return '📁';
+    if (lower.includes('user') || lower.includes('account')) return '👤';
+    if (lower.includes('order') || lower.includes('commerce')) return '🛒';
     return '📂';
   }
 
-  /**
-   * Get category color based on name
-   */
   getCategoryColor(name: string): string {
     const lower = name.toLowerCase();
     
-    if (lower.includes('payment') || lower.includes('finance') || lower.includes('billing')) {
-      return 'finance';
-    }
-    if (lower.includes('auth') || lower.includes('security') || lower.includes('identity')) {
-      return 'security';
-    }
-    if (lower.includes('message') || lower.includes('notification') || lower.includes('email') || lower.includes('sms')) {
-      return 'communication';
-    }
-    if (lower.includes('analytics') || lower.includes('data') || lower.includes('report')) {
-      return 'data';
-    }
-    if (lower.includes('integration') || lower.includes('connect') || lower.includes('erp')) {
-      return 'integration';
-    }
-    if (lower.includes('geo') || lower.includes('location') || lower.includes('map')) {
-      return 'geo';
-    }
+    // Catégories spécifiques
+    if (lower === 'adp') return 'adp';
+    if (lower === 'dasc') return 'dasc';
+    if (lower === 'dpas') return 'dpas';
+    if (lower === 'dse') return 'dse';
+    if (lower === 'transverse') return 'transverse';
     
+    // Catégories génériques
+    if (lower.includes('payment') || lower.includes('finance') || lower.includes('billing')) return 'finance';
+    if (lower.includes('auth') || lower.includes('security') || lower.includes('identity')) return 'security';
+    if (lower.includes('message') || lower.includes('notification') || lower.includes('email')) return 'communication';
+    if (lower.includes('analytics') || lower.includes('data') || lower.includes('report')) return 'data';
+    if (lower.includes('integration') || lower.includes('connect')) return 'integration';
+    if (lower.includes('geo') || lower.includes('location')) return 'geo';
     return 'default';
   }
 
-  /**
-   * Get default description for category
-   */
   getDefaultDescription(name: string): string {
     const lower = name.toLowerCase();
-    
-    if (lower.includes('payment') || lower.includes('finance')) {
-      return 'Transactions, facturation, comptabilité';
-    }
-    if (lower.includes('auth') || lower.includes('security')) {
-      return 'Authentification, autorisation, SSO';
-    }
-    if (lower.includes('message') || lower.includes('notification')) {
-      return 'SMS, Email, Notifications push';
-    }
-    if (lower.includes('analytics') || lower.includes('data')) {
-      return 'Rapports, métriques, tableaux de bord';
-    }
-    if (lower.includes('integration') || lower.includes('connect')) {
-      return 'ERP, CRM, systèmes tiers';
-    }
-    if (lower.includes('geo') || lower.includes('location')) {
-      return 'Cartes, adresses, itinéraires';
-    }
-    
+    if (lower.includes('payment') || lower.includes('finance')) return 'Transactions, facturation, comptabilité';
+    if (lower.includes('auth') || lower.includes('security')) return 'Authentification, autorisation, SSO';
+    if (lower.includes('message') || lower.includes('notification')) return 'SMS, Email, Notifications push';
+    if (lower.includes('analytics') || lower.includes('data')) return 'Rapports, métriques, tableaux de bord';
+    if (lower.includes('integration') || lower.includes('connect')) return 'ERP, CRM, systèmes tiers';
+    if (lower.includes('geo') || lower.includes('location')) return 'Cartes, adresses, itinéraires';
     return 'APIs et services';
   }
 
-  /**
-   * Format relative date
-   */
-  formatRelativeDate(dateString?: string): string {
-    if (!dateString) return '';
-    
-    try {
-      const date = new Date(dateString);
-      const now = new Date();
-      const diffMs = now.getTime() - date.getTime();
-      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-      
-      if (diffDays === 0) return "Aujourd'hui";
-      if (diffDays === 1) return 'Hier';
-      if (diffDays < 7) return `Il y a ${diffDays} jours`;
-      if (diffDays < 30) return `Il y a ${Math.floor(diffDays / 7)} semaine${Math.floor(diffDays / 7) > 1 ? 's' : ''}`;
-      if (diffDays < 365) return `Il y a ${Math.floor(diffDays / 30)} mois`;
-      
-      return date.toLocaleDateString('fr-FR');
-    } catch {
-      return '';
-    }
-  }
-
-  /**
-   * Navigate to category
-   */
   goToCategory(categoryName: string): void {
-    this.router.navigate(['/catalog'], { 
-      queryParams: { category: categoryName } 
-    });
+    this.router.navigate(['/catalog'], { queryParams: { category: categoryName } });
   }
 
-  /**
-   * Navigate to API detail
-   */
   goToApi(apiId: string): void {
     this.router.navigate(['/catalog', apiId]);
   }
 
-  /**
-   * Navigate to catalog
-   */
+  goToApplication(appId: string): void {
+    this.router.navigate(['/applications'], { queryParams: { app: appId } });
+  }
+
   goToCatalog(): void {
     this.router.navigate(['/catalog']);
   }
 
-  /**
-   * Navigate to documentation
-   */
-  goToDocs(): void {
-    this.router.navigate(['/docs', 'getting-started']);
+  goToTag(tagName: string): void {
+    this.router.navigate(['/catalog'], { queryParams: { tag: tagName } });
+  }
+
+  goToApplications(): void {
+    this.router.navigate(['/applications']);
   }
 }

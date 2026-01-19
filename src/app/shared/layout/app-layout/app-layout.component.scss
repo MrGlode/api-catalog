@@ -1,68 +1,101 @@
 /**
- * App Layout Styles - GitBook inspired
+ * App Layout Styles - Design System VP
+ * Fixed header and footer
  */
 
 .app-layout {
-  min-height: 100vh;
-  display: flex;
-}
-
-// ========================================
-// MAIN CONTENT
-// ========================================
-.app-content {
-  flex: 1;
-  margin-left: var(--sidebar-width);
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background: var(--color-white);
+  background: color-mix(in srgb, var(--vp-gray-500), #fff 95%);
+}
+
+// ========================================
+// MAIN CONTENT - With padding for fixed header/footer
+// ========================================
+.app-content {
+  flex: 1 1 auto;
+  padding: calc(var(--vp-header-height) + var(--vp-spacing-s)) var(--vp-spacing-s) calc(var(--vp-footer-height) + var(--vp-spacing-s));
   
-  @media (max-width: 768px) {
-    margin-left: 0;
+  @media (max-width: 992px) {
+    padding: calc(60px + var(--vp-spacing-xs)) var(--vp-spacing-xs) calc(var(--vp-footer-height) + var(--vp-spacing-xs));
   }
 }
 
 // ========================================
-// PAGE CONTENT
+// FOOTER - Fixed at bottom (Style VP)
 // ========================================
-.page-content {
-  flex: 1;
-  padding: var(--spacing-lg) var(--spacing-md);
-  
-  @media (max-width: 768px) {
-    padding: var(--spacing-md);
-  }
-}
-
-// ========================================
-// MOBILE OVERLAY
-// ========================================
-.sidebar-overlay {
-  display: none;
+.app-footer {
   position: fixed;
-  top: 0;
+  bottom: 0;
   left: 0;
   right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.4);
-  z-index: 90;
-  animation: fadeIn var(--transition-fast);
+  z-index: 99;
+  padding: 8px var(--vp-spacing-s) 7px;
+  background: color-mix(in srgb, var(--vp-gray-500), #fff 87%);
+}
+
+.footer-content {
+  max-width: var(--vp-content-max-width);
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px var(--vp-spacing-s);
+  justify-content: space-between;
+  align-items: center;
   
-  @media (max-width: 768px) {
-    display: block;
+  @media (max-width: 640px) {
+    flex-direction: column;
+    gap: var(--vp-spacing-xxs);
+    padding: var(--vp-spacing-xs) 0;
   }
 }
 
-// ========================================
-// SIDEBAR STATE
-// ========================================
-@media (max-width: 768px) {
-  .app-layout {
-    &.sidebar-open {
-      app-sidebar {
-        transform: translateX(0);
-      }
+.footer-status {
+  display: flex;
+  align-items: center;
+  gap: var(--vp-spacing-xxs);
+  font-family: var(--vp-font-custom);
+  font-size: var(--vp-secondary-font-size);
+  line-height: 24px;
+  color: var(--vp-black);
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  background: var(--vp-success-500);
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.footer-copyright {
+  font-family: var(--vp-font-custom);
+  font-size: var(--vp-secondary-font-size);
+  line-height: 24px;
+  color: var(--vp-black);
+}
+
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px var(--vp-spacing-s);
+  align-items: center;
+  
+  a {
+    font-size: var(--vp-secondary-font-size);
+    line-height: 24px;
+    color: var(--vp-black);
+    text-decoration: none;
+    transition: all var(--vp-transition-normal);
+    
+    &:hover {
+      text-decoration: underline;
     }
   }
 }
@@ -70,15 +103,14 @@
 // ========================================
 // CONTENT CONSTRAINTS
 // ========================================
-// For pages that need centered content
 :host ::ng-deep {
   .content-narrow {
-    max-width: var(--content-max-width);
+    max-width: 800px;
     margin: 0 auto;
   }
   
   .content-wide {
-    max-width: var(--content-wide-max-width);
+    max-width: var(--vp-content-max-width);
     margin: 0 auto;
   }
   

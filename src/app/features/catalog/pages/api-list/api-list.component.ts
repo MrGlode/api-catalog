@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../../core/services/api.service';
-import { APIInfo, APIList, APICategoryList } from '../../../../core/models';
+import { APIInfo, APIList, APICategoryList, Tag } from '../../../../core/models';
 
 /**
  * API item interface for display
@@ -23,6 +23,7 @@ interface ApiItem {
   thumbnailUri?: string;
   context?: string;
   type?: string;
+  tags?: string[];
 }
 
 /**
@@ -32,6 +33,14 @@ interface CategoryFilter {
   id: string;
   label: string;
   color: string;
+  count: number;
+}
+
+/**
+ * Tag filter interface
+ */
+interface TagFilter {
+  name: string;
   count: number;
 }
 
@@ -58,6 +67,11 @@ export class ApiListComponent implements OnInit {
   activeCategory: string | null = null;
   
   /**
+   * Active tag filter
+   */
+  activeTag: string | null = null;
+  
+  /**
    * View mode: grid or list
    */
   viewMode: 'grid' | 'list' = 'grid';
@@ -66,6 +80,11 @@ export class ApiListComponent implements OnInit {
    * Category filters (loaded dynamically from WSO2)
    */
   categoryFilters: CategoryFilter[] = [];
+  
+  /**
+   * Tag filters (loaded from WSO2)
+   */
+  tagFilters: TagFilter[] = [];
   
   /**
    * All APIs from WSO2
@@ -95,47 +114,65 @@ export class ApiListComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    // Load APIs from WSO2
-    this.loadData();
+    // Load categories and tags first
+    this.loadCategories();
+    this.loadTags();
     
-    // Check for query params
+    // Check for query params and load APIs accordingly
     this.route.queryParams.subscribe(params => {
-      if (params['category']) {
-        this.activeCategory = params['category'];
-      }
-      if (params['q']) {
-        this.searchQuery = params['q'];
-      }
-      this.filterApis();
+      this.activeCategory = params['category'] || null;
+      this.activeTag = params['tag'] || null;
+      this.searchQuery = params['q'] || '';
+      this.loadApis();
     });
   }
 
   /**
-   * Load APIs and categories from WSO2
+   * Load APIs based on current filters
    */
-  loadData(): void {
+  loadApis(): void {
     this.isLoading = true;
     this.errorMessage = null;
     
-    // Load APIs
-    this.apiService.getApis({ limit: 100 }).subscribe({
-      next: (response: APIList) => {
-        this.allApis = this.mapApisToItems(response.list || []);
-        this.buildCategoryFilters();
-        this.filterApis();
-        this.isLoading = false;
-        this.cdr.detectChanges();
-      },
-      error: (error) => {
-        console.error('Failed to load APIs', error);
-        this.errorMessage = 'Impossible de charger les APIs. Vérifiez la connexion au serveur.';
-        this.isLoading = false;
-        this.cdr.detectChanges();
-      }
-    });
-    
-    // Load categories from WSO2
-    this.loadCategories();
+    // Use searchApis if we have tag or category filter
+    if (this.activeTag || this.activeCategory || this.searchQuery) {
+      this.apiService.searchApis(
+        this.searchQuery || undefined,
+        this.activeCategory || undefined,
+        this.activeTag || undefined,
+        undefined, // status
+        100
+      ).subscribe({
+        next: (response: APIList) => {
+          this.allApis = this.mapApisToItems(response.list || []);
+          this.filteredApis = this.allApis;
+          this.isLoading = false;
+          this.cdr.detectChanges();
+        },
+        error: (error) => {
+          console.error('Failed to load APIs', error);
+          this.errorMessage = 'Impossible de charger les APIs. Vérifiez la connexion au serveur.';
+          this.isLoading = false;
+          this.cdr.detectChanges();
+        }
+      });
+    } else {
+      // No filters, get all APIs
+      this.apiService.getApis({ limit: 100 }).subscribe({
+        next: (response: APIList) => {
+          this.allApis = this.mapApisToItems(response.list || []);
+          this.filteredApis = this.allApis;
+          this.isLoading = false;
+          this.cdr.detectChanges();
+        },
+        error: (error) => {
+          console.error('Failed to load APIs', error);
+          this.errorMessage = 'Impossible de charger les APIs. Vérifiez la connexion au serveur.';
+          this.isLoading = false;
+          this.cdr.detectChanges();
+        }
+      });
+    }
   }
 
   /**
@@ -162,32 +199,23 @@ export class ApiListComponent implements OnInit {
   }
 
   /**
-   * Build category filters from loaded APIs (fallback if WSO2 categories not available)
+   * Load tags from WSO2
    */
-  buildCategoryFilters(): void {
-    // If we already have categories from WSO2, skip
-    if (this.categoryFilters.length > 0) return;
-    
-    // Build from API data
-    const categoryMap = new Map<string, { label: string; count: number }>();
-    
-    this.allApis.forEach(api => {
-      if (api.category) {
-        const existing = categoryMap.get(api.categoryId);
-        if (existing) {
-          existing.count++;
-        } else {
-          categoryMap.set(api.categoryId, { label: api.category, count: 1 });
+  loadTags(): void {
+    this.apiService.getTags(50).subscribe({
+      next: (response) => {
+        if (response.list && response.list.length > 0) {
+          this.tagFilters = response.list.map(tag => ({
+            name: tag.value || '',
+            count: tag.count || 0
+          })).filter(tag => tag.name);
+          this.cdr.detectChanges();
         }
+      },
+      error: (error) => {
+        console.warn('Could not load tags from WSO2', error);
       }
     });
-    
-    this.categoryFilters = Array.from(categoryMap.entries()).map(([id, data]) => ({
-      id,
-      label: data.label,
-      color: this.getCategoryColor(id),
-      count: data.count
-    }));
   }
 
   /**
@@ -199,6 +227,9 @@ export class ApiListComponent implements OnInit {
       const apiAny = api as any;
       const category = apiAny.categories?.[0] || api.type || 'API';
       const categoryId = category.toLowerCase().replace(/\s+/g, '-');
+      
+      // Get tags from API
+      const tags = apiAny.tags || [];
       
       return {
         id: api.id || '',
@@ -214,7 +245,8 @@ export class ApiListComponent implements OnInit {
         subscribers: undefined, // Not available in list view
         thumbnailUri: api.thumbnailUri,
         context: api.context,
-        type: api.type
+        type: api.type,
+        tags: tags
       };
     });
   }
@@ -268,37 +300,11 @@ export class ApiListComponent implements OnInit {
   }
 
   /**
-   * Filter APIs based on search and category
-   */
-  filterApis(): void {
-    let result = [...this.allApis];
-    
-    // Filter by category
-    if (this.activeCategory) {
-      result = result.filter(api => api.categoryId === this.activeCategory);
-    }
-    
-    // Filter by search query
-    if (this.searchQuery.trim()) {
-      const query = this.searchQuery.toLowerCase();
-      result = result.filter(api => 
-        api.name.toLowerCase().includes(query) ||
-        api.description.toLowerCase().includes(query) ||
-        api.category.toLowerCase().includes(query) ||
-        (api.context && api.context.toLowerCase().includes(query))
-      );
-    }
-    
-    this.filteredApis = result;
-    this.cdr.detectChanges();
-  }
-
-  /**
    * Handle search input
    */
   onSearch(): void {
     this.updateQueryParams();
-    this.filterApis();
+    this.loadApis();
   }
 
   /**
@@ -307,7 +313,16 @@ export class ApiListComponent implements OnInit {
   setCategory(categoryId: string | null): void {
     this.activeCategory = this.activeCategory === categoryId ? null : categoryId;
     this.updateQueryParams();
-    this.filterApis();
+    this.loadApis();
+  }
+
+  /**
+   * Set active tag filter
+   */
+  setTag(tagName: string | null): void {
+    this.activeTag = this.activeTag === tagName ? null : tagName;
+    this.updateQueryParams();
+    this.loadApis();
   }
 
   /**
@@ -325,6 +340,9 @@ export class ApiListComponent implements OnInit {
     const queryParams: any = {};
     if (this.activeCategory) {
       queryParams.category = this.activeCategory;
+    }
+    if (this.activeTag) {
+      queryParams.tag = this.activeTag;
     }
     if (this.searchQuery.trim()) {
       queryParams.q = this.searchQuery;
@@ -377,17 +395,20 @@ export class ApiListComponent implements OnInit {
   clearFilters(): void {
     this.searchQuery = '';
     this.activeCategory = null;
+    this.activeTag = null;
     this.router.navigate([], {
       relativeTo: this.route,
       queryParams: {}
     });
-    this.filterApis();
+    this.loadApis();
   }
 
   /**
    * Reload APIs from WSO2
    */
   reload(): void {
-    this.loadData();
+    this.loadCategories();
+    this.loadTags();
+    this.loadApis();
   }
 }

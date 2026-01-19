@@ -1,381 +1,287 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router, ActivatedRoute, RouterModule } from '@angular/router';
-import { trigger, transition, style, animate } from '@angular/animations';
-import { AuthService } from '../../core/services/auth.service';
-import { ConfigService } from '../../core/services/config.service';
-import { firstValueFrom } from 'rxjs';
-
 /**
- * Composant de connexion avec WSO2 OAuth2 Password Grant
- * Inclut un mode test pour le développement
+ * Login Component
+ * Handles user authentication via WSO2 API Manager
  */
+import { Component, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { Router, ActivatedRoute, RouterLink } from '@angular/router';
+import { AuthService } from '../../core/services/auth.service';
+
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterModule],
-  templateUrl: './login.component.html',
-  styleUrl: './login.component.scss',
-  animations: [
-    // Animation fadeInOut pour les alertes
-    trigger('fadeInOut', [
-      transition(':enter', [
-        style({ opacity: 0, transform: 'translateY(-10px)' }),
-        animate('300ms ease-out', style({ opacity: 1, transform: 'translateY(0)' }))
-      ]),
-      transition(':leave', [
-        animate('200ms ease-in', style({ opacity: 0, transform: 'translateY(-10px)' }))
-      ])
-    ])
-  ]
-})
-export class LoginComponent implements OnInit {
-  /**
-   * Formulaire de connexion
-   */
-  loginForm!: FormGroup;
+  imports: [CommonModule, FormsModule, RouterLink],
+  template: `
+    <div class="login-page">
+      <div class="login-container">
+        <div class="login-card">
+          <div class="login-header">
+            <div class="login-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+            </div>
+            <h1>Connexion</h1>
+            <p>Connectez-vous pour accéder à vos applications et souscriptions</p>
+          </div>
 
-  /**
-   * État de chargement
-   */
-  isLoading = false;
+          @if (error()) {
+            <div class="error-message">
+              <span class="error-icon">⚠️</span>
+              {{ error() }}
+            </div>
+          }
 
-  /**
-   * Message d'erreur
-   */
-  errorMessage = '';
+          <form (ngSubmit)="onSubmit()" class="login-form">
+            <div class="form-group">
+              <label for="username">Nom d'utilisateur</label>
+              <input
+                type="text"
+                id="username"
+                [(ngModel)]="username"
+                name="username"
+                placeholder="Entrez votre nom d'utilisateur"
+                required
+                [disabled]="loading()"
+              />
+            </div>
 
-  /**
-   * Message de succès
-   */
-  successMessage = '';
+            <div class="form-group">
+              <label for="password">Mot de passe</label>
+              <input
+                type="password"
+                id="password"
+                [(ngModel)]="password"
+                name="password"
+                placeholder="Entrez votre mot de passe"
+                required
+                [disabled]="loading()"
+              />
+            </div>
 
-  /**
-   * URL de retour après connexion
-   */
-  returnUrl = '/home';
+            <button type="submit" class="btn-login" [disabled]="loading() || !username || !password">
+              @if (loading()) {
+                <span class="spinner"></span>
+                Connexion en cours...
+              } @else {
+                Se connecter
+              }
+            </button>
+          </form>
 
-  /**
-   * Mode test activé
-   */
-  isTestMode = false; // Mettre à false en production
-
-  /**
-   * Afficher/masquer le mot de passe
-   */
-  showPassword = false;
-
-  /**
-   * Utilisateurs de test
-   */
-  testUsers = [
-    {
-      username: 'admin',
-      password: 'admin123',
-      role: 'Administrator',
-      name: 'Admin User',
-      email: 'admin@example.com',
-      permissions: ['api.read', 'api.write', 'api.admin']
-    },
-    {
-      username: 'developer',
-      password: 'dev123',
-      role: 'Developer',
-      name: 'John Developer',
-      email: 'john.dev@example.com',
-      permissions: ['api.read', 'api.subscribe']
-    },
-    {
-      username: 'user',
-      password: 'user123',
-      role: 'User',
-      name: 'Jane User',
-      email: 'jane.user@example.com',
-      permissions: ['api.read']
+          <div class="login-footer">
+            <p>Vous n'avez pas de compte ? Contactez votre administrateur.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  `,
+  styles: [`
+    .login-page {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100%;
+      padding: var(--spacing-xl) var(--spacing-lg);
     }
-  ];
 
-  /**
-   * Animation state
-   */
-  animationState = 'initial';
+    .login-container {
+      width: 100%;
+      max-width: 420px;
+    }
+
+    .login-card {
+      background: white;
+      border-radius: var(--border-radius-xl);
+      padding: var(--spacing-2xl);
+      box-shadow: var(--shadow-lg);
+      border: 1px solid var(--color-gray-200);
+    }
+
+    .login-header {
+      text-align: center;
+      margin-bottom: var(--spacing-xl);
+    }
+
+    .login-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 56px;
+      height: 56px;
+      background: var(--color-primary-50);
+      border-radius: var(--border-radius-lg);
+      margin-bottom: var(--spacing-md);
+      color: var(--color-primary-600);
+      
+      svg {
+        width: 28px;
+        height: 28px;
+      }
+    }
+
+    .login-header h1 {
+      font-size: var(--font-size-xl);
+      font-weight: var(--font-weight-bold);
+      color: var(--color-gray-900);
+      margin: 0 0 var(--spacing-xs) 0;
+    }
+
+    .login-header p {
+      color: var(--color-gray-500);
+      font-size: var(--font-size-sm);
+      margin: 0;
+    }
+
+    .error-message {
+      background: #fee2e2;
+      border: 1px solid #fecaca;
+      color: #dc2626;
+      padding: var(--spacing-md);
+      border-radius: var(--border-radius-md);
+      margin-bottom: var(--spacing-lg);
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-sm);
+      font-size: var(--font-size-sm);
+    }
+
+    .login-form {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-lg);
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-xs);
+    }
+
+    .form-group label {
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-medium);
+      color: var(--color-gray-700);
+    }
+
+    .form-group input {
+      padding: var(--spacing-md);
+      border: 1px solid var(--color-gray-300);
+      border-radius: var(--border-radius-md);
+      font-size: var(--font-size-base);
+      transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--color-primary-500);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .form-group input:disabled {
+      background: var(--color-gray-100);
+      cursor: not-allowed;
+    }
+
+    .btn-login {
+      padding: var(--spacing-md) var(--spacing-lg);
+      background: var(--color-primary-600);
+      color: white;
+      border: none;
+      border-radius: var(--border-radius-md);
+      font-size: var(--font-size-base);
+      font-weight: var(--font-weight-medium);
+      cursor: pointer;
+      transition: background var(--transition-fast);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--spacing-sm);
+    }
+
+    .btn-login:hover:not(:disabled) {
+      background: var(--color-primary-700);
+    }
+
+    .btn-login:disabled {
+      background: var(--color-gray-400);
+      cursor: not-allowed;
+    }
+
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .login-footer {
+      text-align: center;
+      margin-top: var(--spacing-xl);
+      padding-top: var(--spacing-lg);
+      border-top: 1px solid var(--color-gray-100);
+    }
+
+    .login-footer p {
+      color: var(--color-gray-500);
+      font-size: var(--font-size-sm);
+      margin: 0;
+    }
+
+    .login-footer a {
+      color: var(--color-primary-600);
+      text-decoration: none;
+    }
+
+    .login-footer a:hover {
+      text-decoration: underline;
+    }
+  `]
+})
+export class LoginComponent {
+  username = '';
+  password = '';
+  loading = signal(false);
+  error = signal<string | null>(null);
+
+  private returnUrl = '/home';
 
   constructor(
-    private fb: FormBuilder,
-    private router: Router,
-    private route: ActivatedRoute,
     private authService: AuthService,
-    private configService: ConfigService
-  ) {}
-
-  ngOnInit(): void {
-    // Initialiser le formulaire
-    this.loginForm = this.fb.group({
-      username: ['', [Validators.required, Validators.minLength(3)]],
-      password: ['', [Validators.required, Validators.minLength(3)]],
-      rememberMe: [false]
+    private router: Router,
+    private route: ActivatedRoute
+  ) {
+    // Get return URL from query params
+    this.route.queryParams.subscribe(params => {
+      this.returnUrl = params['returnUrl'] || '/home';
     });
+  }
 
-    // Récupérer l'URL de retour
-    this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/dashboard';
+  onSubmit(): void {
+    if (!this.username || !this.password) return;
 
-    // Vérifier si déjà connecté
-    this.authService.isAuthenticated$.subscribe(isAuth => {
-      if (isAuth) {
-        this.router.navigate([this.returnUrl]);
+    this.loading.set(true);
+    this.error.set(null);
+
+    this.authService.login({
+      username: this.username,
+      password: this.password
+    }).subscribe({
+      next: () => {
+        this.router.navigateByUrl(this.returnUrl);
+      },
+      error: (err) => {
+        this.loading.set(false);
+        this.error.set(err.message || 'Échec de la connexion. Vérifiez vos identifiants.');
       }
     });
-
-    // Afficher un message si présent dans les query params
-    const message = this.route.snapshot.queryParams['message'];
-    if (message) {
-      this.successMessage = message;
-    }
-
-    // Lancer l'animation d'entrée
-    setTimeout(() => {
-      this.animationState = 'loaded';
-    }, 100);
-
-    // En mode test, pré-remplir avec un compte de démo
-    if (this.isTestMode) {
-      this.prefillTestCredentials();
-    }
-  }
-
-  /**
-   * Pré-remplir avec des credentials de test
-   */
-  prefillTestCredentials(): void {
-    this.loginForm.patchValue({
-      username: 'developer',
-      password: 'dev123'
-    });
-  }
-
-  /**
-   * Soumettre le formulaire
-   */
-  async onSubmit(): Promise<void> {
-    if (this.loginForm.invalid) {
-      this.markFormGroupTouched(this.loginForm);
-      return;
-    }
-
-    this.isLoading = true;
-    this.errorMessage = '';
-    this.successMessage = '';
-
-    const { username, password, rememberMe } = this.loginForm.value;
-
-    try {
-      if (this.isTestMode) {
-        // Mode test : authentification simulée
-        await this.testLogin(username, password, rememberMe);
-      } else {
-        // Mode production : authentification WSO2 réelle
-        await this.wso2Login(username, password, rememberMe);
-      }
-    } catch (error: any) {
-      this.errorMessage = error.message || 'Erreur de connexion';
-      this.isLoading = false;
-    }
-  }
-
-  /**
-   * Connexion en mode test
-   */
-  private async testLogin(username: string, password: string, rememberMe: boolean): Promise<void> {
-    // Simuler un délai réseau
-    await this.delay(1000);
-
-    // Vérifier les credentials de test
-    const testUser = this.testUsers.find(
-      u => u.username === username && u.password === password
-    );
-
-    if (!testUser) {
-      throw new Error('Nom d\'utilisateur ou mot de passe incorrect');
-    }
-
-    // Créer un token JWT factice
-    const mockToken = this.createMockJwtToken(testUser);
-    
-    // Créer la réponse du token comme attendue par AuthService
-    const mockTokenResponse = {
-      access_token: mockToken,
-      refresh_token: 'mock_refresh_token_' + Date.now(),
-      expires_in: 3600,
-      token_type: 'Bearer',
-      scope: testUser.permissions.join(' ')
-    };
-
-    // Stocker directement dans localStorage comme le fait handleSuccessfulAuth
-    localStorage.setItem('wso2_access_token', mockTokenResponse.access_token);
-    localStorage.setItem('wso2_refresh_token', mockTokenResponse.refresh_token);
-    const expiryTime = Math.floor(Date.now() / 1000) + mockTokenResponse.expires_in;
-    localStorage.setItem('wso2_token_expiry', expiryTime.toString());
-
-    // Forcer la mise à jour de l'état d'authentification
-    // On recharge la page pour que l'AuthService détecte le token
-    this.successMessage = `Bienvenue ${testUser.name} ! (Mode Test)`;
-
-    // Redirection après un court délai
-    setTimeout(() => {
-      window.location.href = this.returnUrl; // Recharge complète pour réinitialiser l'AuthService
-    }, 1500);
-
-    this.isLoading = false;
-  }
-
-  /**
-   * Créer un faux JWT token pour le mode test
-   */
-  private createMockJwtToken(user: any): string {
-    // Header
-    const header = {
-      alg: 'HS256',
-      typ: 'JWT'
-    };
-
-    // Payload
-    const payload = {
-      sub: user.username,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      scope: user.permissions.join(' '),
-      iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor(Date.now() / 1000) + 3600
-    };
-
-    // Encoder en base64url
-    const base64UrlEncode = (obj: any): string => {
-      return btoa(JSON.stringify(obj))
-        .replace(/=/g, '')
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_');
-    };
-
-    // Construire le token (sans signature réelle)
-    const token = `${base64UrlEncode(header)}.${base64UrlEncode(payload)}.mock-signature`;
-    return token;
-  }
-
-  /**
-   * Connexion WSO2 réelle (Password Grant)
-   */
-  private async wso2Login(username: string, password: string, rememberMe: boolean): Promise<void> {
-    try {
-      // Utiliser la méthode login de AuthService qui retourne un Observable
-      const response = await firstValueFrom(
-        this.authService.login(username, password)
-      );
-      
-      // AuthService gère automatiquement le stockage du token via handleSuccessfulAuth
-      // Donc on n'a rien à faire ici, juste afficher le succès et rediriger
-      
-      // Récupérer le nom d'utilisateur
-      const currentUsername = this.authService.getCurrentUsername();
-      
-      // Message de succès
-      this.successMessage = `Bienvenue ${currentUsername || username} !`;
-
-      // Redirection après un court délai
-      setTimeout(() => {
-        this.router.navigate([this.returnUrl]);
-      }, 1500);
-      
-    } catch (error: any) {
-      console.error('Erreur de connexion WSO2:', error);
-      throw new Error(error.message || 'Erreur de connexion au serveur WSO2');
-    } finally {
-      this.isLoading = false;
-    }
-  }
-
-  /**
-   * Basculer l'affichage du mot de passe
-   */
-  togglePasswordVisibility(): void {
-    this.showPassword = !this.showPassword;
-  }
-
-  /**
-   * Basculer le mode test
-   */
-  toggleTestMode(): void {
-    this.isTestMode = !this.isTestMode;
-    
-    if (this.isTestMode) {
-      this.prefillTestCredentials();
-      this.successMessage = 'Mode test activé - Utilisez les credentials de démo';
-    } else {
-      this.loginForm.reset();
-      this.successMessage = 'Mode production activé - Connexion WSO2';
-    }
-  }
-
-  /**
-   * Obtenir le message d'erreur pour un champ
-   */
-  getFieldError(fieldName: string): string {
-    const field = this.loginForm.get(fieldName);
-    
-    if (field?.hasError('required') && field?.touched) {
-      return `Le ${fieldName === 'username' ? 'nom d\'utilisateur' : 'mot de passe'} est requis`;
-    }
-    
-    if (field?.hasError('minlength') && field?.touched) {
-      return `Minimum 3 caractères requis`;
-    }
-    
-    return '';
-  }
-
-  /**
-   * Marquer tous les champs comme touchés
-   */
-  private markFormGroupTouched(formGroup: FormGroup): void {
-    Object.keys(formGroup.controls).forEach(key => {
-      const control = formGroup.get(key);
-      control?.markAsTouched();
-
-      if (control instanceof FormGroup) {
-        this.markFormGroupTouched(control);
-      }
-    });
-  }
-
-  /**
-   * Utilitaire de délai
-   */
-  private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
-
-  /**
-   * Navigation vers la page d'inscription
-   */
-  goToRegister(): void {
-    this.router.navigate(['/register']);
-  }
-
-  /**
-   * Navigation vers la réinitialisation du mot de passe
-   */
-  goToForgotPassword(): void {
-    this.router.navigate(['/forgot-password']);
-  }
-
-  /**
-   * Obtenir l'info-bulle pour le mode test
-   */
-  getTestModeTooltip(): string {
-    if (this.isTestMode) {
-      return 'Mode test activé\nComptes disponibles:\n- admin/admin123\n- developer/dev123\n- user/user123';
-    }
-    return 'Activer le mode test pour utiliser des comptes de démo';
   }
 }

@@ -82,8 +82,25 @@
     }
   </div>
   
+  <!-- Tag Chips -->
+  @if (tagFilters.length > 0) {
+    <div class="tag-filters">
+      <span class="tag-filters-label">Tags :</span>
+      @for (tag of tagFilters; track tag.name) {
+        <button 
+          class="tag-chip"
+          [class.active]="activeTag === tag.name"
+          (click)="setTag(tag.name)"
+        >
+          <span class="tag-hash">#</span>{{ tag.name }}
+          <span class="chip-count">{{ tag.count }}</span>
+        </button>
+      }
+    </div>
+  }
+  
   <!-- Active Filters -->
-  @if (activeCategory || searchQuery) {
+  @if (activeCategory || activeTag || searchQuery) {
     <div class="active-filters">
       <span class="filters-label">Filtres actifs :</span>
       @if (searchQuery) {
@@ -101,6 +118,12 @@
             </span>
           }
         }
+      }
+      @if (activeTag) {
+        <span class="filter-tag filter-tag-hash">
+          #{{ activeTag }}
+          <button (click)="setTag(null)">×</button>
+        </span>
       }
       <button class="clear-all" (click)="clearFilters()">
         Effacer tout

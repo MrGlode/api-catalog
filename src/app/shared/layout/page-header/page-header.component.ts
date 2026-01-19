@@ -1,25 +1,24 @@
-import { Component, OnInit, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink, Router } from '@angular/router';
+import { RouterLink, RouterLinkActive, Router } from '@angular/router';
 import { Observable } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
 
 /**
- * Page Header Component - Minimal top bar
+ * Page Header Component - Full navigation header
  */
 @Component({
   selector: 'app-page-header',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, RouterLinkActive],
   templateUrl: './page-header.component.html',
   styleUrl: './page-header.component.scss'
 })
 export class PageHeaderComponent implements OnInit {
-  @Output() toggleSidebar = new EventEmitter<void>();
-  
   isAuthenticated$!: Observable<boolean>;
   currentUser$!: Observable<string | null>;
   showUserMenu = false;
+  showMobileMenu = false;
 
   constructor(
     private authService: AuthService,
@@ -32,10 +31,17 @@ export class PageHeaderComponent implements OnInit {
   }
 
   /**
-   * Toggle mobile sidebar
+   * Toggle mobile menu
    */
-  onToggleSidebar(): void {
-    this.toggleSidebar.emit();
+  toggleMobileMenu(): void {
+    this.showMobileMenu = !this.showMobileMenu;
+  }
+
+  /**
+   * Close mobile menu
+   */
+  closeMobileMenu(): void {
+    this.showMobileMenu = false;
   }
 
   /**
@@ -58,6 +64,7 @@ export class PageHeaderComponent implements OnInit {
   logout(): void {
     this.authService.logout();
     this.showUserMenu = false;
+    this.showMobileMenu = false;
     this.router.navigate(['/home']);
   }
 
