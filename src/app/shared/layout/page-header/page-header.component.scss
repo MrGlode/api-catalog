@@ -34,9 +34,10 @@
   text-decoration: none;
   color: var(--vp-white);
   flex-shrink: 0;
+  height: 100%;
   padding: 0;
   transition: 0.3s opacity ease-in-out;
-  
+
   &:hover {
     opacity: 0.7;
     text-decoration: none;
@@ -44,14 +45,22 @@
 }
 
 .logo-icon {
-  width: 40px;
-  height: 40px;
-  color: var(--vp-white);
-  transition: color var(--vp-transition-normal);
-  
-  svg {
-    width: 100%;
+  height: 60%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  .logo-image {
     height: 100%;
+    width: auto;
+    object-fit: contain;
+    border-radius: var(--vp-border-radius-sm);
+  }
+
+  // Fallback pour SVG
+  svg {
+    height: 100%;
+    width: auto;
   }
 }
 
@@ -61,7 +70,7 @@
   font-weight: 700;
   color: var(--vp-white);
   letter-spacing: -0.02em;
-  
+
   @media (max-width: 480px) {
     display: none;
   }
@@ -76,7 +85,7 @@
   margin: 0;
   padding: 0;
   height: 100%;
-  
+
   @media (max-width: 768px) {
     display: none;
   }
@@ -95,7 +104,7 @@
   color: var(--vp-white);
   text-decoration: none;
   transition: all var(--vp-transition-normal);
-  
+
   // Indicateur actif en bas
   &::after {
     content: '';
@@ -108,15 +117,15 @@
     border-radius: 5px 5px 0 0;
     transition: 0.3s all ease-in-out;
   }
-  
+
   &:hover {
     text-decoration: none;
-    
+
     &::after {
       bottom: 0;
     }
   }
-  
+
   &.active {
     &::after {
       bottom: 0;
@@ -156,7 +165,7 @@
   border-radius: 50%;
   cursor: pointer;
   transition: all var(--vp-transition-normal);
-  
+
   &:hover {
     box-shadow: var(--vp-box-shadow-ml);
     transform: scale(1.05);
@@ -181,6 +190,7 @@
     opacity: 0;
     transform: translateY(-8px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -189,14 +199,14 @@
 
 .dropdown-header {
   padding: var(--vp-spacing-xs);
-  
+
   .dropdown-username {
     display: block;
     font-family: var(--vp-font-custom-title);
     font-weight: 700;
     color: var(--vp-black);
   }
-  
+
   .dropdown-email {
     font-size: var(--vp-secondary-font-size);
     color: var(--vp-gray-500);
@@ -225,25 +235,29 @@
   transition: all var(--vp-transition-normal);
   border-radius: var(--vp-border-radius-sm);
   margin: 0 5px;
-  
+
   svg {
     width: 18px;
     height: 18px;
     color: var(--vp-gray-500);
   }
-  
+
   &:hover {
     background: var(--vp-gray-100);
     box-shadow: var(--vp-box-shadow-sm);
-    
-    svg { color: var(--vp-black); }
+
+    svg {
+      color: var(--vp-black);
+    }
   }
-  
+
   &.dropdown-item-danger {
     color: var(--vp-danger-500);
-    
-    svg { color: var(--vp-danger-500); }
-    
+
+    svg {
+      color: var(--vp-danger-500);
+    }
+
     &:hover {
       background: var(--vp-danger-100);
     }
@@ -268,7 +282,7 @@
   cursor: pointer;
   text-decoration: none;
   transition: all var(--vp-transition-normal);
-  
+
   &:hover {
     box-shadow: var(--vp-box-shadow-ml);
     text-decoration: none;
@@ -289,22 +303,23 @@
   border: none;
   cursor: pointer;
   color: var(--vp-white);
-  
-  svg, i {
+
+  svg,
+  i {
     width: 30px;
     height: 30px;
     font-size: 30px;
   }
-  
+
   &:hover {
     opacity: 0.7;
   }
-  
+
   &:focus {
     box-shadow: none;
     outline: none;
   }
-  
+
   @media (max-width: 768px) {
     display: flex;
   }
@@ -320,7 +335,7 @@
   background: var(--vp-white);
   border-top: 1px solid var(--vp-gray-200);
   box-shadow: var(--vp-box-shadow-ml);
-  
+
   @media (max-width: 768px) {
     display: flex;
     position: fixed;
@@ -346,21 +361,21 @@
   width: 100%;
   cursor: pointer;
   transition: all var(--vp-transition-normal);
-  
+
   &:hover {
     background: var(--vp-gray-100);
   }
-  
+
   &.active {
     color: var(--vp-primary-500);
     background: var(--vp-primary-100);
   }
-  
+
   &.mobile-nav-primary {
     color: var(--vp-primary-500);
     font-weight: 700;
   }
-  
+
   &.mobile-nav-danger {
     color: var(--vp-danger-500);
   }
@@ -373,18 +388,11 @@
   .header {
     height: 60px;
   }
-  
-  .logo-icon {
-    width: 35px;
-    height: 35px;
 
-    .logo-image {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-    }
+  .logo-icon {
+    height: 55%; // Légèrement plus petit sur tablette
   }
-  
+
   .nav-link {
     padding: 0 15px;
     font-size: var(--vp-secondary-font-size);
