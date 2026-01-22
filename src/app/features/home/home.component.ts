@@ -1,10 +1,15 @@
+/**
+ * Home Component - Central hub for the application
+ * Utilise le composant partagé ApiCardComponent
+ */
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, Router } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
 import { ApplicationService } from '../../core/services/application.service';
 import { AuthService } from '../../core/services/auth.service';
-import { APIInfo, APICategory, ApplicationInfo, Tag } from '../../core/models';
+import { APIInfo, ApplicationInfo, Tag, ApiCardData } from '../../core/models';
+import { ApiCardComponent } from '../../shared/component/card/api-card.component';
 import { forkJoin, Observable } from 'rxjs';
 
 /**
@@ -17,22 +22,6 @@ interface DisplayCategory {
   icon: string;
   color: string;
   count: number;
-}
-
-/**
- * Display API interface
- */
-interface DisplayApi {
-  id: string;
-  name: string;
-  description: string;
-  category: string;
-  categoryColor: string;
-  version: string;
-  provider: string;
-  type?: string;
-  createdTime?: string;
-  updatedTime?: string;
 }
 
 /**
@@ -49,7 +38,7 @@ interface DisplayTag {
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, ApiCardComponent],
   templateUrl: './home.component.html',
   styleUrls: ['./home.component.scss']
 })
@@ -74,7 +63,7 @@ export class HomeComponent implements OnInit {
   // Data
   categories: DisplayCategory[] = [];
   tags: DisplayTag[] = [];
-  recentApis: DisplayApi[] = [];
+  recentApis: ApiCardData[] = [];
   applications: ApplicationInfo[] = [];
 
   constructor(
@@ -105,22 +94,34 @@ export class HomeComponent implements OnInit {
     forkJoin({
       apis: this.apiService.getApis({ limit: 100 }),
       categories: this.apiService.getCategories(),
-      tags: this.apiService.getTags(50)
+      tags: this.apiService.getTags()
     }).subscribe({
-      next: ({ apis, categories, tags }) => {
-        const apiList = apis.list || [];
-        const categoryList = categories.list || [];
-        const tagList = tags.list || [];
+      next: (results) => {
+        // Map APIs
+        const allApis = results.apis.list || [];
+        this.stats.totalApis = allApis.length;
         
-        this.stats.totalApis = apis.count || apiList.length;
-        this.stats.totalCategories = categories.count || categoryList.length;
+        // Get recent APIs (last 6, sorted by date if available)
+        this.recentApis = this.mapApisToCardData(
+          allApis.slice(0, 6)
+        );
         
-        this.categories = this.mapCategories(categoryList);
-        this.tags = this.mapTags(tagList);
+        // Map categories
+        this.categories = (results.categories.list || []).map(cat => ({
+          id: cat.name || '',
+          name: cat.name || '',
+          description: cat.description || '',
+          icon: this.getCategoryIcon(cat.name || ''),
+          color: this.getCategoryColor(cat.name || ''),
+          count: cat.numberOfAPIs || 0
+        }));
+        this.stats.totalCategories = this.categories.length;
         
-        // Get 6 most recent APIs (by updatedTime or createdTime)
-        const allApis = this.mapApis(apiList);
-        this.recentApis = this.getRecentApis(allApis, 6);
+        // Map tags
+        this.tags = (results.tags.list || []).map((tag: Tag) => ({
+          name: tag.value || '',
+          count: tag.count || 0
+        })).filter(t => t.name).slice(0, 12); // Limit to 12 tags
         
         this.isLoading = false;
         this.cdr.detectChanges();
@@ -139,13 +140,14 @@ export class HomeComponent implements OnInit {
   loadApplications(): void {
     this.isLoadingApps = true;
     
-    this.applicationService.getApplications({ limit: 10 }).subscribe({
+    this.applicationService.getApplications({ limit: 5 }).subscribe({
       next: (response) => {
         this.applications = response.list || [];
         this.isLoadingApps = false;
         this.cdr.detectChanges();
       },
-      error: () => {
+      error: (error) => {
+        console.warn('Could not load applications', error);
         this.isLoadingApps = false;
         this.cdr.detectChanges();
       }
@@ -153,142 +155,147 @@ export class HomeComponent implements OnInit {
   }
 
   /**
-   * Map WSO2 categories to display format
+   * Map WSO2 API response to ApiCardData
    */
-  mapCategories(categories: APICategory[]): DisplayCategory[] {
-    return categories.map(cat => ({
-      id: cat.id || '',
-      name: cat.name || 'Sans nom',
-      description: cat.description || this.getDefaultDescription(cat.name || ''),
-      icon: this.getCategoryIcon(cat.name || ''),
-      color: this.getCategoryColor(cat.name || ''),
-      count: cat.numberOfAPIs || 0
-    }));
-  }
-
-  /**
-   * Map WSO2 tags to display format
-   */
-  mapTags(tags: Tag[]): DisplayTag[] {
-    return tags
-      .map(tag => ({
-        name: tag.value || '',
-        count: tag.count || 0
-      }))
-      .filter(tag => tag.name); // Filter out empty tags
-  }
-
-  /**
-   * Map WSO2 APIs to display format
-   */
-  mapApis(apis: APIInfo[]): DisplayApi[] {
+  mapApisToCardData(apis: APIInfo[]): ApiCardData[] {
     return apis.map(api => {
+      // Cast to any for properties that may exist but aren't in APIInfo interface
       const apiAny = api as any;
-      const category = apiAny.categories?.[0] || api.type || 'API';
+      const tags: string[] = apiAny.tags || [];
+      const category = apiAny.categories?.[0] || 
+                       api.businessInformation?.businessOwner || 
+                       this.extractCategoryFromTags(tags) || 
+                       api.type || 
+                       'General';
+      const categoryColor = this.getCategoryColor(category);
       
       return {
         id: api.id || '',
-        name: api.displayName || api.name || 'Sans nom',
-        description: api.description || 'Aucune description disponible.',
+        name: api.displayName || api.name || '',
+        description: api.description || '',
+        version: api.version || '1.0',
+        status: (api.lifeCycleStatus?.toLowerCase() || 'published') as ApiCardData['status'],
         category: category,
-        categoryColor: this.getCategoryColor(category),
-        version: api.version || '1.0.0',
+        categoryId: category.toLowerCase(),
+        categoryColor: categoryColor,
         provider: api.provider || 'Unknown',
-        type: api.type,
+        rating: api.avgRating || undefined,
+        context: api.context || '',
+        type: api.type || 'HTTP',
+        tags: tags,
         createdTime: api.createdTime,
-        updatedTime: apiAny.updatedTime || apiAny.lastUpdatedTime
+        updatedTime: apiAny.lastUpdatedTime
       };
     });
   }
 
   /**
-   * Get most recent APIs sorted by date
+   * Extract category from tags
    */
-  getRecentApis(apis: DisplayApi[], count: number): DisplayApi[] {
-    return [...apis]
-      .sort((a, b) => {
-        const dateA = a.updatedTime || a.createdTime || '';
-        const dateB = b.updatedTime || b.createdTime || '';
-        return new Date(dateB).getTime() - new Date(dateA).getTime();
-      })
-      .slice(0, count);
-  }
-
-  getCategoryIcon(name: string): string {
-    const lower = name.toLowerCase();
+  extractCategoryFromTags(tags?: string[]): string | null {
+    if (!tags || tags.length === 0) return null;
     
-    // Catégories spécifiques (acronymes internes)
-    if (lower === 'adp') return '👥';           // Administration du Personnel
-    if (lower === 'dasc') return '🏢';          // Direction Administrative
-    if (lower === 'dpas') return '📋';          // Direction des Prestations
-    if (lower === 'dse') return '💻';           // Direction des Systèmes
-    if (lower === 'transverse') return '🔗';    // Services transverses
+    const categoryTags = ['finance', 'security', 'communication', 'data', 'integration', 'geo'];
+    const found = tags.find(tag => categoryTags.includes(tag.toLowerCase()));
     
-    // Catégories génériques
-    if (lower.includes('payment') || lower.includes('finance') || lower.includes('billing')) return '💳';
-    if (lower.includes('auth') || lower.includes('security') || lower.includes('identity')) return '🔐';
-    if (lower.includes('message') || lower.includes('notification') || lower.includes('email') || lower.includes('sms')) return '💬';
-    if (lower.includes('analytics') || lower.includes('data') || lower.includes('report')) return '📊';
-    if (lower.includes('integration') || lower.includes('connect') || lower.includes('erp')) return '🔌';
-    if (lower.includes('geo') || lower.includes('location') || lower.includes('map')) return '📍';
-    if (lower.includes('storage') || lower.includes('file') || lower.includes('document')) return '📁';
-    if (lower.includes('user') || lower.includes('account')) return '👤';
-    if (lower.includes('order') || lower.includes('commerce')) return '🛒';
-    return '📂';
+    return found ? found.charAt(0).toUpperCase() + found.slice(1) : null;
   }
 
-  getCategoryColor(name: string): string {
-    const lower = name.toLowerCase();
+  /**
+   * Get category icon
+   */
+  getCategoryIcon(category: string): string {
+    const iconMap: Record<string, string> = {
+      'finance': '💳',
+      'paiements': '💳',
+      'payments': '💳',
+      'security': '🔐',
+      'sécurité': '🔐',
+      'auth': '🔐',
+      'communication': '💬',
+      'messaging': '💬',
+      'data': '📊',
+      'analytics': '📊',
+      'integration': '🔌',
+      'connecteurs': '🔌',
+      'geo': '📍',
+      'géolocalisation': '📍',
+      'location': '📍'
+    };
     
-    // Catégories spécifiques
-    if (lower === 'adp') return 'adp';
-    if (lower === 'dasc') return 'dasc';
-    if (lower === 'dpas') return 'dpas';
-    if (lower === 'dse') return 'dse';
-    if (lower === 'transverse') return 'transverse';
+    return iconMap[category.toLowerCase()] || '📦';
+  }
+
+  /**
+   * Get category color
+   */
+  getCategoryColor(category: string): string {
+    const colorMap: Record<string, string> = {
+      'finance': 'finance',
+      'paiements': 'finance',
+      'payments': 'finance',
+      'security': 'security',
+      'sécurité': 'security',
+      'auth': 'security',
+      'communication': 'communication',
+      'messaging': 'communication',
+      'data': 'data',
+      'analytics': 'data',
+      'integration': 'integration',
+      'connecteurs': 'integration',
+      'geo': 'geo',
+      'géolocalisation': 'geo',
+      'location': 'geo'
+    };
     
-    // Catégories génériques
-    if (lower.includes('payment') || lower.includes('finance') || lower.includes('billing')) return 'finance';
-    if (lower.includes('auth') || lower.includes('security') || lower.includes('identity')) return 'security';
-    if (lower.includes('message') || lower.includes('notification') || lower.includes('email')) return 'communication';
-    if (lower.includes('analytics') || lower.includes('data') || lower.includes('report')) return 'data';
-    if (lower.includes('integration') || lower.includes('connect')) return 'integration';
-    if (lower.includes('geo') || lower.includes('location')) return 'geo';
-    return 'default';
+    return colorMap[category.toLowerCase()] || 'integration';
   }
 
-  getDefaultDescription(name: string): string {
-    const lower = name.toLowerCase();
-    if (lower.includes('payment') || lower.includes('finance')) return 'Transactions, facturation, comptabilité';
-    if (lower.includes('auth') || lower.includes('security')) return 'Authentification, autorisation, SSO';
-    if (lower.includes('message') || lower.includes('notification')) return 'SMS, Email, Notifications push';
-    if (lower.includes('analytics') || lower.includes('data')) return 'Rapports, métriques, tableaux de bord';
-    if (lower.includes('integration') || lower.includes('connect')) return 'ERP, CRM, systèmes tiers';
-    if (lower.includes('geo') || lower.includes('location')) return 'Cartes, adresses, itinéraires';
-    return 'APIs et services';
-  }
-
-  goToCategory(categoryName: string): void {
-    this.router.navigate(['/catalog'], { queryParams: { category: categoryName } });
-  }
-
+  /**
+   * Navigate to API detail
+   */
   goToApi(apiId: string): void {
     this.router.navigate(['/catalog', apiId]);
   }
 
-  goToApplication(appId: string): void {
-    this.router.navigate(['/applications'], { queryParams: { app: appId } });
-  }
-
+  /**
+   * Navigate to catalog
+   */
   goToCatalog(): void {
     this.router.navigate(['/catalog']);
   }
 
+  /**
+   * Navigate to category
+   */
+  goToCategory(categoryName: string): void {
+    this.router.navigate(['/catalog'], { queryParams: { category: categoryName } });
+  }
+
+  /**
+   * Navigate to tag
+   */
   goToTag(tagName: string): void {
     this.router.navigate(['/catalog'], { queryParams: { tag: tagName } });
   }
 
-  goToApplications(): void {
-    this.router.navigate(['/applications']);
+  /**
+   * Navigate to application detail
+   */
+  goToApplication(appId: string): void {
+    this.router.navigate(['/applications', appId]);
+  }
+
+  /**
+   * Get application status class
+   */
+  getAppStatusClass(status: string | undefined): string {
+    switch (status?.toUpperCase()) {
+      case 'APPROVED': return 'badge-success';
+      case 'CREATED': return 'badge-info';
+      case 'REJECTED': return 'badge-danger';
+      case 'ON_HOLD': return 'badge-warning';
+      default: return 'badge-gray';
+    }
   }
 }

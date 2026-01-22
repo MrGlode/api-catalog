@@ -18,4 +18,8 @@ export * from './auth.models';
 // Modèles des souscriptions
 export * from './subscription.models';
 
+// Modèles card API
+export * from './api-card.model';
+
+// Modèles communs
 export type { APIQueryParams, ApplicationQueryParams, SubscriptionQueryParams, ApiError } from './common.models';

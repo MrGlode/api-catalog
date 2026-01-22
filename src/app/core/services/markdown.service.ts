@@ -1,7 +1,6 @@
 /**
- * Markdown Service
- * Uses 'marked' library for robust Markdown parsing
- * Install: npm install marked
+ * Markdown Service - Enhanced with Syntax Highlighting
+ * Uses 'marked' library for Markdown parsing + custom syntax highlighting
  */
 import { Injectable } from '@angular/core';
 import { marked } from 'marked';
@@ -20,7 +19,7 @@ export class MarkdownService {
   }
 
   /**
-   * Convert Markdown to HTML
+   * Convert Markdown to HTML with syntax highlighting
    */
   parse(markdown: string): string {
     if (!markdown) return '';
@@ -31,7 +30,8 @@ export class MarkdownService {
       
       // marked.parse can return string or Promise<string>
       if (typeof result === 'string') {
-        return result;
+        // Post-process to add syntax highlighting to code blocks
+        return this.addSyntaxHighlighting(result);
       }
       
       // Fallback for async result (shouldn't happen with sync options)
@@ -40,6 +40,122 @@ export class MarkdownService {
       console.error('Markdown parsing error:', error);
       return this.escapeHtml(markdown);
     }
+  }
+
+  /**
+   * Add syntax highlighting to code blocks
+   */
+  private addSyntaxHighlighting(html: string): string {
+    // Find all <pre><code> blocks and add highlighting
+    return html.replace(
+      /<pre><code(?:\s+class="language-(\w+)")?>([\s\S]*?)<\/code><\/pre>/g,
+      (match, language, code) => {
+        const lang = language || this.detectLanguage(code);
+        const highlightedCode = this.highlightCode(code, lang);
+        return `<pre class="code-block" data-lang="${lang}"><code class="language-${lang}">${highlightedCode}</code></pre>`;
+      }
+    );
+  }
+
+  /**
+   * Detect language from code content
+   */
+  private detectLanguage(code: string): string {
+    const trimmed = code.trim();
+    
+    // JSON detection
+    if ((trimmed.startsWith('{') && trimmed.endsWith('}')) ||
+        (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+      return 'json';
+    }
+    
+    // Bash/Shell detection
+    if (trimmed.startsWith('$') || 
+        trimmed.startsWith('curl') || 
+        trimmed.startsWith('#!')) {
+      return 'bash';
+    }
+    
+    // JavaScript detection
+    if (trimmed.includes('const ') || 
+        trimmed.includes('let ') || 
+        trimmed.includes('function ') ||
+        trimmed.includes('=>')) {
+      return 'javascript';
+    }
+    
+    return 'text';
+  }
+
+  /**
+   * Highlight code based on language
+   */
+  private highlightCode(code: string, language: string): string {
+    switch (language) {
+      case 'json':
+        return this.highlightJson(code);
+      case 'bash':
+      case 'shell':
+      case 'sh':
+        return this.highlightBash(code);
+      case 'javascript':
+      case 'js':
+        return this.highlightJavaScript(code);
+      default:
+        return code;
+    }
+  }
+
+  /**
+   * JSON syntax highlighting
+   */
+  private highlightJson(code: string): string {
+    // Don't double-escape - code is already escaped by marked
+    return code
+      // Keys (before colon)
+      .replace(/&quot;([^&]+)&quot;(\s*:)/g, '<span class="json-key">&quot;$1&quot;</span>$2')
+      // String values (after colon or in arrays)
+      .replace(/(:\s*)&quot;([^&]*)&quot;/g, '$1<span class="json-string">&quot;$2&quot;</span>')
+      .replace(/(\[|,\s*)&quot;([^&]*)&quot;/g, '$1<span class="json-string">&quot;$2&quot;</span>')
+      // Numbers
+      .replace(/:\s*(-?\d+\.?\d*)/g, ': <span class="json-number">$1</span>')
+      .replace(/(\[|,\s*)(-?\d+\.?\d*)(\s*[,\]])/g, '$1<span class="json-number">$2</span>$3')
+      // Booleans
+      .replace(/:\s*(true|false)/g, ': <span class="json-boolean">$1</span>')
+      // Null
+      .replace(/:\s*(null)/g, ': <span class="json-null">$1</span>');
+  }
+
+  /**
+   * Bash/Shell syntax highlighting
+   */
+  private highlightBash(code: string): string {
+    return code
+      // Comments
+      .replace(/(#[^\n]*)/g, '<span class="bash-comment">$1</span>')
+      // Commands at start
+      .replace(/^(curl|wget|npm|yarn|docker|git|cd|ls|mkdir|rm|cp|mv|echo|cat|grep|sed|awk)/gm, 
+        '<span class="bash-command">$1</span>')
+      // Flags
+      .replace(/(\s)(-{1,2}[\w-]+)/g, '$1<span class="bash-flag">$2</span>')
+      // Variables
+      .replace(/(\$\w+)/g, '<span class="bash-variable">$1</span>');
+  }
+
+  /**
+   * JavaScript syntax highlighting
+   */
+  private highlightJavaScript(code: string): string {
+    return code
+      // Comments
+      .replace(/(\/\/[^\n]*)/g, '<span class="js-comment">$1</span>')
+      // Keywords
+      .replace(/\b(const|let|var|function|return|if|else|for|while|class|import|export|from|async|await|try|catch|throw|new)\b/g, 
+        '<span class="js-keyword">$1</span>')
+      // Numbers
+      .replace(/\b(\d+\.?\d*)\b/g, '<span class="js-number">$1</span>')
+      // Booleans
+      .replace(/\b(true|false|null|undefined)\b/g, '<span class="js-boolean">$1</span>');
   }
 
   /**

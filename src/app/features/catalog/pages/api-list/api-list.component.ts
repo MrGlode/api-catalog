@@ -1,30 +1,14 @@
-import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
+/**
+ * API List Component - Catalog page
+ * Utilise le composant partagé ApiCardComponent
+ */
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../../core/services/api.service';
-import { APIInfo, APIList, APICategoryList, Tag } from '../../../../core/models';
-
-/**
- * API item interface for display
- */
-interface ApiItem {
-  id: string;
-  name: string;
-  description: string;
-  version: string;
-  status: 'published' | 'deprecated' | 'beta' | 'blocked' | 'retired';
-  category: string;
-  categoryId: string;
-  categoryColor: string;
-  provider: string;
-  rating?: number;
-  subscribers?: number;
-  thumbnailUri?: string;
-  context?: string;
-  type?: string;
-  tags?: string[];
-}
+import { APIInfo, APIList, APICategoryList, Tag, ApiCardData } from '../../../../core/models';
+import { ApiCardComponent } from '../../../../shared/component/card/api-card.component';
 
 /**
  * Filter interface
@@ -50,11 +34,11 @@ interface TagFilter {
 @Component({
   selector: 'app-api-list',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ApiCardComponent],
   templateUrl: './api-list.component.html',
   styleUrls: ['./api-list.component.scss']
 })
-export class ApiListComponent implements OnInit, OnDestroy {
+export class ApiListComponent implements OnInit {
   
   /**
    * Search query
@@ -89,12 +73,12 @@ export class ApiListComponent implements OnInit, OnDestroy {
   /**
    * All APIs from WSO2
    */
-  allApis: ApiItem[] = [];
+  allApis: ApiCardData[] = [];
   
   /**
    * Filtered APIs
    */
-  filteredApis: ApiItem[] = [];
+  filteredApis: ApiCardData[] = [];
   
   /**
    * Loading state
@@ -105,11 +89,6 @@ export class ApiListComponent implements OnInit, OnDestroy {
    * Error message
    */
   errorMessage: string | null = null;
-  
-  /**
-   * Thumbnail URL cache (apiId -> objectUrl)
-   */
-  thumbnailCache: Map<string, string> = new Map();
 
   constructor(
     private router: Router,
@@ -131,14 +110,6 @@ export class ApiListComponent implements OnInit, OnDestroy {
       this.loadApis();
     });
   }
-  
-  ngOnDestroy(): void {
-    // Clean up thumbnail object URLs to prevent memory leaks
-    this.thumbnailCache.forEach(url => {
-      URL.revokeObjectURL(url);
-    });
-    this.thumbnailCache.clear();
-  }
 
   /**
    * Load APIs based on current filters
@@ -157,10 +128,9 @@ export class ApiListComponent implements OnInit, OnDestroy {
         100
       ).subscribe({
         next: (response: APIList) => {
-          this.allApis = this.mapApisToItems(response.list || []);
+          this.allApis = this.mapApisToCardData(response.list || []);
           this.filteredApis = this.allApis;
           this.isLoading = false;
-          this.loadThumbnails();
           this.cdr.detectChanges();
         },
         error: (error) => {
@@ -171,13 +141,12 @@ export class ApiListComponent implements OnInit, OnDestroy {
         }
       });
     } else {
-      // No filters, get all APIs
+      // Load all APIs
       this.apiService.getApis({ limit: 100 }).subscribe({
         next: (response: APIList) => {
-          this.allApis = this.mapApisToItems(response.list || []);
+          this.allApis = this.mapApisToCardData(response.list || []);
           this.filteredApis = this.allApis;
           this.isLoading = false;
-          this.loadThumbnails();
           this.cdr.detectChanges();
         },
         error: (error) => {
@@ -189,56 +158,6 @@ export class ApiListComponent implements OnInit, OnDestroy {
       });
     }
   }
-  
-  // ========================================
-  // THUMBNAIL MANAGEMENT
-  // ========================================
-  
-  /**
-   * Load thumbnails for all displayed APIs
-   */
-  loadThumbnails(): void {
-    for (const api of this.filteredApis) {
-      this.loadThumbnail(api.id);
-    }
-  }
-  
-  /**
-   * Load thumbnail for a single API
-   */
-  loadThumbnail(apiId: string): void {
-    // Skip if already cached
-    if (this.thumbnailCache.has(apiId)) {
-      return;
-    }
-    
-    this.apiService.getApiThumbnail(apiId).subscribe({
-      next: (blob) => {
-        if (blob && blob.size > 0) {
-          const url = URL.createObjectURL(blob);
-          this.thumbnailCache.set(apiId, url);
-          this.cdr.detectChanges();
-        }
-      },
-      error: () => {
-        // No thumbnail available, fallback will be used
-      }
-    });
-  }
-  
-  /**
-   * Get thumbnail URL for an API (or null for fallback)
-   */
-  getThumbnailUrl(apiId: string): string | null {
-    return this.thumbnailCache.get(apiId) || null;
-  }
-  
-  /**
-   * Check if API has a thumbnail loaded
-   */
-  hasThumbnail(apiId: string): boolean {
-    return this.thumbnailCache.has(apiId);
-  }
 
   /**
    * Load categories from WSO2
@@ -246,18 +165,15 @@ export class ApiListComponent implements OnInit, OnDestroy {
   loadCategories(): void {
     this.apiService.getCategories().subscribe({
       next: (response: APICategoryList) => {
-        if (response.list && response.list.length > 0) {
-          this.categoryFilters = response.list.map((cat, index) => ({
-            id: cat.name?.toLowerCase().replace(/\s+/g, '-') || `cat-${index}`,
-            label: cat.name || 'Sans catégorie',
-            color: this.getCategoryColor(cat.name || ''),
-            count: cat.numberOfAPIs || 0
-          }));
-          this.cdr.detectChanges();
-        }
+        this.categoryFilters = (response.list || []).map(cat => ({
+          id: cat.name || '',
+          label: cat.name || '',
+          color: this.getCategoryColor(cat.name || ''),
+          count: cat.numberOfAPIs || 0
+        }));
       },
       error: (error) => {
-        console.warn('Could not load categories from WSO2, using derived categories', error);
+        console.warn('Could not load categories', error);
       }
     });
   }
@@ -266,92 +182,89 @@ export class ApiListComponent implements OnInit, OnDestroy {
    * Load tags from WSO2
    */
   loadTags(): void {
-    this.apiService.getTags(50).subscribe({
+    this.apiService.getTags().subscribe({
       next: (response) => {
-        if (response.list && response.list.length > 0) {
-          this.tagFilters = response.list.map(tag => ({
-            name: tag.value || '',
-            count: tag.count || 0
-          })).filter(tag => tag.name);
-          this.cdr.detectChanges();
-        }
+        this.tagFilters = (response.list || []).map((tag: Tag) => ({
+          name: tag.value || '',
+          count: tag.count || 0
+        })).filter(t => t.name);
       },
       error: (error) => {
-        console.warn('Could not load tags from WSO2', error);
+        console.warn('Could not load tags', error);
       }
     });
   }
 
   /**
-   * Map WSO2 APIInfo to display ApiItem
+   * Map WSO2 API response to ApiCardData
    */
-  mapApisToItems(apis: APIInfo[]): ApiItem[] {
+  mapApisToCardData(apis: APIInfo[]): ApiCardData[] {
     return apis.map(api => {
+      // Cast to any for properties that may exist but aren't in APIInfo interface
       const apiAny = api as any;
-      const category = apiAny.categories?.[0] || api.type || 'API';
-      const categoryId = category.toLowerCase().replace(/\s+/g, '-');
-      const tags = apiAny.tags || [];
+      const tags: string[] = apiAny.tags || [];
+      const category = apiAny.categories?.[0] || 
+                       api.businessInformation?.businessOwner || 
+                       this.extractCategoryFromTags(tags) || 
+                       api.type || 
+                       'General';
+      const categoryColor = this.getCategoryColor(category);
       
       return {
         id: api.id || '',
-        name: api.displayName || api.name || 'Sans nom',
-        description: api.description || 'Aucune description disponible.',
-        version: api.version || '1.0.0',
-        status: this.mapLifecycleStatus(api.lifeCycleStatus),
+        name: api.displayName || api.name || '',
+        description: api.description || '',
+        version: api.version || '1.0',
+        status: (api.lifeCycleStatus?.toLowerCase() || 'published') as ApiCardData['status'],
         category: category,
-        categoryId: categoryId,
-        categoryColor: this.getCategoryColor(categoryId),
+        categoryId: category.toLowerCase(),
+        categoryColor: categoryColor,
         provider: api.provider || 'Unknown',
-        rating: api.avgRating ? parseFloat(api.avgRating) : undefined,
+        rating: api.avgRating || undefined,
         subscribers: undefined,
-        thumbnailUri: api.thumbnailUri,
-        context: api.context,
-        type: api.type,
+        thumbnailUri: api.thumbnailUri || undefined,
+        context: api.context || '',
+        type: api.type || 'HTTP',
         tags: tags
       };
     });
   }
 
   /**
-   * Map WSO2 lifecycle status to display status
+   * Extract category from tags
    */
-  mapLifecycleStatus(status?: string): 'published' | 'deprecated' | 'beta' | 'blocked' | 'retired' {
-    switch (status?.toUpperCase()) {
-      case 'PUBLISHED': return 'published';
-      case 'DEPRECATED': return 'deprecated';
-      case 'PROTOTYPED': return 'beta';
-      case 'BLOCKED': return 'blocked';
-      case 'RETIRED': return 'retired';
-      default: return 'published';
-    }
+  extractCategoryFromTags(tags?: string[]): string | null {
+    if (!tags || tags.length === 0) return null;
+    
+    const categoryTags = ['finance', 'security', 'communication', 'data', 'integration', 'geo'];
+    const found = tags.find(tag => categoryTags.includes(tag.toLowerCase()));
+    
+    return found ? found.charAt(0).toUpperCase() + found.slice(1) : null;
   }
 
   /**
-   * Get category color based on name/id
+   * Get category color based on name
    */
   getCategoryColor(category: string): string {
-    const lower = category.toLowerCase();
+    const colorMap: Record<string, string> = {
+      'finance': 'finance',
+      'paiements': 'finance',
+      'payments': 'finance',
+      'security': 'security',
+      'sécurité': 'security',
+      'auth': 'security',
+      'communication': 'communication',
+      'messaging': 'communication',
+      'data': 'data',
+      'analytics': 'data',
+      'integration': 'integration',
+      'connecteurs': 'integration',
+      'geo': 'geo',
+      'géolocalisation': 'geo',
+      'location': 'geo'
+    };
     
-    if (lower.includes('finance') || lower.includes('payment') || lower.includes('billing')) {
-      return 'finance';
-    }
-    if (lower.includes('security') || lower.includes('auth') || lower.includes('oauth')) {
-      return 'security';
-    }
-    if (lower.includes('messag') || lower.includes('sms') || lower.includes('email') || lower.includes('notification')) {
-      return 'communication';
-    }
-    if (lower.includes('data') || lower.includes('analytics') || lower.includes('report')) {
-      return 'data';
-    }
-    if (lower.includes('connect') || lower.includes('integration') || lower.includes('sync')) {
-      return 'integration';
-    }
-    if (lower.includes('geo') || lower.includes('location') || lower.includes('map')) {
-      return 'geo';
-    }
-    
-    return 'default';
+    return colorMap[category.toLowerCase()] || 'integration';
   }
 
   /**
@@ -359,23 +272,41 @@ export class ApiListComponent implements OnInit, OnDestroy {
    */
   onSearch(): void {
     this.updateQueryParams();
-    this.loadApis();
+    this.filterApis();
   }
 
   /**
-   * Set active category filter
+   * Filter APIs based on search query
+   */
+  filterApis(): void {
+    if (!this.searchQuery.trim()) {
+      this.filteredApis = this.allApis;
+      return;
+    }
+    
+    const query = this.searchQuery.toLowerCase();
+    this.filteredApis = this.allApis.filter(api => 
+      api.name.toLowerCase().includes(query) ||
+      api.description.toLowerCase().includes(query) ||
+      api.category.toLowerCase().includes(query) ||
+      (api.tags && api.tags.some(tag => tag.toLowerCase().includes(query)))
+    );
+  }
+
+  /**
+   * Set category filter
    */
   setCategory(categoryId: string | null): void {
-    this.activeCategory = this.activeCategory === categoryId ? null : categoryId;
+    this.activeCategory = categoryId;
     this.updateQueryParams();
     this.loadApis();
   }
 
   /**
-   * Set active tag filter
+   * Set tag filter
    */
   setTag(tagName: string | null): void {
-    this.activeTag = this.activeTag === tagName ? null : tagName;
+    this.activeTag = tagName;
     this.updateQueryParams();
     this.loadApis();
   }
@@ -392,15 +323,15 @@ export class ApiListComponent implements OnInit, OnDestroy {
    * Update URL query params
    */
   updateQueryParams(): void {
-    const queryParams: any = {};
+    const queryParams: Record<string, string> = {};
     if (this.activeCategory) {
-      queryParams.category = this.activeCategory;
+      queryParams['category'] = this.activeCategory;
     }
     if (this.activeTag) {
-      queryParams.tag = this.activeTag;
+      queryParams['tag'] = this.activeTag;
     }
     if (this.searchQuery.trim()) {
-      queryParams.q = this.searchQuery;
+      queryParams['q'] = this.searchQuery;
     }
     this.router.navigate([], {
       relativeTo: this.route,
@@ -417,31 +348,10 @@ export class ApiListComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Get status badge class
+   * Get active category filter object
    */
-  getStatusClass(status: string): string {
-    switch (status) {
-      case 'published': return 'badge-green';
-      case 'deprecated': return 'badge-orange';
-      case 'beta': return 'badge-blue';
-      case 'blocked': return 'badge-red';
-      case 'retired': return 'badge-gray';
-      default: return 'badge-gray';
-    }
-  }
-
-  /**
-   * Get status label
-   */
-  getStatusLabel(status: string): string {
-    switch (status) {
-      case 'published': return 'Publié';
-      case 'deprecated': return 'Déprécié';
-      case 'beta': return 'Beta';
-      case 'blocked': return 'Bloqué';
-      case 'retired': return 'Retiré';
-      default: return status;
-    }
+  getActiveCategoryFilter(): CategoryFilter | undefined {
+    return this.categoryFilters.find(cat => cat.id === this.activeCategory);
   }
 
   /**
@@ -459,11 +369,16 @@ export class ApiListComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Reload APIs from WSO2
+   * Reload APIs
    */
   reload(): void {
-    this.loadCategories();
-    this.loadTags();
     this.loadApis();
+  }
+
+  /**
+   * Check if any filter is active
+   */
+  hasActiveFilters(): boolean {
+    return !!(this.activeCategory || this.activeTag || this.searchQuery.trim());
   }
 }
