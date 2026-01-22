@@ -59,25 +59,31 @@
     
   </div>
   
-  <!-- Category Filters -->
+  <!-- Category Filters - Style Home -->
   @if (categoryFilters.length > 0) {
-    <div class="category-filters">
+    <div class="categories-grid">
+      <!-- Bouton "Toutes" -->
       <button 
-        class="category-chip"
+        class="category-card"
         [class.active]="!activeCategory"
         (click)="setCategory(null)"
       >
-        Toutes
+        <span class="category-icon">📋</span>
+        <span class="category-name">Toutes</span>
+        <span class="category-count">{{ allApis.length }}</span>
       </button>
+      
+      <!-- Catégories dynamiques -->
       @for (cat of categoryFilters; track cat.id) {
         <button 
-          class="category-chip"
+          class="category-card"
           [class.active]="activeCategory === cat.id"
-          [class]="'chip-' + cat.color"
+          [attr.data-color]="cat.color"
           (click)="setCategory(cat.id)"
         >
-          {{ cat.label }}
-          <span class="chip-count">{{ cat.count }}</span>
+          <span class="category-icon">{{ getCategoryIcon(cat.color) }}</span>
+          <span class="category-name">{{ cat.label }}</span>
+          <span class="category-count">{{ cat.count }}</span>
         </button>
       }
     </div>

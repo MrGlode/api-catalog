@@ -381,4 +381,17 @@ export class ApiListComponent implements OnInit {
   hasActiveFilters(): boolean {
     return !!(this.activeCategory || this.activeTag || this.searchQuery.trim());
   }
+
+  getCategoryIcon(color: string): string {
+  const iconMap: Record<string, string> = {
+    'finance': '💰',
+    'security': '🔒',
+    'communication': '📧',
+    'data': '📊',
+    'integration': '🔗',
+    'geo': '🌍'
+  };
+  
+  return iconMap[color] || '📦';
+}
 }
