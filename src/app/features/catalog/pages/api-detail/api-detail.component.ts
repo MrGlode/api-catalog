@@ -1,4 +1,4 @@
-import { Component, OnInit, Input, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, Input, ChangeDetectorRef, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -184,7 +184,7 @@ interface HistoryItem {
   templateUrl: './api-detail.component.html',
   styleUrls: ['./api-detail.component.scss']
 })
-export class ApiDetailComponent implements OnInit {
+export class ApiDetailComponent implements OnInit, OnDestroy {
   @Input() id!: string;
   
   // Navigation - 4 tabs now
@@ -268,6 +268,9 @@ export class ApiDetailComponent implements OnInit {
   diffMode = false;
   diffSelection: { first: HistoryItem | null; second: HistoryItem | null } = { first: null, second: null };
 
+  // API Thumbnail URL (object URL from Blob)
+  apiThumbnailUrl: string | null = null;
+
   constructor(
     private router: Router,
     private cdr: ChangeDetectorRef,
@@ -282,6 +285,13 @@ export class ApiDetailComponent implements OnInit {
   ngOnInit(): void {
     this.isAuthenticated = this.authService.isAuthenticated();
     this.loadApi();
+  }
+
+  ngOnDestroy(): void {
+    // Clean up thumbnail object URL to prevent memory leak
+    if (this.apiThumbnailUrl) {
+      URL.revokeObjectURL(this.apiThumbnailUrl);
+    }
   }
 
   // ========================================
@@ -307,6 +317,7 @@ export class ApiDetailComponent implements OnInit {
         // Load additional data
         this.loadDocuments();
         this.loadSwaggerDefinition();
+        this.loadThumbnail();
         
         // Initialize sandbox environments from API
         this.initSandboxEnvironments();
@@ -1874,6 +1885,26 @@ export class ApiDetailComponent implements OnInit {
         this.codeCopied = false;
         this.cdr.detectChanges();
       }, 2000);
+    });
+  }
+
+  loadThumbnail(): void {
+    if (!this.id) return;
+    
+    this.apiService.getApiThumbnail(this.id).subscribe({
+      next: (blob) => {
+        if (blob && blob.size > 0) {
+          // Revoke previous URL if exists
+          if (this.apiThumbnailUrl) {
+            URL.revokeObjectURL(this.apiThumbnailUrl);
+          }
+          this.apiThumbnailUrl = URL.createObjectURL(blob);
+          this.cdr.detectChanges();
+        }
+      },
+      error: () => {
+        // No thumbnail available, keep null for fallback
+      }
     });
   }
 

@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -54,7 +54,7 @@ interface TagFilter {
   templateUrl: './api-list.component.html',
   styleUrls: ['./api-list.component.scss']
 })
-export class ApiListComponent implements OnInit {
+export class ApiListComponent implements OnInit, OnDestroy {
   
   /**
    * Search query
@@ -105,6 +105,11 @@ export class ApiListComponent implements OnInit {
    * Error message
    */
   errorMessage: string | null = null;
+  
+  /**
+   * Thumbnail URL cache (apiId -> objectUrl)
+   */
+  thumbnailCache: Map<string, string> = new Map();
 
   constructor(
     private router: Router,
@@ -125,6 +130,14 @@ export class ApiListComponent implements OnInit {
       this.searchQuery = params['q'] || '';
       this.loadApis();
     });
+  }
+  
+  ngOnDestroy(): void {
+    // Clean up thumbnail object URLs to prevent memory leaks
+    this.thumbnailCache.forEach(url => {
+      URL.revokeObjectURL(url);
+    });
+    this.thumbnailCache.clear();
   }
 
   /**
@@ -147,6 +160,7 @@ export class ApiListComponent implements OnInit {
           this.allApis = this.mapApisToItems(response.list || []);
           this.filteredApis = this.allApis;
           this.isLoading = false;
+          this.loadThumbnails();
           this.cdr.detectChanges();
         },
         error: (error) => {
@@ -163,6 +177,7 @@ export class ApiListComponent implements OnInit {
           this.allApis = this.mapApisToItems(response.list || []);
           this.filteredApis = this.allApis;
           this.isLoading = false;
+          this.loadThumbnails();
           this.cdr.detectChanges();
         },
         error: (error) => {
@@ -173,6 +188,56 @@ export class ApiListComponent implements OnInit {
         }
       });
     }
+  }
+  
+  // ========================================
+  // THUMBNAIL MANAGEMENT
+  // ========================================
+  
+  /**
+   * Load thumbnails for all displayed APIs
+   */
+  loadThumbnails(): void {
+    for (const api of this.filteredApis) {
+      this.loadThumbnail(api.id);
+    }
+  }
+  
+  /**
+   * Load thumbnail for a single API
+   */
+  loadThumbnail(apiId: string): void {
+    // Skip if already cached
+    if (this.thumbnailCache.has(apiId)) {
+      return;
+    }
+    
+    this.apiService.getApiThumbnail(apiId).subscribe({
+      next: (blob) => {
+        if (blob && blob.size > 0) {
+          const url = URL.createObjectURL(blob);
+          this.thumbnailCache.set(apiId, url);
+          this.cdr.detectChanges();
+        }
+      },
+      error: () => {
+        // No thumbnail available, fallback will be used
+      }
+    });
+  }
+  
+  /**
+   * Get thumbnail URL for an API (or null for fallback)
+   */
+  getThumbnailUrl(apiId: string): string | null {
+    return this.thumbnailCache.get(apiId) || null;
+  }
+  
+  /**
+   * Check if API has a thumbnail loaded
+   */
+  hasThumbnail(apiId: string): boolean {
+    return this.thumbnailCache.has(apiId);
   }
 
   /**
@@ -193,7 +258,6 @@ export class ApiListComponent implements OnInit {
       },
       error: (error) => {
         console.warn('Could not load categories from WSO2, using derived categories', error);
-        // Categories will be built from API data instead
       }
     });
   }
@@ -223,12 +287,9 @@ export class ApiListComponent implements OnInit {
    */
   mapApisToItems(apis: APIInfo[]): ApiItem[] {
     return apis.map(api => {
-      // Get first category or use type as fallback
       const apiAny = api as any;
       const category = apiAny.categories?.[0] || api.type || 'API';
       const categoryId = category.toLowerCase().replace(/\s+/g, '-');
-      
-      // Get tags from API
       const tags = apiAny.tags || [];
       
       return {
@@ -242,7 +303,7 @@ export class ApiListComponent implements OnInit {
         categoryColor: this.getCategoryColor(categoryId),
         provider: api.provider || 'Unknown',
         rating: api.avgRating ? parseFloat(api.avgRating) : undefined,
-        subscribers: undefined, // Not available in list view
+        subscribers: undefined,
         thumbnailUri: api.thumbnailUri,
         context: api.context,
         type: api.type,
@@ -256,18 +317,12 @@ export class ApiListComponent implements OnInit {
    */
   mapLifecycleStatus(status?: string): 'published' | 'deprecated' | 'beta' | 'blocked' | 'retired' {
     switch (status?.toUpperCase()) {
-      case 'PUBLISHED':
-        return 'published';
-      case 'DEPRECATED':
-        return 'deprecated';
-      case 'PROTOTYPED':
-        return 'beta';
-      case 'BLOCKED':
-        return 'blocked';
-      case 'RETIRED':
-        return 'retired';
-      default:
-        return 'published';
+      case 'PUBLISHED': return 'published';
+      case 'DEPRECATED': return 'deprecated';
+      case 'PROTOTYPED': return 'beta';
+      case 'BLOCKED': return 'blocked';
+      case 'RETIRED': return 'retired';
+      default: return 'published';
     }
   }
 
