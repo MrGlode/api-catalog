@@ -27,6 +27,13 @@
       >
         Catalogue
       </a>
+      <a 
+        routerLink="/docs" 
+        routerLinkActive="active"
+        class="nav-link"
+      >
+        Documentation
+      </a>
       @if (isAuthenticated$ | async) {
         <a 
           routerLink="/applications" 
@@ -114,6 +121,14 @@
         (click)="closeMobileMenu()"
       >
         Catalogue
+      </a>
+      <a 
+        routerLink="/docs" 
+        routerLinkActive="active"
+        class="mobile-nav-link"
+        (click)="closeMobileMenu()"
+      >
+        Documentation
       </a>
       @if (isAuthenticated$ | async) {
         <a 

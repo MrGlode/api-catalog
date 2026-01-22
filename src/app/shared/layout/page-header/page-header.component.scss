@@ -2,6 +2,9 @@
  * Page Header Styles - Design System VP
  */
 
+// ========================================
+// HEADER BASE
+// ========================================
 .header {
   position: fixed;
   top: 0;
@@ -10,7 +13,7 @@
   z-index: 100;
   height: var(--vp-header-height);
   background: var(--vp-primary-500);
-  overflow: hidden;
+  overflow: visible;
   transition: 0.5s;
 }
 
@@ -57,7 +60,6 @@
     border-radius: var(--vp-border-radius-sm);
   }
 
-  // Fallback pour SVG
   svg {
     height: 100%;
     width: auto;
@@ -105,32 +107,31 @@
   text-decoration: none;
   transition: all var(--vp-transition-normal);
 
-  // Indicateur actif en bas
   &::after {
     content: '';
     position: absolute;
     right: 0;
-    bottom: -10px;
+    bottom: 0;
     left: 0;
-    height: 10px;
+    height: 4px;
     background: var(--vp-tertiary-500);
-    border-radius: 5px 5px 0 0;
-    transition: 0.3s all ease-in-out;
+    border-radius: 4px 4px 0 0;
+    transform: scaleY(0);
+    transform-origin: bottom;
+    transition: transform 0.3s ease-in-out;
   }
 
   &:hover {
     text-decoration: none;
 
     &::after {
-      bottom: 0;
+      transform: scaleY(1);
     }
   }
 
-  &.active {
-    &::after {
-      bottom: 0;
-      background: var(--vp-primary-200);
-    }
+  &.active::after {
+    transform: scaleY(1);
+    background: var(--vp-primary-200);
   }
 }
 
@@ -190,7 +191,6 @@
     opacity: 0;
     transform: translateY(-8px);
   }
-
   to {
     opacity: 1;
     transform: translateY(0);
@@ -265,31 +265,6 @@
 }
 
 // ========================================
-// LOGIN BUTTON
-// ========================================
-.btn-login {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--vp-spacing-xxs);
-  padding: 9px 16px;
-  font-family: var(--vp-font-custom);
-  font-size: var(--vp-secondary-font-size);
-  font-weight: 500;
-  color: var(--vp-primary-500);
-  background: var(--vp-white);
-  border: none;
-  border-radius: var(--vp-btn-border-radius-sm);
-  cursor: pointer;
-  text-decoration: none;
-  transition: all var(--vp-transition-normal);
-
-  &:hover {
-    box-shadow: var(--vp-box-shadow-ml);
-    text-decoration: none;
-  }
-}
-
-// ========================================
 // MOBILE MENU TOGGLE
 // ========================================
 .mobile-menu-toggle {
@@ -304,8 +279,7 @@
   cursor: pointer;
   color: var(--vp-white);
 
-  svg,
-  i {
+  svg, i {
     width: 30px;
     height: 30px;
     font-size: 30px;
@@ -390,7 +364,7 @@
   }
 
   .logo-icon {
-    height: 55%; // Légèrement plus petit sur tablette
+    height: 55%;
   }
 
   .nav-link {
