@@ -45,6 +45,12 @@ export const routes: Routes = [
     title: 'Connexion'
   },
 
+  {
+    path: 'register',
+    loadComponent: () => import('./features/registration/registration.component').then(m => m.RegisterComponent),
+    canActivate: [guestGuard]
+  },
+
   // Protected routes (requires auth)
   {
     path: 'applications',

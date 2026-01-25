@@ -72,7 +72,7 @@ import { AuthService } from '../../core/services/auth.service';
           </form>
 
           <div class="login-footer">
-            <p>Vous n'avez pas de compte ? Contactez votre administrateur.</p>
+            <p>Pas encore de compte ? <a routerLink="/register">Créer un compte</a></p>
           </div>
         </div>
       </div>
@@ -239,6 +239,7 @@ import { AuthService } from '../../core/services/auth.service';
     .login-footer a {
       color: var(--color-primary-600);
       text-decoration: none;
+      font-weight: var(--font-weight-medium);
     }
 
     .login-footer a:hover {

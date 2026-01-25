@@ -142,6 +142,11 @@
   display: flex;
   align-items: center;
   gap: var(--vp-spacing-xs);
+  height: 100%;
+  
+  .header-nav {
+    height: 100%;
+  }
 }
 
 // ========================================
@@ -263,6 +268,26 @@
     }
   }
 }
+
+.user-dropdown-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 99;
+}
+
+.user-dropdown {
+  z-index: 100;
+}
+
+.auth-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--vp-spacing-s);
+}
+
 
 // ========================================
 // MOBILE MENU TOGGLE
