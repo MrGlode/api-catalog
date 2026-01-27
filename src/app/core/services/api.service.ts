@@ -4,7 +4,8 @@
  */
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams, HttpHeaders } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, of, forkJoin } from 'rxjs';
+import { map, catchError } from 'rxjs/operators';
 import { environment, getApiUrl } from '../../../environments/environment';
 import { 
   API, 
@@ -326,5 +327,39 @@ export class ApiService {
       limit,
       offset
     });
+  }
+
+  search(query: string, limit: number = 100, offset: number = 0): Observable<APIList> {
+    const url = getApiUrl('/search');
+    const params = new HttpParams().set('query', query).set('limit', limit.toString()).set('offset', offset.toString());
+
+    return this.http.get<APIList>(url, { params });
+  }
+
+  getApiCountByCategory(categoryName: string): Observable<number> {
+    const query = `api-category:${categoryName}`;
+    return this.search(query, 1, 0).pipe(
+      map(response => response.pagination?.total || response.count || 0));
+  }
+
+  getApiCountsForCategories(categoryNames: string[]): Observable<Map<string, number>> {
+    if (categoryNames.length === 0){
+      return of (new Map());
+    }
+
+    const requests = categoryNames.map(name =>
+      this.getApiCountByCategory(name).pipe(
+        map(count => ({ name, count})),
+        catchError(() => of ({ name, count: 0 }))
+      )
+    );
+
+    return forkJoin(requests).pipe(
+      map(results => {
+        const countsMap = new Map<string, number>();
+        results.forEach(r => countsMap.set(r.name, r.count));
+        return countsMap;
+      })
+    )
   }
 }

@@ -43,15 +43,15 @@ interface DisplayTag {
   styleUrls: ['./home.component.scss']
 })
 export class HomeComponent implements OnInit {
-  
+
   // Authentication
   isAuthenticated$!: Observable<boolean>;
   isAuthenticated = false;
-  
+
   // Loading states
   isLoading = true;
   isLoadingApps = false;
-  
+
   // Statistics
   stats = {
     totalApis: 0,
@@ -72,14 +72,14 @@ export class HomeComponent implements OnInit {
     private apiService: ApiService,
     private applicationService: ApplicationService,
     private authService: AuthService
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     this.isAuthenticated$ = this.authService.isAuthenticated$;
     this.isAuthenticated = this.authService.isAuthenticated();
-    
+
     this.loadData();
-    
+
     if (this.isAuthenticated) {
       this.loadApplications();
     }
@@ -90,7 +90,7 @@ export class HomeComponent implements OnInit {
    */
   loadData(): void {
     this.isLoading = true;
-    
+
     forkJoin({
       apis: this.apiService.getApis({ limit: 100 }),
       categories: this.apiService.getCategories(),
@@ -100,31 +100,33 @@ export class HomeComponent implements OnInit {
         // Map APIs
         const allApis = results.apis.list || [];
         this.stats.totalApis = allApis.length;
-        
-        // Get recent APIs (last 6, sorted by date if available)
-        this.recentApis = this.mapApisToCardData(
-          allApis.slice(0, 6)
-        );
-        
-        // Map categories
-        this.categories = (results.categories.list || []).map(cat => ({
+
+        // Get recent APIs (last 6)
+        this.recentApis = this.mapApisToCardData(allApis.slice(0, 6));
+
+        // Map categories (sans le count pour l'instant)
+        const categoryList = results.categories.list || [];
+        this.categories = categoryList.map(cat => ({
           id: cat.name || '',
           name: cat.name || '',
           description: cat.description || '',
           icon: this.getCategoryIcon(cat.name || ''),
           color: this.getCategoryColor(cat.name || ''),
-          count: cat.numberOfAPIs || 0
+          count: 0  // Sera mis à jour après
         }));
         this.stats.totalCategories = this.categories.length;
-        
+
         // Map tags
         this.tags = (results.tags.list || []).map((tag: Tag) => ({
           name: tag.value || '',
           count: tag.count || 0
-        })).filter(t => t.name).slice(0, 12); // Limit to 12 tags
-        
+        })).filter(t => t.name).slice(0, 12);
+
         this.isLoading = false;
         this.cdr.detectChanges();
+
+        // Charger les compteurs de catégories via /search
+        this.loadCategoryCounts();
       },
       error: (error) => {
         console.error('Failed to load data', error);
@@ -134,12 +136,31 @@ export class HomeComponent implements OnInit {
     });
   }
 
+  loadCategoryCounts(): void {
+    const categoryNames = this.categories.map(c => c.name);
+
+    if (categoryNames.length === 0) return;
+
+    this.apiService.getApiCountsForCategories(categoryNames).subscribe({
+      next: (countsMap) => {
+        this.categories = this.categories.map(cat => ({
+          ...cat,
+          count: countsMap.get(cat.name) || 0
+        }));
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        console.warn('Could not load category counts', error);
+      }
+    });
+  }
+
   /**
    * Load user applications
    */
   loadApplications(): void {
     this.isLoadingApps = true;
-    
+
     this.applicationService.getApplications({ limit: 5 }).subscribe({
       next: (response) => {
         this.applications = response.list || [];
@@ -162,13 +183,13 @@ export class HomeComponent implements OnInit {
       // Cast to any for properties that may exist but aren't in APIInfo interface
       const apiAny = api as any;
       const tags: string[] = apiAny.tags || [];
-      const category = apiAny.categories?.[0] || 
-                       api.businessInformation?.businessOwner || 
-                       this.extractCategoryFromTags(tags) || 
-                       api.type || 
-                       'General';
+      const category = apiAny.categories?.[0] ||
+        api.businessInformation?.businessOwner ||
+        this.extractCategoryFromTags(tags) ||
+        api.type ||
+        'General';
       const categoryColor = this.getCategoryColor(category);
-      
+
       return {
         id: api.id || '',
         name: api.displayName || api.name || '',
@@ -194,10 +215,10 @@ export class HomeComponent implements OnInit {
    */
   extractCategoryFromTags(tags?: string[]): string | null {
     if (!tags || tags.length === 0) return null;
-    
+
     const categoryTags = ['finance', 'security', 'communication', 'data', 'integration', 'geo'];
     const found = tags.find(tag => categoryTags.includes(tag.toLowerCase()));
-    
+
     return found ? found.charAt(0).toUpperCase() + found.slice(1) : null;
   }
 
@@ -222,7 +243,7 @@ export class HomeComponent implements OnInit {
       'géolocalisation': '📍',
       'location': '📍'
     };
-    
+
     return iconMap[category.toLowerCase()] || '📦';
   }
 
@@ -247,7 +268,7 @@ export class HomeComponent implements OnInit {
       'géolocalisation': 'geo',
       'location': 'geo'
     };
-    
+
     return colorMap[category.toLowerCase()] || 'integration';
   }
 
