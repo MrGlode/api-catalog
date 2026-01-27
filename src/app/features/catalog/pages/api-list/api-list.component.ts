@@ -40,6 +40,7 @@ export class ApiListComponent implements OnInit {
   
   allApis: ApiCardData[] = [];
   filteredApis: ApiCardData[] = [];
+  totalApisCount = 0;
   
   isLoading = false;
   errorMessage: string | null = null;
@@ -56,6 +57,7 @@ export class ApiListComponent implements OnInit {
     // Load categories via CategoryService (shared cache)
     this.loadCategories();
     this.loadTags();
+    this.loadTotalApisCount();
     
     // Check for query params
     this.route.queryParams.subscribe(params => {
@@ -63,6 +65,18 @@ export class ApiListComponent implements OnInit {
       this.activeTag = params['tag'] || null;
       this.searchQuery = params['q'] || '';
       this.loadApis();
+    });
+  }
+
+  /**
+   * Load total APIs count (unfiltered)
+   */
+  loadTotalApisCount(): void {
+    this.apiService.getApis({ limit: 1 }).subscribe({
+      next: (response) => {
+        this.totalApisCount = response.pagination?.total || response.count || 0;
+        this.cdr.detectChanges();
+      }
     });
   }
 
