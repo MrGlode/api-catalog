@@ -81,7 +81,7 @@
           [attr.data-color]="cat.color"
           (click)="setCategory(cat.id)"
         >
-          <span class="category-icon">{{ getCategoryIcon(cat.color) }}</span>
+          <span class="category-icon">{{ cat.icon }}</span>
           <span class="category-name">{{ cat.label }}</span>
           <span class="category-count">{{ cat.count }}</span>
         </button>

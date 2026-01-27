@@ -1,6 +1,5 @@
 /**
  * Home Component - Central hub for the application
- * Utilise le composant partagé ApiCardComponent
  */
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -8,33 +7,11 @@ import { RouterLink, Router } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
 import { ApplicationService } from '../../core/services/application.service';
 import { AuthService } from '../../core/services/auth.service';
+import { CategoryService, DisplayCategory } from '../../core/services/category.service';
 import { APIInfo, ApplicationInfo, Tag, ApiCardData } from '../../core/models';
 import { ApiCardComponent } from '../../shared/component/card/api-card.component';
 import { forkJoin, Observable } from 'rxjs';
 
-/**
- * Display category interface
- */
-interface DisplayCategory {
-  id: string;
-  name: string;
-  description: string;
-  icon: string;
-  color: string;
-  count: number;
-}
-
-/**
- * Display Tag interface
- */
-interface DisplayTag {
-  name: string;
-  count: number;
-}
-
-/**
- * Home Component - Central hub for the application
- */
 @Component({
   selector: 'app-home',
   standalone: true,
@@ -43,15 +20,15 @@ interface DisplayTag {
   styleUrls: ['./home.component.scss']
 })
 export class HomeComponent implements OnInit {
-
+  
   // Authentication
   isAuthenticated$!: Observable<boolean>;
   isAuthenticated = false;
-
+  
   // Loading states
   isLoading = true;
   isLoadingApps = false;
-
+  
   // Statistics
   stats = {
     totalApis: 0,
@@ -62,7 +39,7 @@ export class HomeComponent implements OnInit {
 
   // Data
   categories: DisplayCategory[] = [];
-  tags: DisplayTag[] = [];
+  tags: { name: string; count: number }[] = [];
   recentApis: ApiCardData[] = [];
   applications: ApplicationInfo[] = [];
 
@@ -71,62 +48,47 @@ export class HomeComponent implements OnInit {
     private cdr: ChangeDetectorRef,
     private apiService: ApiService,
     private applicationService: ApplicationService,
-    private authService: AuthService
-  ) { }
+    private authService: AuthService,
+    private categoryService: CategoryService
+  ) {}
 
   ngOnInit(): void {
     this.isAuthenticated$ = this.authService.isAuthenticated$;
     this.isAuthenticated = this.authService.isAuthenticated();
-
+    
     this.loadData();
-
+    
     if (this.isAuthenticated) {
       this.loadApplications();
     }
   }
 
   /**
-   * Load APIs, categories and tags from WSO2
+   * Load APIs, categories and tags
    */
   loadData(): void {
     this.isLoading = true;
-
+    
     forkJoin({
       apis: this.apiService.getApis({ limit: 100 }),
-      categories: this.apiService.getCategories(),
       tags: this.apiService.getTags()
     }).subscribe({
       next: (results) => {
         // Map APIs
         const allApis = results.apis.list || [];
         this.stats.totalApis = allApis.length;
-
+        
         // Get recent APIs (last 6)
         this.recentApis = this.mapApisToCardData(allApis.slice(0, 6));
-
-        // Map categories (sans le count pour l'instant)
-        const categoryList = results.categories.list || [];
-        this.categories = categoryList.map(cat => ({
-          id: cat.name || '',
-          name: cat.name || '',
-          description: cat.description || '',
-          icon: this.getCategoryIcon(cat.name || ''),
-          color: this.getCategoryColor(cat.name || ''),
-          count: 0  // Sera mis à jour après
-        }));
-        this.stats.totalCategories = this.categories.length;
-
+        
         // Map tags
         this.tags = (results.tags.list || []).map((tag: Tag) => ({
           name: tag.value || '',
           count: tag.count || 0
         })).filter(t => t.name).slice(0, 12);
-
+        
         this.isLoading = false;
         this.cdr.detectChanges();
-
-        // Charger les compteurs de catégories via /search
-        this.loadCategoryCounts();
       },
       error: (error) => {
         console.error('Failed to load data', error);
@@ -134,23 +96,13 @@ export class HomeComponent implements OnInit {
         this.cdr.detectChanges();
       }
     });
-  }
 
-  loadCategoryCounts(): void {
-    const categoryNames = this.categories.map(c => c.name);
-
-    if (categoryNames.length === 0) return;
-
-    this.apiService.getApiCountsForCategories(categoryNames).subscribe({
-      next: (countsMap) => {
-        this.categories = this.categories.map(cat => ({
-          ...cat,
-          count: countsMap.get(cat.name) || 0
-        }));
+    // Load categories via CategoryService (avec cache et counts)
+    this.categoryService.getCategoriesWithCounts().subscribe({
+      next: (categories) => {
+        this.categories = categories;
+        this.stats.totalCategories = categories.length;
         this.cdr.detectChanges();
-      },
-      error: (error) => {
-        console.warn('Could not load category counts', error);
       }
     });
   }
@@ -160,7 +112,7 @@ export class HomeComponent implements OnInit {
    */
   loadApplications(): void {
     this.isLoadingApps = true;
-
+    
     this.applicationService.getApplications({ limit: 5 }).subscribe({
       next: (response) => {
         this.applications = response.list || [];
@@ -180,16 +132,14 @@ export class HomeComponent implements OnInit {
    */
   mapApisToCardData(apis: APIInfo[]): ApiCardData[] {
     return apis.map(api => {
-      // Cast to any for properties that may exist but aren't in APIInfo interface
       const apiAny = api as any;
       const tags: string[] = apiAny.tags || [];
-      const category = apiAny.categories?.[0] ||
-        api.businessInformation?.businessOwner ||
-        this.extractCategoryFromTags(tags) ||
-        api.type ||
-        'General';
-      const categoryColor = this.getCategoryColor(category);
-
+      const category = apiAny.categories?.[0] || 
+                       api.businessInformation?.businessOwner || 
+                       this.extractCategoryFromTags(tags) || 
+                       api.type || 
+                       'General';
+      
       return {
         id: api.id || '',
         name: api.displayName || api.name || '',
@@ -198,7 +148,7 @@ export class HomeComponent implements OnInit {
         status: (api.lifeCycleStatus?.toLowerCase() || 'published') as ApiCardData['status'],
         category: category,
         categoryId: category.toLowerCase(),
-        categoryColor: categoryColor,
+        categoryColor: this.categoryService.getCategoryColor(category),
         provider: api.provider || 'Unknown',
         rating: api.avgRating || undefined,
         context: api.context || '',
@@ -215,101 +165,32 @@ export class HomeComponent implements OnInit {
    */
   extractCategoryFromTags(tags?: string[]): string | null {
     if (!tags || tags.length === 0) return null;
-
     const categoryTags = ['finance', 'security', 'communication', 'data', 'integration', 'geo'];
     const found = tags.find(tag => categoryTags.includes(tag.toLowerCase()));
-
     return found ? found.charAt(0).toUpperCase() + found.slice(1) : null;
   }
 
-  /**
-   * Get category icon
-   */
-  getCategoryIcon(category: string): string {
-    const iconMap: Record<string, string> = {
-      'finance': '💳',
-      'paiements': '💳',
-      'payments': '💳',
-      'security': '🔐',
-      'sécurité': '🔐',
-      'auth': '🔐',
-      'communication': '💬',
-      'messaging': '💬',
-      'data': '📊',
-      'analytics': '📊',
-      'integration': '🔌',
-      'connecteurs': '🔌',
-      'geo': '📍',
-      'géolocalisation': '📍',
-      'location': '📍'
-    };
-
-    return iconMap[category.toLowerCase()] || '📦';
-  }
-
-  /**
-   * Get category color
-   */
-  getCategoryColor(category: string): string {
-    const colorMap: Record<string, string> = {
-      'finance': 'finance',
-      'paiements': 'finance',
-      'payments': 'finance',
-      'security': 'security',
-      'sécurité': 'security',
-      'auth': 'security',
-      'communication': 'communication',
-      'messaging': 'communication',
-      'data': 'data',
-      'analytics': 'data',
-      'integration': 'integration',
-      'connecteurs': 'integration',
-      'geo': 'geo',
-      'géolocalisation': 'geo',
-      'location': 'geo'
-    };
-
-    return colorMap[category.toLowerCase()] || 'integration';
-  }
-
-  /**
-   * Navigate to API detail
-   */
+  // Navigation methods (unchanged)
   goToApi(apiId: string): void {
     this.router.navigate(['/catalog', apiId]);
   }
 
-  /**
-   * Navigate to catalog
-   */
   goToCatalog(): void {
     this.router.navigate(['/catalog']);
   }
 
-  /**
-   * Navigate to category
-   */
   goToCategory(categoryName: string): void {
     this.router.navigate(['/catalog'], { queryParams: { category: categoryName } });
   }
 
-  /**
-   * Navigate to tag
-   */
   goToTag(tagName: string): void {
     this.router.navigate(['/catalog'], { queryParams: { tag: tagName } });
   }
 
-  /**
-   * Navigate to application detail
-   */
   goToApplication(appId: string): void {
     this.router.navigate(['/applications', appId]);
   }
 
-  /**
-   * Get application status class
-   */
   getAppStatusClass(status: string | undefined): string {
     switch (status?.toUpperCase()) {
       case 'APPROVED': return 'badge-success';

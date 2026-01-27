@@ -307,13 +307,14 @@ export class ApiService {
     limit?: number,
     offset?: number
   ): Observable<APIList> {
+    const url = getApiUrl('/search');
     const queryParts: string[] = [];
 
     if (searchTerm) {
       queryParts.push(searchTerm);
     }
     if (category) {
-      queryParts.push(`category:${category}`);
+      queryParts.push(`api-category:${category}`);
     }
     if (tag) {
       queryParts.push(`tag:${tag}`);
@@ -322,11 +323,18 @@ export class ApiService {
       queryParts.push(`status:${status}`);
     }
 
-    return this.getApis({
-      query: queryParts.length > 0 ? queryParts.join(' ') : undefined,
-      limit,
-      offset
-    });
+    let params = new HttpParams();
+    if (queryParts.length > 0) {
+      params = params.set('query', queryParts.join(' '));
+    }
+    if (limit) {
+      params = params.set('limit', limit.toString());
+    }
+    if (offset) {
+      params = params.set('offset', offset.toString());
+    }
+
+    return this.http.get<APIList>(url, { params });
   }
 
   search(query: string, limit: number = 100, offset: number = 0): Observable<APIList> {
