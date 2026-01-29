@@ -399,7 +399,12 @@
                   @if (group.expanded) {
                     <div class="tag-endpoints">
                       @for (endpoint of group.endpoints; track trackByPath($index, endpoint)) {
-                        <div class="endpoint-block" [class.expanded]="endpoint.expanded">
+                        <div 
+                          class="endpoint-block" 
+                          [class.expanded]="endpoint.expanded"
+                          [class.highlighted]="isEndpointHighlighted(endpoint)"
+                          [id]="getEndpointElementId(endpoint)"
+                        >
                           <!-- Endpoint Header -->
                           <button 
                             class="endpoint-header"

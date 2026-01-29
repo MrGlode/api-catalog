@@ -1,6 +1,6 @@
 import { Component, OnInit, Input, ChangeDetectorRef, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink, Router } from '@angular/router';
+import { RouterLink, Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { ApiService } from '../../../../core/services/api.service';
@@ -304,7 +304,12 @@ export class ApiDetailComponent implements OnInit, OnDestroy {
   // OneOf/AnyOf option selection
   expandedOneOfOptions: Record<string, number> = {};
 
+  // Global Search Navigation - highlight endpoint from search results
+  highlightedEndpointKey: string | null = null;
+  private pendingEndpointNavigation: string | null = null;
+
   constructor(
+    private route: ActivatedRoute,
     private router: Router,
     private cdr: ChangeDetectorRef,
     private sanitizer: DomSanitizer,
@@ -317,7 +322,80 @@ export class ApiDetailComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.isAuthenticated = this.authService.isAuthenticated();
-    this.loadApi();
+    
+    // Listen to route params changes (API ID) - handles navigation between different APIs
+    this.route.params.subscribe(params => {
+      const newId = params['id'];
+      if (newId && newId !== this.id) {
+        this.id = newId;
+        this.resetComponentState();
+        this.loadApi();
+      } else if (newId && !this.api) {
+        // Initial load
+        this.id = newId;
+        this.loadApi();
+      }
+    });
+    
+    // Listen to query params for navigation from global search
+    this.route.queryParams.subscribe(params => {
+      if (params['tab'] || params['endpoint']) {
+        this.handleSearchNavigation(params['tab'], params['endpoint']);
+      }
+    });
+    
+    // Fallback: if id is already set via @Input but params subscription hasn't fired
+    if (this.id && !this.api) {
+      this.loadApi();
+    }
+  }
+
+  /**
+   * Reset component state when navigating to a different API
+   */
+  private resetComponentState(): void {
+    // Reset navigation tab to default
+    this.activeTab = 'overview';
+    
+    // Reset data
+    this.api = null;
+    this.documents = [];
+    this.endpoints = [];
+    this.tagGroups = [];
+    this.swaggerSpec = null;
+    
+    // Reset states
+    this.isLoading = true;
+    this.isLoadingDocs = false;
+    this.isLoadingSwagger = false;
+    this.errorMessage = null;
+    
+    // Reset selected items
+    this.selectedDocument = null;
+    this.documentContent = '';
+    this.selectedEndpoint = null;
+    
+    // Reset sandbox
+    this.sandboxResponse = null;
+    this.sandboxHistory = [];
+    
+    // Reset navigation state
+    this.highlightedEndpointKey = null;
+    this.pendingEndpointNavigation = null;
+    
+    // Reset accordion states
+    this.expandedResponses = {};
+    this.expandedParams = {};
+    this.expandedNestedProps = {};
+    this.expandedOneOfOptions = {};
+    
+    // Clean up previous thumbnail
+    if (this.apiThumbnailUrl) {
+      URL.revokeObjectURL(this.apiThumbnailUrl);
+      this.apiThumbnailUrl = null;
+    }
+    
+    this.cdr.detectChanges();
   }
 
   ngOnDestroy(): void {
@@ -409,6 +487,14 @@ export class ApiDetailComponent implements OnInit, OnDestroy {
           // Select first endpoint if available
           if (this.endpoints.length > 0) {
             this.selectedEndpoint = this.endpoints[0];
+          }
+          
+          // Handle pending navigation from global search (query params arrived before data loaded)
+          if (this.pendingEndpointNavigation) {
+            setTimeout(() => {
+              this.navigateToEndpoint(this.pendingEndpointNavigation!);
+              this.pendingEndpointNavigation = null;
+            }, 100);
           }
         } catch (e) {
           console.warn('Could not parse swagger', e);
@@ -2908,5 +2994,121 @@ export class ApiDetailComponent implements OnInit, OnDestroy {
   isParamSchemaExpanded(endpoint: ParsedEndpoint, paramName: string): boolean {
     const key = `${endpoint.method}-${endpoint.path}-${paramName}`;
     return this.expandedParams[key] || false;
+  }
+
+  // ========================================
+  // GLOBAL SEARCH NAVIGATION METHODS
+  // ========================================
+
+  /**
+   * Handle navigation from global search query params
+   */
+  private handleSearchNavigation(tab?: string, endpointKey?: string): void {
+    // Validate and set tab
+    const validTabs = ['overview', 'documentation', 'reference', 'sandbox'];
+    if (tab && validTabs.includes(tab)) {
+      this.activeTab = tab as 'overview' | 'documentation' | 'reference' | 'sandbox';
+    }
+    
+    // If we have an endpoint to navigate to
+    if (endpointKey) {
+      if (this.endpoints.length > 0) {
+        // Data is loaded, navigate immediately
+        setTimeout(() => {
+          this.navigateToEndpoint(endpointKey);
+        }, 50);
+      } else {
+        // Data not loaded yet, store for later
+        this.pendingEndpointNavigation = endpointKey;
+      }
+    }
+    
+    this.cdr.detectChanges();
+  }
+
+  /**
+   * Navigate to a specific endpoint from global search
+   * @param endpointKey Format: "method:encodedPath" e.g. "get:%2Fpayments%2F%7Bid%7D"
+   */
+  navigateToEndpoint(endpointKey: string): void {
+    // Parse the key (format: "method:encodedPath")
+    const colonIndex = endpointKey.indexOf(':');
+    if (colonIndex === -1) return;
+    
+    const method = endpointKey.substring(0, colonIndex).toUpperCase();
+    const path = decodeURIComponent(endpointKey.substring(colonIndex + 1));
+    
+    // Find the matching endpoint
+    const endpoint = this.endpoints.find(e => 
+      e.method.toUpperCase() === method && e.path === path
+    );
+    
+    if (!endpoint) {
+      console.warn(`Endpoint not found: ${method} ${path}`);
+      return;
+    }
+    
+    // 1. Switch to reference tab
+    this.activeTab = 'reference';
+    
+    // 2. Find and expand the tag group containing this endpoint
+    for (const group of this.tagGroups) {
+      const found = group.endpoints.find(e => 
+        e.method === endpoint.method && e.path === endpoint.path
+      );
+      if (found) {
+        // Expand the group
+        group.expanded = true;
+        // Expand the endpoint
+        found.expanded = true;
+        break;
+      }
+    }
+    
+    // 3. Mark endpoint as highlighted
+    this.highlightedEndpointKey = `${endpoint.method}-${endpoint.path}`;
+    
+    this.cdr.detectChanges();
+    
+    // 4. Scroll to the endpoint after DOM update
+    setTimeout(() => {
+      this.scrollToEndpoint(endpoint);
+    }, 150);
+    
+    // 5. Remove highlight after 3 seconds
+    setTimeout(() => {
+      this.highlightedEndpointKey = null;
+      this.cdr.detectChanges();
+    }, 3000);
+  }
+
+  /**
+   * Scroll to an endpoint element
+   */
+  private scrollToEndpoint(endpoint: ParsedEndpoint): void {
+    const elementId = this.getEndpointElementId(endpoint);
+    const element = document.getElementById(elementId);
+    
+    if (element) {
+      element.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'center' 
+      });
+    }
+  }
+
+  /**
+   * Generate a unique element ID for an endpoint
+   */
+  getEndpointElementId(endpoint: ParsedEndpoint): string {
+    const sanitizedPath = endpoint.path.replace(/[^a-zA-Z0-9]/g, '-');
+    return `endpoint-${endpoint.method.toLowerCase()}-${sanitizedPath}`;
+  }
+
+  /**
+   * Check if an endpoint is currently highlighted (from search navigation)
+   */
+  isEndpointHighlighted(endpoint: ParsedEndpoint): boolean {
+    return this.highlightedEndpointKey === `${endpoint.method}-${endpoint.path}`;
   }
 }

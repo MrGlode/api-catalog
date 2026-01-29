@@ -1158,10 +1158,52 @@
 // Endpoint Block
 .endpoint-block {
   border-bottom: 1px solid var(--vp-gray-200);
+  position: relative;
   
   &:last-child { border-bottom: none; }
   
   &.expanded .endpoint-header .chevron { transform: rotate(180deg); }
+  
+  // Highlight animation when navigating from global search
+  &.highlighted {
+    animation: endpointHighlightPulse 2.5s ease-in-out;
+    z-index: 10;
+    
+    &::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border: 2px solid var(--vp-primary-500, #3b82f6);
+      border-radius: 4px;
+      pointer-events: none;
+      animation: endpointHighlightBorder 2.5s ease-in-out;
+    }
+  }
+}
+
+@keyframes endpointHighlightPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+    background-color: rgba(59, 130, 246, 0.1);
+  }
+  25% {
+    box-shadow: 0 0 0 8px rgba(59, 130, 246, 0.2);
+    background-color: rgba(59, 130, 246, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 0 16px rgba(59, 130, 246, 0);
+    background-color: rgba(59, 130, 246, 0.1);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+    background-color: transparent;
+  }
+}
+
+@keyframes endpointHighlightBorder {
+  0% { opacity: 1; }
+  75% { opacity: 1; }
+  100% { opacity: 0; }
 }
 
 .endpoint-header {

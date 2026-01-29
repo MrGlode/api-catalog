@@ -194,7 +194,7 @@ export class GlobalSearchComponent implements OnInit, OnDestroy {
     const encodedMethod = item.method?.toLowerCase() || '';
     this.router.navigate(['/catalog', item.apiId], {
       queryParams: {
-        tab: 'endpoints',
+        tab: 'reference',
         endpoint: `${encodedMethod}:${encodedPath}`
       }
     });
