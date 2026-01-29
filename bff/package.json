@@ -1,0 +1,35 @@
+{
+  "name": "wso2-bff-server",
+  "version": "1.0.0",
+  "description": "Backend-For-Frontend server for secure WSO2 API Manager authentication",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "dev:env": "node --env-file=.env --watch src/server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "cors": "^2.8.5",
+    "helmet": "^8.0.0",
+    "cookie-parser": "^1.4.7",
+    "axios": "^1.7.0",
+    "axios-cookiejar-support": "^5.0.3",
+    "tough-cookie": "^5.0.0"
+  },
+  "devDependencies": {
+    "dotenv": "^16.4.5"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "wso2",
+    "bff",
+    "oauth2",
+    "authentication",
+    "api-manager"
+  ],
+  "author": "",
+  "license": "MIT"
+}
