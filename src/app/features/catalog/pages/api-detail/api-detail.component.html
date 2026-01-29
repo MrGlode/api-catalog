@@ -412,9 +412,6 @@
                             <span class="endpoint-path">{{ endpoint.path }}</span>
                             <span class="endpoint-summary">{{ endpoint.summary }}</span>
                             <div class="endpoint-actions">
-                              @if (hasRequiredParams(endpoint)) {
-                                <span class="endpoint-tag required">Requis</span>
-                              }
                               <svg class="chevron" viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
                               </svg>
@@ -432,34 +429,160 @@
                               @if (endpoint.parameters && endpoint.parameters.length > 0) {
                                 <div class="detail-section">
                                   <h4>Paramètres</h4>
-                                  <table class="params-table">
-                                    <thead>
-                                      <tr>
-                                        <th>Nom</th>
-                                        <th>Type</th>
-                                        <th>In</th>
-                                        <th>Requis</th>
-                                        <th>Description</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody>
-                                      @for (param of endpoint.parameters; track param.name) {
-                                        <tr>
-                                          <td><code>{{ param.name }}</code></td>
-                                          <td>{{ getParamTypeLabel(param) }}</td>
-                                          <td><span class="param-in">{{ param.in }}</span></td>
-                                          <td>
+                                  <div class="params-list">
+                                    @for (param of endpoint.parameters; track param.name) {
+                                      <div class="param-block" [class.has-schema]="hasComplexParamSchema(param)">
+                                        <!-- Parameter Header -->
+                                        <div class="param-header">
+                                          <div class="param-info">
+                                            <code class="param-name">{{ param.name }}</code>
+                                            <span class="param-in-badge" [class]="param.in">{{ param.in }}</span>
                                             @if (param.required) {
-                                              <span class="badge badge-red">Oui</span>
-                                            } @else {
-                                              <span class="badge badge-gray">Non</span>
+                                              <span class="badge badge-red">requis</span>
                                             }
-                                          </td>
-                                          <td>{{ param.description || '-' }}</td>
-                                        </tr>
-                                      }
-                                    </tbody>
-                                  </table>
+                                          </div>
+                                          <div class="param-type-info">
+                                            @if (isParamSchemaRef(param)) {
+                                              <span class="schema-type">
+                                                <a class="schema-link" (click)="scrollToSchema(getParamSchemaName(param) || '')">
+                                                  {{ getParamSchemaName(param) }}
+                                                </a>
+                                              </span>
+                                            } @else {
+                                              <span class="prop-type">{{ getParamTypeLabel(param) }}</span>
+                                            }
+                                            @if (hasComplexParamSchema(param)) {
+                                              <button class="expand-btn" (click)="toggleParamSchema(endpoint, param.name)">
+                                                <svg [class.rotated]="isParamSchemaExpanded(endpoint, param.name)" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                  <polyline points="6 9 12 15 18 9"></polyline>
+                                                </svg>
+                                              </button>
+                                            }
+                                          </div>
+                                        </div>
+                                        
+                                        <!-- Parameter Description -->
+                                        @if (param.description) {
+                                          <p class="param-desc">{{ param.description }}</p>
+                                        }
+                                        
+                                        <!-- Parameter Constraints (directly on param) -->
+                                        @if (hasParamConstraints(param)) {
+                                          <div class="param-constraints">
+                                            @for (constraint of getParamConstraints(param); track constraint.label) {
+                                              <span class="constraint-badge" [attr.data-type]="constraint.type">
+                                                <span class="constraint-label">{{ constraint.label }}:</span>
+                                                <span class="constraint-value">{{ constraint.value }}</span>
+                                              </span>
+                                            }
+                                          </div>
+                                        }
+                                        
+                                        <!-- Enum Values (now part of constraints, but keep for backward compat) -->
+                                        @if (hasParamEnum(param) && !hasParamConstraintsWithEnum(param)) {
+                                          <div class="param-enum">
+                                            <span class="enum-label">Valeurs possibles :</span>
+                                            @for (val of getParamEnumValues(param); track val) {
+                                              <code class="enum-value">{{ val }}</code>
+                                            }
+                                          </div>
+                                        }
+                                        
+                                        <!-- Expanded Schema Details -->
+                                        @if (hasComplexParamSchema(param) && isParamSchemaExpanded(endpoint, param.name)) {
+                                          <div class="param-schema-details">
+                                            <!-- Schema Properties -->
+                                            @if (getParamSchemaProperties(param).length > 0) {
+                                              <div class="schema-properties-list">
+                                                @for (prop of getParamSchemaProperties(param); track prop.name) {
+                                                  <div class="schema-prop-row" [class.expandable]="hasNestedSchema(prop.schema)" [class.expanded]="isNestedPropExpanded(getParamNestedContext(endpoint, param.name, prop.name), prop.name)">
+                                                    <div class="schema-prop-main">
+                                                      <div class="schema-prop-name">
+                                                        <code>{{ prop.name }}</code>
+                                                        @if (prop.required) {
+                                                          <span class="badge badge-red small">requis</span>
+                                                        }
+                                                      </div>
+                                                      <div class="schema-prop-type">
+                                                        @if (hasNestedSchema(prop.schema)) {
+                                                          <button class="nested-expand-btn" (click)="toggleNestedProp(getParamNestedContext(endpoint, param.name, prop.name), prop.name)">
+                                                            <span class="prop-type clickable">{{ prop.type }}</span>
+                                                            <svg [class.rotated]="isNestedPropExpanded(getParamNestedContext(endpoint, param.name, prop.name), prop.name)" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                              <polyline points="6 9 12 15 18 9"></polyline>
+                                                            </svg>
+                                                          </button>
+                                                        } @else {
+                                                          <span class="prop-type">{{ prop.type }}</span>
+                                                        }
+                                                      </div>
+                                                      <div class="schema-prop-desc">{{ prop.description || '-' }}</div>
+                                                    </div>
+                                                    
+                                                    <!-- Constraints -->
+                                                    @if (hasConstraints(prop.schema)) {
+                                                      <div class="constraints-row">
+                                                        @for (constraint of getConstraints(prop.schema); track constraint.label) {
+                                                          <span class="constraint-badge" [attr.data-type]="constraint.type">
+                                                            <span class="constraint-label">{{ constraint.label }}:</span>
+                                                            <span class="constraint-value">{{ constraint.value }}</span>
+                                                          </span>
+                                                        }
+                                                      </div>
+                                                    }
+                                                    
+                                                    <!-- Nested Properties -->
+                                                    @if (hasNestedSchema(prop.schema) && isNestedPropExpanded(getParamNestedContext(endpoint, param.name, prop.name), prop.name)) {
+                                                      <div class="nested-schema">
+                                                        @if (getNestedSchemaName(prop.schema)) {
+                                                          <div class="nested-schema-header">
+                                                            <span class="nested-schema-name">{{ getNestedSchemaName(prop.schema) }}</span>
+                                                          </div>
+                                                        }
+                                                        @if (getNestedSchemaProperties(prop.schema).length > 0) {
+                                                          <div class="nested-props">
+                                                            @for (nestedProp of getNestedSchemaProperties(prop.schema); track nestedProp.name) {
+                                                              <div class="nested-prop-row">
+                                                                <code class="nested-prop-name">{{ nestedProp.name }}</code>
+                                                                <span class="prop-type small">{{ nestedProp.type }}</span>
+                                                                <span class="nested-prop-desc">{{ nestedProp.description || '-' }}</span>
+                                                              </div>
+                                                              @if (hasConstraints(nestedProp.schema)) {
+                                                                <div class="constraints-row nested">
+                                                                  @for (constraint of getConstraints(nestedProp.schema); track constraint.label) {
+                                                                    <span class="constraint-badge small" [attr.data-type]="constraint.type">
+                                                                      <span class="constraint-label">{{ constraint.label }}:</span>
+                                                                      <span class="constraint-value">{{ constraint.value }}</span>
+                                                                    </span>
+                                                                  }
+                                                                </div>
+                                                              }
+                                                            }
+                                                          </div>
+                                                        } @else {
+                                                          <p class="nested-no-props">Propriétés non disponibles</p>
+                                                        }
+                                                      </div>
+                                                    }
+                                                  </div>
+                                                }
+                                              </div>
+                                            }
+                                            
+                                            <!-- Example -->
+                                            @if (getParamExample(param)) {
+                                              <div class="schema-example">
+                                                <div class="example-header">
+                                                  <span>Exemple</span>
+                                                  <button class="copy-btn small" (click)="copyCode(getParamExample(param))">Copier</button>
+                                                </div>
+                                                <pre><code>{{ getParamExample(param) }}</code></pre>
+                                              </div>
+                                            }
+                                          </div>
+                                        }
+                                      </div>
+                                    }
+                                  </div>
                                 </div>
                               }
 
@@ -467,11 +590,257 @@
                               @if (endpoint.responses) {
                                 <div class="detail-section">
                                   <h4>Réponses</h4>
-                                  <div class="responses-list">
+                                  <div class="responses-accordion">
                                     @for (code of getResponseCodes(endpoint.responses); track code) {
-                                      <div class="response-item" [class.success]="code.startsWith('2')">
-                                        <span class="response-code">{{ code }}</span>
-                                        <span class="response-desc">{{ endpoint.responses[code].description || '-' }}</span>
+                                      @let response = endpoint.responses[code];
+                                      <div class="response-block" [class.expanded]="isResponseExpanded(endpoint, code)">
+                                        <!-- Response Header (clickable) -->
+                                        <button 
+                                          class="response-header"
+                                          [class.success]="code.startsWith('2')"
+                                          [class.error]="code.startsWith('4') || code.startsWith('5')"
+                                          (click)="toggleResponse(endpoint, code)"
+                                        >
+                                          <span class="response-code" [class]="getHttpStatusClass(+code)">{{ code }}</span>
+                                          <span class="response-desc">{{ response.description || '-' }}</span>
+                                          @if (hasResponseSchema(response)) {
+                                            <span class="response-schema-indicator">
+                                              {{ getResponseSchemaType(response) }}
+                                            </span>
+                                          }
+                                          <svg class="chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <polyline points="6 9 12 15 18 9"></polyline>
+                                          </svg>
+                                        </button>
+                                        
+                                        <!-- Response Content (expandable) -->
+                                        @if (isResponseExpanded(endpoint, code)) {
+                                          <div class="response-content">
+                                            @if (hasResponseSchema(response)) {
+                                              <div class="schema-block">
+                                                <!-- Schema Type Header -->
+                                                <div class="schema-header">
+                                                  <span class="schema-label">Type :</span>
+                                                  @if (isResponseSchemaRef(response)) {
+                                                    <span class="schema-type">
+                                                      <a class="schema-link" (click)="scrollToSchema(getResponseSchemaName(response))">
+                                                        {{ getResponseSchemaName(response) }}
+                                                      </a>
+                                                    </span>
+                                                  } @else {
+                                                    <span class="schema-type">{{ getResponseSchemaType(response) }}</span>
+                                                  }
+                                                </div>
+                                                
+                                                <!-- OneOf / AnyOf Options Tabs -->
+                                                @if (hasSchemaOptions(response)) {
+                                                  <div class="schema-options">
+                                                    <div class="schema-options-header">
+                                                      <span class="options-label">{{ getSchemaOptionsType(response) }} :</span>
+                                                      <span class="options-hint">Sélectionnez une option pour voir son schéma</span>
+                                                    </div>
+                                                    <div class="schema-options-tabs">
+                                                      @for (option of getSchemaOptions(response); track option.index) {
+                                                        <button 
+                                                          class="option-tab"
+                                                          [class.active]="getSelectedOptionIndex(endpoint, code) === option.index"
+                                                          (click)="selectSchemaOption(endpoint, code, option.index)"
+                                                        >
+                                                          {{ option.name }}
+                                                        </button>
+                                                      }
+                                                    </div>
+                                                    
+                                                    <!-- Selected Option Properties -->
+                                                    @let selectedOption = getSchemaOptions(response)[getSelectedOptionIndex(endpoint, code)];
+                                                    @if (selectedOption) {
+                                                      <div class="option-content">
+                                                        @if (getOptionProperties(selectedOption.schema).length > 0) {
+                                                          <div class="schema-properties-list">
+                                                            @for (prop of getOptionProperties(selectedOption.schema); track prop.name) {
+                                                              <div class="schema-prop-row" [class.expandable]="hasNestedSchema(prop.schema)" [class.expanded]="isNestedPropExpanded(getNestedContext(endpoint, code + '-' + selectedOption.index, prop.name), prop.name)">
+                                                                <div class="schema-prop-main">
+                                                                  <div class="schema-prop-name">
+                                                                    <code>{{ prop.name }}</code>
+                                                                    @if (prop.required) {
+                                                                      <span class="badge badge-red small">requis</span>
+                                                                    }
+                                                                  </div>
+                                                                  <div class="schema-prop-type">
+                                                                    @if (hasNestedSchema(prop.schema)) {
+                                                                      <button class="nested-expand-btn" (click)="toggleNestedProp(getNestedContext(endpoint, code + '-' + selectedOption.index, prop.name), prop.name)">
+                                                                        <span class="prop-type clickable">{{ prop.type }}</span>
+                                                                        <svg [class.rotated]="isNestedPropExpanded(getNestedContext(endpoint, code + '-' + selectedOption.index, prop.name), prop.name)" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                                          <polyline points="6 9 12 15 18 9"></polyline>
+                                                                        </svg>
+                                                                      </button>
+                                                                    } @else {
+                                                                      <span class="prop-type">{{ prop.type }}</span>
+                                                                    }
+                                                                  </div>
+                                                                  <div class="schema-prop-desc">{{ prop.description || '-' }}</div>
+                                                                </div>
+                                                                
+                                                                <!-- Constraints Details -->
+                                                                @if (hasConstraints(prop.schema)) {
+                                                                  <div class="constraints-row">
+                                                                    @for (constraint of getConstraints(prop.schema); track constraint.label) {
+                                                                      <span class="constraint-badge" [attr.data-type]="constraint.type">
+                                                                        <span class="constraint-label">{{ constraint.label }}:</span>
+                                                                        <span class="constraint-value">{{ constraint.value }}</span>
+                                                                      </span>
+                                                                    }
+                                                                  </div>
+                                                                }
+                                                                
+                                                                <!-- Nested Properties -->
+                                                                @if (hasNestedSchema(prop.schema) && isNestedPropExpanded(getNestedContext(endpoint, code + '-' + selectedOption.index, prop.name), prop.name)) {
+                                                                  <div class="nested-schema">
+                                                                    @if (getNestedSchemaName(prop.schema)) {
+                                                                      <div class="nested-schema-header">
+                                                                        <span class="nested-schema-name">{{ getNestedSchemaName(prop.schema) }}</span>
+                                                                      </div>
+                                                                    }
+                                                                    @if (getNestedSchemaProperties(prop.schema).length > 0) {
+                                                                      <div class="nested-props">
+                                                                        @for (nestedProp of getNestedSchemaProperties(prop.schema); track nestedProp.name) {
+                                                                          <div class="nested-prop-row">
+                                                                            <code class="nested-prop-name">{{ nestedProp.name }}</code>
+                                                                            <span class="prop-type small">{{ nestedProp.type }}</span>
+                                                                            <span class="nested-prop-desc">{{ nestedProp.description || '-' }}</span>
+                                                                          </div>
+                                                                          @if (hasConstraints(nestedProp.schema)) {
+                                                                            <div class="constraints-row nested">
+                                                                              @for (constraint of getConstraints(nestedProp.schema); track constraint.label) {
+                                                                                <span class="constraint-badge small" [attr.data-type]="constraint.type">
+                                                                                  <span class="constraint-label">{{ constraint.label }}:</span>
+                                                                                  <span class="constraint-value">{{ constraint.value }}</span>
+                                                                                </span>
+                                                                              }
+                                                                            </div>
+                                                                          }
+                                                                        }
+                                                                      </div>
+                                                                    } @else {
+                                                                      <p class="nested-no-props">Propriétés non disponibles</p>
+                                                                    }
+                                                                  </div>
+                                                                }
+                                                              </div>
+                                                            }
+                                                          </div>
+                                                        } @else {
+                                                          <p class="no-props">Aucune propriété définie pour cette option.</p>
+                                                        }
+                                                        
+                                                        <!-- Option Example -->
+                                                        @if (getOptionExample(selectedOption.schema)) {
+                                                          <div class="schema-example">
+                                                            <div class="example-header">
+                                                              <span>Exemple ({{ selectedOption.name }})</span>
+                                                              <button class="copy-btn small" (click)="copyCode(getOptionExample(selectedOption.schema))">Copier</button>
+                                                            </div>
+                                                            <pre><code>{{ getOptionExample(selectedOption.schema) }}</code></pre>
+                                                          </div>
+                                                        }
+                                                      </div>
+                                                    }
+                                                  </div>
+                                                } @else {
+                                                  <!-- Simple Schema (no oneOf/anyOf) -->
+                                                  @if (getResponseSchemaProperties(response).length > 0) {
+                                                    <div class="schema-properties-list">
+                                                      @for (prop of getResponseSchemaProperties(response); track prop.name) {
+                                                        <div class="schema-prop-row" [class.expandable]="hasNestedSchema(prop.schema)" [class.expanded]="isNestedPropExpanded(getNestedContext(endpoint, code, prop.name), prop.name)">
+                                                          <div class="schema-prop-main">
+                                                            <div class="schema-prop-name">
+                                                              <code>{{ prop.name }}</code>
+                                                              @if (prop.required) {
+                                                                <span class="badge badge-red small">requis</span>
+                                                              }
+                                                            </div>
+                                                            <div class="schema-prop-type">
+                                                              @if (hasNestedSchema(prop.schema)) {
+                                                                <button class="nested-expand-btn" (click)="toggleNestedProp(getNestedContext(endpoint, code, prop.name), prop.name)">
+                                                                  <span class="prop-type clickable">{{ prop.type }}</span>
+                                                                  <svg [class.rotated]="isNestedPropExpanded(getNestedContext(endpoint, code, prop.name), prop.name)" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                                                  </svg>
+                                                                </button>
+                                                              } @else {
+                                                                <span class="prop-type">{{ prop.type }}</span>
+                                                              }
+                                                            </div>
+                                                            <div class="schema-prop-desc">{{ prop.description || '-' }}</div>
+                                                          </div>
+                                                          
+                                                          <!-- Constraints Details -->
+                                                          @if (hasConstraints(prop.schema)) {
+                                                            <div class="constraints-row">
+                                                              @for (constraint of getConstraints(prop.schema); track constraint.label) {
+                                                                <span class="constraint-badge" [attr.data-type]="constraint.type">
+                                                                  <span class="constraint-label">{{ constraint.label }}:</span>
+                                                                  <span class="constraint-value">{{ constraint.value }}</span>
+                                                                </span>
+                                                              }
+                                                            </div>
+                                                          }
+                                                          
+                                                          <!-- Nested Properties -->
+                                                          @if (hasNestedSchema(prop.schema) && isNestedPropExpanded(getNestedContext(endpoint, code, prop.name), prop.name)) {
+                                                            <div class="nested-schema">
+                                                              @if (getNestedSchemaName(prop.schema)) {
+                                                                <div class="nested-schema-header">
+                                                                  <span class="nested-schema-name">{{ getNestedSchemaName(prop.schema) }}</span>
+                                                                </div>
+                                                              }
+                                                              @if (getNestedSchemaProperties(prop.schema).length > 0) {
+                                                                <div class="nested-props">
+                                                                  @for (nestedProp of getNestedSchemaProperties(prop.schema); track nestedProp.name) {
+                                                                    <div class="nested-prop-row">
+                                                                      <code class="nested-prop-name">{{ nestedProp.name }}</code>
+                                                                      <span class="prop-type small">{{ nestedProp.type }}</span>
+                                                                      <span class="nested-prop-desc">{{ nestedProp.description || '-' }}</span>
+                                                                    </div>
+                                                                    @if (hasConstraints(nestedProp.schema)) {
+                                                                      <div class="constraints-row nested">
+                                                                        @for (constraint of getConstraints(nestedProp.schema); track constraint.label) {
+                                                                          <span class="constraint-badge small" [attr.data-type]="constraint.type">
+                                                                            <span class="constraint-label">{{ constraint.label }}:</span>
+                                                                            <span class="constraint-value">{{ constraint.value }}</span>
+                                                                          </span>
+                                                                        }
+                                                                      </div>
+                                                                    }
+                                                                  }
+                                                                </div>
+                                                              } @else {
+                                                                <p class="nested-no-props">Propriétés non disponibles</p>
+                                                              }
+                                                            </div>
+                                                          }
+                                                        </div>
+                                                      }
+                                                    </div>
+                                                  }
+                                                  
+                                                  <!-- Example -->
+                                                  @if (getResponseExample(response)) {
+                                                    <div class="schema-example">
+                                                      <div class="example-header">
+                                                        <span>Exemple de réponse</span>
+                                                        <button class="copy-btn small" (click)="copyCode(getResponseExample(response))">Copier</button>
+                                                      </div>
+                                                      <pre><code>{{ getResponseExample(response) }}</code></pre>
+                                                    </div>
+                                                  }
+                                                }
+                                              </div>
+                                            } @else {
+                                              <p class="no-schema">Aucun schéma défini pour cette réponse.</p>
+                                            }
+                                          </div>
+                                        }
                                       </div>
                                     }
                                   </div>

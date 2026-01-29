@@ -76,6 +76,27 @@ interface SchemaRef {
   $ref?: string;
   properties?: Record<string, SchemaRef>;
   example?: any;
+  examples?: any[];
+  required?: string[];
+  default?: any;
+  enum?: any[];
+  minimum?: number;
+  maximum?: number;
+  exclusiveMinimum?: number;
+  exclusiveMaximum?: number;
+  minLength?: number;
+  maxLength?: number;
+  minItems?: number;
+  maxItems?: number;
+  pattern?: string;
+  oneOf?: SchemaRef[];
+  anyOf?: SchemaRef[];
+  allOf?: SchemaRef[];
+  title?: string;
+  description?: string;
+  nullable?: boolean;
+  readOnly?: boolean;
+  writeOnly?: boolean;
 }
 
 /**
@@ -271,6 +292,18 @@ export class ApiDetailComponent implements OnInit, OnDestroy {
   // API Thumbnail URL (object URL from Blob)
   apiThumbnailUrl: string | null = null;
 
+  // Response accordion state
+  expandedResponses: Record<string, boolean> = {};
+  
+  // Parameter schema accordion state
+  expandedParams: Record<string, boolean> = {};
+  
+  // Nested property expansion state
+  expandedNestedProps: Record<string, boolean> = {};
+
+  // OneOf/AnyOf option selection
+  expandedOneOfOptions: Record<string, number> = {};
+
   constructor(
     private router: Router,
     private cdr: ChangeDetectorRef,
@@ -410,7 +443,16 @@ export class ApiDetailComponent implements OnInit, OnDestroy {
           // Merge path-level parameters with operation parameters
           const pathParams = pathItem.parameters || [];
           const operationParams = operation.parameters || [];
-          const allParams = [...pathParams, ...operationParams];
+          const allParamsRaw = [...pathParams, ...operationParams];
+          
+          // Resolve $ref parameters
+          const allParams = allParamsRaw.map(param => this.resolveParameter(param, spec));
+          
+          // Resolve $ref in responses
+          const resolvedResponses = this.resolveResponses(operation.responses || {}, spec);
+          
+          // Resolve $ref in requestBody
+          const resolvedRequestBody = this.resolveRequestBody(operation.requestBody, spec);
           
           endpoints.push({
             method: method.toUpperCase(),
@@ -420,8 +462,8 @@ export class ApiDetailComponent implements OnInit, OnDestroy {
             operationId: operation.operationId,
             tags: operation.tags || ['default'],
             parameters: allParams,
-            requestBody: operation.requestBody,
-            responses: operation.responses || {},
+            requestBody: resolvedRequestBody,
+            responses: resolvedResponses,
             security: operation.security,
             expanded: false
           });
@@ -430,6 +472,70 @@ export class ApiDetailComponent implements OnInit, OnDestroy {
     }
     
     return endpoints;
+  }
+
+  /**
+   * Resolve a parameter that might be a $ref
+   */
+  resolveParameter(param: any, spec: any): ParameterDef {
+    if (param.$ref) {
+      const resolved = this.resolveRefFromSpec(param.$ref, spec);
+      if (resolved) {
+        return resolved as ParameterDef;
+      }
+      const paramName = param.$ref.split('/').pop() || 'unknown';
+      return {
+        name: paramName,
+        in: 'header',
+        description: `Reference: ${param.$ref}`,
+        required: false
+      };
+    }
+    return param as ParameterDef;
+  }
+
+  /**
+   * Resolve $ref in responses object
+   */
+  resolveResponses(responses: Record<string, any>, spec: any): Record<string, any> {
+    const resolved: Record<string, any> = {};
+    for (const [code, response] of Object.entries(responses)) {
+      if (response.$ref) {
+        const resolvedResponse = this.resolveRefFromSpec(response.$ref, spec);
+        resolved[code] = resolvedResponse || response;
+      } else {
+        resolved[code] = response;
+      }
+    }
+    return resolved;
+  }
+
+  /**
+   * Resolve $ref in requestBody
+   */
+  resolveRequestBody(requestBody: any, spec: any): any {
+    if (!requestBody) return null;
+    if (requestBody.$ref) {
+      return this.resolveRefFromSpec(requestBody.$ref, spec) || requestBody;
+    }
+    return requestBody;
+  }
+
+  /**
+   * Resolve a $ref path from the OpenAPI spec
+   */
+  resolveRefFromSpec(refPath: string, spec: any): any {
+    if (!refPath.startsWith('#/')) return null;
+    const pathParts = refPath.substring(2).split('/');
+    let current = spec;
+    for (const part of pathParts) {
+      if (current && typeof current === 'object' && part in current) {
+        current = current[part];
+      } else {
+        return null;
+      }
+    }
+    return current;
   }
 
   groupEndpointsByTag(spec: any, endpoints: ParsedEndpoint[]): TagGroup[] {
@@ -1997,10 +2103,10 @@ export class ApiDetailComponent implements OnInit, OnDestroy {
   }
 
   getParamTypeLabel(param: ParameterDef): string {
-    if (param.schema?.type) {
-      return param.schema.type;
+    if (!param.schema) {
+      return param.type || 'string';
     }
-    return param.type || 'string';
+    return this.getSchemaDisplayType(param.schema);
   }
   
   getParamsByType(type: 'path' | 'query' | 'header' | 'cookie'): ParameterDef[] {
@@ -2013,7 +2119,6 @@ export class ApiDetailComponent implements OnInit, OnDestroy {
   }
 
   getSecurityInfo(endpoint: ParsedEndpoint): string {
-    // Check if endpoint requires authentication
     if (endpoint.security && endpoint.security.length > 0) {
       return 'Authentification requise';
     }
@@ -2026,5 +2131,782 @@ export class ApiDetailComponent implements OnInit, OnDestroy {
 
   trackByName(index: number, group: TagGroup): string {
     return group.name;
+  }
+
+  // ========================================
+  // SCHEMA RESOLUTION METHODS
+  // ========================================
+
+  resolveRef(ref: string): any {
+    if (!ref || !this.swaggerSpec) return null;
+    const parts = ref.replace('#/', '').split('/');
+    let result = this.swaggerSpec;
+    for (const part of parts) {
+      if (result && result[part]) {
+        result = result[part];
+      } else {
+        return null;
+      }
+    }
+    return result;
+  }
+
+  getSchemaNameFromRef(ref: string): string {
+    if (!ref) return '';
+    const parts = ref.split('/');
+    return parts[parts.length - 1];
+  }
+
+  resolveSchema(schema: any): any {
+    if (!schema) return null;
+    if (schema.$ref) {
+      return this.resolveRef(schema.$ref);
+    }
+    return schema;
+  }
+
+  getSchemaDisplayType(schema: any): string {
+    if (!schema) return 'any';
+    if (schema.$ref) {
+      return this.getSchemaNameFromRef(schema.$ref);
+    }
+    const resolved = this.resolveSchema(schema);
+    if (!resolved) return 'any';
+    if (resolved.type === 'array' && resolved.items) {
+      const itemType = this.getSchemaDisplayType(resolved.items);
+      return `${itemType}[]`;
+    }
+    if (resolved.oneOf) {
+      return resolved.oneOf.map((s: any) => this.getSchemaDisplayType(s)).join(' | ');
+    }
+    if (resolved.anyOf) {
+      return resolved.anyOf.map((s: any) => this.getSchemaDisplayType(s)).join(' | ');
+    }
+    if (resolved.allOf) {
+      return 'object';
+    }
+    return resolved.type || 'object';
+  }
+
+  getSchemaProperties(schema: any): { name: string; type: string; required: boolean; description: string; schema?: any }[] {
+    const resolved = this.resolveSchema(schema);
+    if (!resolved) return [];
+    
+    if (resolved.oneOf && Array.isArray(resolved.oneOf)) {
+      for (const option of resolved.oneOf) {
+        const optionResolved = this.resolveSchema(option);
+        if (optionResolved?.properties) {
+          const required = optionResolved.required || [];
+          return Object.entries(optionResolved.properties).map(([name, prop]: [string, any]) => ({
+            name,
+            type: this.getSchemaDisplayType(prop),
+            required: required.includes(name),
+            description: prop.description || '',
+            schema: prop
+          }));
+        }
+      }
+      return [];
+    }
+    
+    if (resolved.anyOf && Array.isArray(resolved.anyOf)) {
+      for (const option of resolved.anyOf) {
+        const optionResolved = this.resolveSchema(option);
+        if (optionResolved?.properties) {
+          const required = optionResolved.required || [];
+          return Object.entries(optionResolved.properties).map(([name, prop]: [string, any]) => ({
+            name,
+            type: this.getSchemaDisplayType(prop),
+            required: required.includes(name),
+            description: prop.description || '',
+            schema: prop
+          }));
+        }
+      }
+      return [];
+    }
+    
+    if (resolved.allOf && Array.isArray(resolved.allOf)) {
+      const mergedProperties: Record<string, any> = {};
+      const mergedRequired: string[] = [];
+      for (const subSchema of resolved.allOf) {
+        const subResolved = this.resolveSchema(subSchema);
+        if (subResolved?.properties) {
+          Object.assign(mergedProperties, subResolved.properties);
+        }
+        if (subResolved?.required) {
+          mergedRequired.push(...subResolved.required);
+        }
+      }
+      if (Object.keys(mergedProperties).length > 0) {
+        return Object.entries(mergedProperties).map(([name, prop]: [string, any]) => ({
+          name,
+          type: this.getSchemaDisplayType(prop),
+          required: mergedRequired.includes(name),
+          description: prop.description || '',
+          schema: prop
+        }));
+      }
+      return [];
+    }
+    
+    if (!resolved.properties) return [];
+    const required = resolved.required || [];
+    return Object.entries(resolved.properties).map(([name, prop]: [string, any]) => ({
+      name,
+      type: this.getSchemaDisplayType(prop),
+      required: required.includes(name),
+      description: prop.description || '',
+      schema: prop
+    }));
+  }
+
+  // ========================================
+  // REQUEST BODY METHODS
+  // ========================================
+
+  getRequestBodySchema(requestBody: RequestBodyDef | undefined): any {
+    if (!requestBody?.content) return null;
+    const jsonContent = requestBody.content['application/json'];
+    if (jsonContent?.schema) return jsonContent.schema;
+    const firstContent = Object.values(requestBody.content)[0];
+    return firstContent?.schema || null;
+  }
+
+  getRequestBodyExample(requestBody: RequestBodyDef | undefined): string {
+    if (!requestBody?.content) return '';
+    const jsonContent = requestBody.content['application/json'];
+    if (jsonContent?.example) {
+      return JSON.stringify(jsonContent.example, null, 2);
+    }
+    const schema = this.getRequestBodySchema(requestBody);
+    if (schema) {
+      return this.generateExampleFromSchemaResolved(schema);
+    }
+    return '{\n  // Request body\n}';
+  }
+
+  // ========================================
+  // RESPONSE SCHEMA METHODS
+  // ========================================
+
+  getResponseSchema(response: ResponseDef | undefined): any {
+    if (!response?.content) return null;
+    const jsonContent = response.content['application/json'];
+    if (jsonContent?.schema) return jsonContent.schema;
+    const firstContent = Object.values(response.content)[0];
+    return firstContent?.schema || null;
+  }
+
+  getResponseExample(response: ResponseDef | undefined): string {
+    if (!response?.content) return '';
+    const jsonContent = response.content['application/json'];
+    if (jsonContent?.example) {
+      return JSON.stringify(jsonContent.example, null, 2);
+    }
+    const schema = this.getResponseSchema(response);
+    if (schema) {
+      return this.generateExampleFromSchemaResolved(schema);
+    }
+    return '';
+  }
+
+  hasResponseSchema(response: ResponseDef | undefined): boolean {
+    return !!this.getResponseSchema(response);
+  }
+
+  isResponseExpanded(endpoint: ParsedEndpoint, code: string): boolean {
+    const key = endpoint.path + endpoint.method + code;
+    return this.expandedResponses[key] || false;
+  }
+
+  getResponseSchemaType(response: ResponseDef | undefined): string {
+    const schema = this.getResponseSchema(response);
+    if (!schema) return '';
+    return this.getSchemaDisplayType(schema);
+  }
+
+  isResponseSchemaRef(response: ResponseDef | undefined): boolean {
+    const schema = this.getResponseSchema(response);
+    return schema && !!schema.$ref;
+  }
+
+  getResponseSchemaName(response: ResponseDef | undefined): string {
+    const schema = this.getResponseSchema(response);
+    if (schema?.$ref) {
+      return this.getSchemaNameFromRef(schema.$ref);
+    }
+    return '';
+  }
+
+  getResponseSchemaProperties(response: ResponseDef | undefined): { name: string; type: string; required: boolean; description: string; schema?: any }[] {
+    const schema = this.getResponseSchema(response);
+    if (!schema) return [];
+    return this.getSchemaProperties(schema);
+  }
+
+  toggleResponse(endpoint: ParsedEndpoint, code: string): void {
+    const key = endpoint.path + endpoint.method + code;
+    this.expandedResponses[key] = !this.expandedResponses[key];
+    this.cdr.detectChanges();
+  }
+
+  scrollToSchema(schemaName: string): void {
+    console.log('Navigate to schema:', schemaName);
+  }
+
+  // ========================================
+  // ONEOF / ANYOF OPTIONS
+  // ========================================
+
+  /**
+   * Check if response schema has oneOf/anyOf options
+   */
+  hasSchemaOptions(response: ResponseDef | undefined): boolean {
+    const schema = this.getResponseSchema(response);
+    if (!schema) return false;
+    const resolved = this.resolveSchema(schema);
+    return !!(resolved?.oneOf || resolved?.anyOf);
+  }
+
+  /**
+   * Get oneOf/anyOf options for a response schema
+   */
+  getSchemaOptions(response: ResponseDef | undefined): { index: number; name: string; schema: any }[] {
+    const schema = this.getResponseSchema(response);
+    if (!schema) return [];
+    const resolved = this.resolveSchema(schema);
+    
+    const options = resolved?.oneOf || resolved?.anyOf || [];
+    return options.map((opt: any, index: number) => {
+      let name = '';
+      if (opt.$ref) {
+        name = this.getSchemaNameFromRef(opt.$ref);
+      } else if (opt.title) {
+        name = opt.title;
+      } else {
+        const resolvedOpt = this.resolveSchema(opt);
+        name = resolvedOpt?.title || `Option ${index + 1}`;
+      }
+      return { index, name, schema: opt };
+    });
+  }
+
+  /**
+   * Get the type label (oneOf or anyOf)
+   */
+  getSchemaOptionsType(response: ResponseDef | undefined): string {
+    const schema = this.getResponseSchema(response);
+    if (!schema) return '';
+    const resolved = this.resolveSchema(schema);
+    if (resolved?.oneOf) return 'oneOf';
+    if (resolved?.anyOf) return 'anyOf';
+    return '';
+  }
+
+  /**
+   * Get selected option index for a response
+   */
+  getSelectedOptionIndex(endpoint: ParsedEndpoint, code: string): number {
+    const key = `${endpoint.method}-${endpoint.path}-${code}`;
+    return this.expandedOneOfOptions[key] ?? 0;
+  }
+
+  /**
+   * Select a oneOf/anyOf option
+   */
+  selectSchemaOption(endpoint: ParsedEndpoint, code: string, index: number): void {
+    const key = `${endpoint.method}-${endpoint.path}-${code}`;
+    this.expandedOneOfOptions[key] = index;
+    this.cdr.detectChanges();
+  }
+
+  /**
+   * Get properties for a specific option
+   */
+  getOptionProperties(optionSchema: any): { name: string; type: string; required: boolean; description: string; schema?: any }[] {
+    return this.getSchemaProperties(optionSchema);
+  }
+
+  /**
+   * Generate example for a specific option
+   */
+  getOptionExample(optionSchema: any): string {
+    return this.generateExampleFromSchemaResolved(optionSchema);
+  }
+
+  // ========================================
+  // PROPERTY CONSTRAINTS
+  // ========================================
+
+  /**
+   * Check if a property has constraints
+   */
+  hasConstraints(propSchema: any): boolean {
+    if (!propSchema) return false;
+    const resolved = this.resolveSchema(propSchema);
+    if (!resolved) return false;
+    
+    return !!(
+      resolved.minimum !== undefined ||
+      resolved.maximum !== undefined ||
+      resolved.exclusiveMinimum !== undefined ||
+      resolved.exclusiveMaximum !== undefined ||
+      resolved.minLength !== undefined ||
+      resolved.maxLength !== undefined ||
+      resolved.minItems !== undefined ||
+      resolved.maxItems !== undefined ||
+      resolved.pattern ||
+      resolved.format ||
+      resolved.enum ||
+      resolved.nullable ||
+      resolved.readOnly ||
+      resolved.writeOnly ||
+      resolved.default !== undefined
+    );
+  }
+
+  /**
+   * Get formatted constraints for a property
+   */
+  getConstraints(propSchema: any): { label: string; value: string; type: 'range' | 'format' | 'pattern' | 'enum' | 'flag' | 'default' }[] {
+    if (!propSchema) return [];
+    const resolved = this.resolveSchema(propSchema);
+    if (!resolved) return [];
+    
+    const constraints: { label: string; value: string; type: 'range' | 'format' | 'pattern' | 'enum' | 'flag' | 'default' }[] = [];
+    
+    // Number constraints
+    if (resolved.minimum !== undefined || resolved.maximum !== undefined) {
+      const min = resolved.minimum !== undefined ? resolved.minimum : '-∞';
+      const max = resolved.maximum !== undefined ? resolved.maximum : '+∞';
+      constraints.push({ label: 'Intervalle', value: `[${min}, ${max}]`, type: 'range' });
+    }
+    
+    if (resolved.exclusiveMinimum !== undefined || resolved.exclusiveMaximum !== undefined) {
+      const min = resolved.exclusiveMinimum !== undefined ? resolved.exclusiveMinimum : '-∞';
+      const max = resolved.exclusiveMaximum !== undefined ? resolved.exclusiveMaximum : '+∞';
+      constraints.push({ label: 'Intervalle', value: `]${min}, ${max}[`, type: 'range' });
+    }
+    
+    // String length constraints
+    if (resolved.minLength !== undefined || resolved.maxLength !== undefined) {
+      const min = resolved.minLength ?? 0;
+      const max = resolved.maxLength ?? '∞';
+      constraints.push({ label: 'Longueur', value: `${min} - ${max}`, type: 'range' });
+    }
+    
+    // Array constraints
+    if (resolved.minItems !== undefined || resolved.maxItems !== undefined) {
+      const min = resolved.minItems ?? 0;
+      const max = resolved.maxItems ?? '∞';
+      constraints.push({ label: 'Nb éléments', value: `${min} - ${max}`, type: 'range' });
+    }
+    
+    // Format
+    if (resolved.format) {
+      constraints.push({ label: 'Format', value: resolved.format, type: 'format' });
+    }
+    
+    // Pattern
+    if (resolved.pattern) {
+      constraints.push({ label: 'Pattern', value: resolved.pattern, type: 'pattern' });
+    }
+    
+    // Enum
+    if (resolved.enum && resolved.enum.length > 0) {
+      constraints.push({ label: 'Valeurs', value: resolved.enum.join(', '), type: 'enum' });
+    }
+    
+    // Flags
+    if (resolved.nullable) {
+      constraints.push({ label: 'Nullable', value: 'oui', type: 'flag' });
+    }
+    if (resolved.readOnly) {
+      constraints.push({ label: 'Lecture seule', value: 'oui', type: 'flag' });
+    }
+    if (resolved.writeOnly) {
+      constraints.push({ label: 'Écriture seule', value: 'oui', type: 'flag' });
+    }
+    
+    // Default value
+    if (resolved.default !== undefined) {
+      const defaultVal = typeof resolved.default === 'object' 
+        ? JSON.stringify(resolved.default) 
+        : String(resolved.default);
+      constraints.push({ label: 'Défaut', value: defaultVal, type: 'default' });
+    }
+    
+    return constraints;
+  }
+
+  /**
+   * Get a short constraint summary for inline display
+   */
+  getConstraintsSummary(propSchema: any): string {
+    if (!propSchema) return '';
+    const resolved = this.resolveSchema(propSchema);
+    if (!resolved) return '';
+    
+    const parts: string[] = [];
+    
+    // Length/Range
+    if (resolved.minLength !== undefined || resolved.maxLength !== undefined) {
+      const min = resolved.minLength ?? 0;
+      const max = resolved.maxLength ?? '∞';
+      parts.push(`len: ${min}-${max}`);
+    }
+    
+    if (resolved.minimum !== undefined || resolved.maximum !== undefined) {
+      const min = resolved.minimum ?? '-∞';
+      const max = resolved.maximum ?? '+∞';
+      parts.push(`${min}..${max}`);
+    }
+    
+    if (resolved.format) {
+      parts.push(resolved.format);
+    }
+    
+    if (resolved.pattern) {
+      parts.push('regex');
+    }
+    
+    if (resolved.enum && resolved.enum.length > 0 && resolved.enum.length <= 3) {
+      parts.push(resolved.enum.join('|'));
+    } else if (resolved.enum && resolved.enum.length > 3) {
+      parts.push(`${resolved.enum.length} valeurs`);
+    }
+    
+    return parts.join(' · ');
+  }
+
+  // ========================================
+  // EXAMPLE GENERATION
+  // ========================================
+
+  generateExampleFromSchemaResolved(schema: any, depth: number = 0): string {
+    if (depth > 5) return '"..."';
+    const resolved = this.resolveSchema(schema);
+    if (!resolved) return '{}';
+    
+    if (resolved.example !== undefined) {
+      return JSON.stringify(resolved.example, null, 2);
+    }
+    if (resolved.examples && Array.isArray(resolved.examples) && resolved.examples.length > 0) {
+      return JSON.stringify(resolved.examples[0], null, 2);
+    }
+    
+    if (resolved.oneOf && Array.isArray(resolved.oneOf) && resolved.oneOf.length > 0) {
+      for (const option of resolved.oneOf) {
+        const resolvedOption = this.resolveSchema(option);
+        if (resolvedOption?.example) {
+          return JSON.stringify(resolvedOption.example, null, 2);
+        }
+        if (resolvedOption?.examples && Array.isArray(resolvedOption.examples) && resolvedOption.examples.length > 0) {
+          return JSON.stringify(resolvedOption.examples[0], null, 2);
+        }
+      }
+      return this.generateExampleFromSchemaResolved(resolved.oneOf[0], depth + 1);
+    }
+    
+    if (resolved.anyOf && Array.isArray(resolved.anyOf) && resolved.anyOf.length > 0) {
+      return this.generateExampleFromSchemaResolved(resolved.anyOf[0], depth + 1);
+    }
+    
+    if (resolved.allOf && Array.isArray(resolved.allOf) && resolved.allOf.length > 0) {
+      const mergedObj: Record<string, any> = {};
+      for (const subSchema of resolved.allOf) {
+        const resolvedSub = this.resolveSchema(subSchema);
+        if (resolvedSub?.properties) {
+          for (const [key, prop] of Object.entries(resolvedSub.properties) as [string, any][]) {
+            mergedObj[key] = this.generateExampleValueResolved(prop, depth + 1);
+          }
+        }
+      }
+      return JSON.stringify(mergedObj, null, 2);
+    }
+    
+    if (resolved.type === 'object' && resolved.properties) {
+      const obj: Record<string, any> = {};
+      for (const [key, prop] of Object.entries(resolved.properties) as [string, any][]) {
+        obj[key] = this.generateExampleValueResolved(prop, depth + 1);
+      }
+      return JSON.stringify(obj, null, 2);
+    }
+    
+    if (resolved.type === 'array' && resolved.items) {
+      const item = this.generateExampleValueResolved(resolved.items, depth + 1);
+      return JSON.stringify([item], null, 2);
+    }
+    
+    if (resolved.properties && !resolved.type) {
+      const obj: Record<string, any> = {};
+      for (const [key, prop] of Object.entries(resolved.properties) as [string, any][]) {
+        obj[key] = this.generateExampleValueResolved(prop, depth + 1);
+      }
+      return JSON.stringify(obj, null, 2);
+    }
+    
+    return JSON.stringify(this.generateExampleValueResolved(resolved, depth), null, 2);
+  }
+
+  private generateExampleValueResolved(schema: any, depth: number = 0): any {
+    if (depth > 5) return '...';
+    const resolved = this.resolveSchema(schema);
+    if (!resolved) return null;
+    
+    if (resolved.example !== undefined) return resolved.example;
+    if (resolved.default !== undefined) return resolved.default;
+    if (resolved.examples && Array.isArray(resolved.examples) && resolved.examples.length > 0) {
+      return resolved.examples[0];
+    }
+    
+    if (resolved.oneOf && Array.isArray(resolved.oneOf) && resolved.oneOf.length > 0) {
+      return this.generateExampleValueResolved(resolved.oneOf[0], depth + 1);
+    }
+    if (resolved.anyOf && Array.isArray(resolved.anyOf) && resolved.anyOf.length > 0) {
+      return this.generateExampleValueResolved(resolved.anyOf[0], depth + 1);
+    }
+    if (resolved.allOf && Array.isArray(resolved.allOf) && resolved.allOf.length > 0) {
+      const mergedObj: Record<string, any> = {};
+      for (const subSchema of resolved.allOf) {
+        const resolvedSub = this.resolveSchema(subSchema);
+        if (resolvedSub?.properties) {
+          for (const [key, prop] of Object.entries(resolvedSub.properties) as [string, any][]) {
+            mergedObj[key] = this.generateExampleValueResolved(prop, depth + 1);
+          }
+        }
+      }
+      return mergedObj;
+    }
+    
+    switch (resolved.type) {
+      case 'string':
+        if (resolved.format === 'date') return '2024-01-15';
+        if (resolved.format === 'date-time') return '2024-01-15T10:30:00Z';
+        if (resolved.format === 'email') return 'user@example.com';
+        if (resolved.format === 'uuid') return '550e8400-e29b-41d4-a716-446655440000';
+        if (resolved.format === 'uri') return 'https://example.com';
+        if (resolved.enum) return resolved.enum[0];
+        return 'string';
+      case 'integer':
+      case 'number':
+        if (resolved.minimum !== undefined) return resolved.minimum;
+        return 0;
+      case 'boolean':
+        return true;
+      case 'array':
+        if (resolved.items) {
+          return [this.generateExampleValueResolved(resolved.items, depth + 1)];
+        }
+        return [];
+      case 'object':
+        if (resolved.properties) {
+          const obj: Record<string, any> = {};
+          for (const [key, prop] of Object.entries(resolved.properties) as [string, any][]) {
+            obj[key] = this.generateExampleValueResolved(prop, depth + 1);
+          }
+          return obj;
+        }
+        return {};
+      default:
+        if (resolved.properties) {
+          const obj: Record<string, any> = {};
+          for (const [key, prop] of Object.entries(resolved.properties) as [string, any][]) {
+            obj[key] = this.generateExampleValueResolved(prop, depth + 1);
+          }
+          return obj;
+        }
+        return null;
+    }
+  }
+
+  // ========================================
+  // NESTED PROPERTY METHODS
+  // ========================================
+
+  hasNestedSchema(propSchema: any): boolean {
+    if (!propSchema) return false;
+    const resolved = this.resolveSchema(propSchema);
+    if (!resolved) return false;
+    if (propSchema.$ref) return true;
+    if (resolved.type === 'object' && resolved.properties) return true;
+    if (resolved.type === 'array' && resolved.items) {
+      const itemsResolved = this.resolveSchema(resolved.items);
+      if (resolved.items.$ref) return true;
+      if (itemsResolved?.type === 'object' && itemsResolved?.properties) return true;
+    }
+    if (resolved.oneOf || resolved.anyOf || resolved.allOf) return true;
+    return false;
+  }
+
+  getNestedSchema(propSchema: any): any {
+    if (!propSchema) return null;
+    const resolved = this.resolveSchema(propSchema);
+    if (!resolved) return null;
+    if (resolved.type === 'array' && resolved.items) {
+      return resolved.items;
+    }
+    return propSchema;
+  }
+
+  getNestedSchemaProperties(propSchema: any): { name: string; type: string; required: boolean; description: string; schema?: any }[] {
+    const nestedSchema = this.getNestedSchema(propSchema);
+    if (!nestedSchema) return [];
+    return this.getSchemaProperties(nestedSchema);
+  }
+
+  getNestedSchemaName(propSchema: any): string {
+    if (!propSchema) return '';
+    if (propSchema.$ref) {
+      return this.getSchemaNameFromRef(propSchema.$ref);
+    }
+    const resolved = this.resolveSchema(propSchema);
+    if (resolved?.type === 'array' && resolved.items?.$ref) {
+      return this.getSchemaNameFromRef(resolved.items.$ref);
+    }
+    if (resolved?.type === 'array' && resolved.items?.title) {
+      return resolved.items.title;
+    }
+    if (resolved?.title) {
+      return resolved.title;
+    }
+    return '';
+  }
+
+  toggleNestedProp(context: string, propName: string): void {
+    const key = `${context}-${propName}`;
+    this.expandedNestedProps[key] = !this.expandedNestedProps[key];
+    this.cdr.detectChanges();
+  }
+
+  isNestedPropExpanded(context: string, propName: string): boolean {
+    const key = `${context}-${propName}`;
+    return this.expandedNestedProps[key] || false;
+  }
+
+  getNestedContext(endpoint: ParsedEndpoint, code: string, propName: string): string {
+    return `${endpoint.method}-${endpoint.path}-${code}-${propName}`;
+  }
+
+  getParamNestedContext(endpoint: ParsedEndpoint, paramName: string, propName: string): string {
+    return `param-${endpoint.method}-${endpoint.path}-${paramName}-${propName}`;
+  }
+
+  // ========================================
+  // PARAMETER SCHEMA METHODS
+  // ========================================
+
+  hasComplexParamSchema(param: ParameterDef): boolean {
+    if (!param.schema) return false;
+    const schema = param.schema;
+    if (schema.$ref) return true;
+    if (schema.type === 'object' && schema.properties) return true;
+    if (schema.type === 'array' && schema.items) {
+      if (schema.items.$ref) return true;
+      if (schema.items.type === 'object' && schema.items.properties) return true;
+    }
+    if (schema.oneOf || schema.anyOf || schema.allOf) return true;
+    if (schema.enum && schema.enum.length > 0) return true;
+    return false;
+  }
+
+  getParamSchema(param: ParameterDef): any {
+    if (!param.schema) return null;
+    return this.resolveSchema(param.schema);
+  }
+
+  getParamSchemaProperties(param: ParameterDef): { name: string; type: string; required: boolean; description: string; schema?: any }[] {
+    if (!param.schema) return [];
+    return this.getSchemaProperties(param.schema);
+  }
+
+  isParamSchemaRef(param: ParameterDef): boolean {
+    return param.schema?.$ref ? true : false;
+  }
+
+  getParamSchemaName(param: ParameterDef): string | null {
+    if (param.schema?.$ref) {
+      return this.getSchemaNameFromRef(param.schema.$ref);
+    }
+    return null;
+  }
+
+  getParamExample(param: ParameterDef): string {
+    if (!param.schema) {
+      if (param.example !== undefined) {
+        return typeof param.example === 'object' 
+          ? JSON.stringify(param.example, null, 2) 
+          : String(param.example);
+      }
+      return '';
+    }
+    if (param.schema.example !== undefined) {
+      return typeof param.schema.example === 'object'
+        ? JSON.stringify(param.schema.example, null, 2)
+        : String(param.schema.example);
+    }
+    const example = this.generateExampleFromSchemaResolved(param.schema, 0);
+    if (example === null || example === undefined) return '';
+    return typeof example === 'object'
+      ? JSON.stringify(example, null, 2)
+      : String(example);
+  }
+
+  hasParamEnum(param: ParameterDef): boolean {
+    return !!(param.schema?.enum && param.schema.enum.length > 0);
+  }
+
+  getParamEnumValues(param: ParameterDef): string[] {
+    return param.schema?.enum || [];
+  }
+
+  /**
+   * Check if parameter has constraints (excluding enum which is shown separately)
+   */
+  hasParamConstraints(param: ParameterDef): boolean {
+    if (!param.schema) return false;
+    const schema = param.schema;
+    return !!(
+      schema.minimum !== undefined ||
+      schema.maximum !== undefined ||
+      schema.exclusiveMinimum !== undefined ||
+      schema.exclusiveMaximum !== undefined ||
+      schema.minLength !== undefined ||
+      schema.maxLength !== undefined ||
+      schema.minItems !== undefined ||
+      schema.maxItems !== undefined ||
+      schema.pattern ||
+      schema.format ||
+      schema.enum ||
+      schema.nullable ||
+      schema.default !== undefined
+    );
+  }
+
+  /**
+   * Check if parameter has enum in constraints (to avoid duplicate display)
+   */
+  hasParamConstraintsWithEnum(param: ParameterDef): boolean {
+    return this.hasParamConstraints(param) && this.hasParamEnum(param);
+  }
+
+  /**
+   * Get constraints for a parameter
+   */
+  getParamConstraints(param: ParameterDef): { label: string; value: string; type: 'range' | 'format' | 'pattern' | 'enum' | 'flag' | 'default' }[] {
+    if (!param.schema) return [];
+    return this.getConstraints(param.schema);
+  }
+
+  toggleParamSchema(endpoint: ParsedEndpoint, paramName: string): void {
+    const key = `${endpoint.method}-${endpoint.path}-${paramName}`;
+    this.expandedParams[key] = !this.expandedParams[key];
+    this.cdr.detectChanges();
+  }
+
+  isParamSchemaExpanded(endpoint: ParsedEndpoint, paramName: string): boolean {
+    const key = `${endpoint.method}-${endpoint.path}-${paramName}`;
+    return this.expandedParams[key] || false;
   }
 }
