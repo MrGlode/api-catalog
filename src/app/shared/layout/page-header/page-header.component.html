@@ -48,6 +48,33 @@
     <!-- Right Actions -->
     <div class="header-actions">
       
+      <!-- Search Button -->
+      <button 
+        class="search-trigger"
+        [class.ready]="isSearchAvailable"
+        [class.indexing]="isSearchIndexing"
+        [disabled]="!isSearchAvailable"
+        (click)="openSearch()"
+        [title]="isSearchAvailable ? 'Rechercher' : 'Indexation en cours...'"
+      >
+        <svg class="search-icon" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/>
+        </svg>
+        
+        @if (isSearchIndexing) {
+          <span class="search-text">
+            <span class="indexing-dots">
+              <span></span><span></span><span></span>
+            </span>
+            {{ indexingProgress }}%
+          </span>
+        } @else if (isSearchAvailable) {
+          <span class="search-text">Rechercher</span>
+        } @else {
+          <span class="search-text">Chargement...</span>
+        }
+      </button>
+      
       @if (isAuthenticated$ | async) {
         <!-- User Menu -->
         <div class="user-menu-container">
@@ -60,14 +87,25 @@
             <div class="user-dropdown">
               <div class="dropdown-header">
                 <span class="dropdown-username">{{ currentUser$ | async }}</span>
-                <span class="dropdown-email">Connecté</span>
               </div>
               <div class="dropdown-divider"></div>
+              <a routerLink="/profile" class="dropdown-item" (click)="closeUserMenu()">
+                <svg viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
+                </svg>
+                Mon profil
+              </a>
               <a routerLink="/applications" class="dropdown-item" (click)="closeUserMenu()">
                 <svg viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"/>
+                  <path fill-rule="evenodd" d="M3 5a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2h-2.22l.123.489.804.321A1.5 1.5 0 0113 17.5H7a1.5 1.5 0 01-.577-2.883l.804-.321.123-.489H5a2 2 0 01-2-2V5zm9 4a1 1 0 01-1 1H9a1 1 0 110-2h2a1 1 0 011 1z" clip-rule="evenodd"/>
                 </svg>
                 Mes applications
+              </a>
+              <a routerLink="/subscriptions" class="dropdown-item" (click)="closeUserMenu()">
+                <svg viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM14 11a1 1 0 011 1v1h1a1 1 0 110 2h-1v1a1 1 0 11-2 0v-1h-1a1 1 0 110-2h1v-1a1 1 0 011-1z"/>
+                </svg>
+                Mes souscriptions
               </a>
               <div class="dropdown-divider"></div>
               <button class="dropdown-item dropdown-item-danger" (click)="logout()">
@@ -80,19 +118,13 @@
           }
         </div>
       } @else {
-        <!-- Auth Links -->
-        <nav class="header-nav">
-          <a routerLink="/register" routerLinkActive="active" class="nav-link">
-            S'inscrire
-          </a>
-          <a routerLink="/login" routerLinkActive="active" class="nav-link">
-            Se connecter
-          </a>
-        </nav>
+        <!-- Auth Buttons -->
+        <a routerLink="/register" class="btn-register">S'inscrire</a>
+        <a routerLink="/login" class="btn-login">Se connecter</a>
       }
-
+      
       <!-- Mobile Menu Toggle -->
-      <button class="mobile-menu-toggle" (click)="toggleMobileMenu()">
+      <button class="mobile-menu-btn" (click)="toggleMobileMenu()">
         @if (showMobileMenu) {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M6 18L18 6M6 6l12 12" stroke-linecap="round"/>
@@ -136,6 +168,23 @@
       >
         Documentation
       </a>
+      
+      <!-- Mobile Search Button -->
+      <button 
+        class="mobile-nav-link mobile-search-btn"
+        [disabled]="!isSearchAvailable"
+        (click)="openSearch(); closeMobileMenu()"
+      >
+        <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+          <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/>
+        </svg>
+        @if (isSearchIndexing) {
+          Recherche ({{ indexingProgress }}%)
+        } @else {
+          Rechercher
+        }
+      </button>
+      
       @if (isAuthenticated$ | async) {
         <a 
           routerLink="/applications" 
@@ -168,3 +217,9 @@
   }
   
 </header>
+
+<!-- Global Search Modal -->
+<app-global-search
+  [(isOpen)]="isSearchOpen"
+  (closed)="closeSearch()"
+></app-global-search>

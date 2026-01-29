@@ -1,0 +1,506 @@
+/**
+ * Global Search Component Styles
+ * Modal de recherche style Spotlight
+ */
+
+// Variables
+$backdrop-color: rgba(0, 0, 0, 0.5);
+$modal-bg: #ffffff;
+$modal-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+$modal-radius: 16px;
+$modal-max-width: 640px;
+$modal-max-height: 70vh;
+
+$input-bg: #f9fafb;
+$input-border: #e5e7eb;
+$input-focus-border: #3b82f6;
+
+$text-primary: #111827;
+$text-secondary: #6b7280;
+$text-muted: #9ca3af;
+
+$hover-bg: #f3f4f6;
+$active-bg: #e5e7eb;
+
+// Method colors
+$method-get: #10b981;
+$method-post: #3b82f6;
+$method-put: #f59e0b;
+$method-patch: #8b5cf6;
+$method-delete: #ef4444;
+
+// Backdrop
+.search-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 10vh;
+  background-color: $backdrop-color;
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.15s ease-out;
+}
+
+// Modal
+.search-modal {
+  width: 100%;
+  max-width: $modal-max-width;
+  max-height: $modal-max-height;
+  margin: 0 16px;
+  background: $modal-bg;
+  border-radius: $modal-radius;
+  box-shadow: $modal-shadow;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: slideDown 0.2s ease-out;
+}
+
+// Input Container
+.search-input-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid $input-border;
+  
+  .search-icon {
+    width: 20px;
+    height: 20px;
+    color: $text-muted;
+    flex-shrink: 0;
+  }
+  
+  .search-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 16px;
+    color: $text-primary;
+    background: transparent;
+    
+    &::placeholder {
+      color: $text-muted;
+    }
+    
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+  }
+  
+  .clear-btn,
+  .close-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: $text-muted;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    
+    svg {
+      width: 16px;
+      height: 16px;
+    }
+    
+    &:hover {
+      background: $hover-bg;
+      color: $text-secondary;
+    }
+  }
+}
+
+// Results Container
+.search-results-container {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+// Search States (Welcome, No Results, Indexing)
+.search-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+  
+  &.indexing {
+    .indexing-progress {
+      width: 100%;
+      max-width: 300px;
+      
+      .progress-bar {
+        height: 6px;
+        background: $input-border;
+        border-radius: 3px;
+        overflow: hidden;
+        margin-bottom: 12px;
+        
+        .progress-fill {
+          height: 100%;
+          background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+          border-radius: 3px;
+          transition: width 0.3s ease;
+        }
+      }
+      
+      .progress-text {
+        font-size: 14px;
+        color: $text-secondary;
+      }
+    }
+    
+    .indexing-detail {
+      margin-top: 8px;
+      font-size: 12px;
+      color: $text-muted;
+    }
+  }
+  
+  &.welcome {
+    .welcome-icon {
+      font-size: 32px;
+      margin-bottom: 12px;
+    }
+    
+    .welcome-text {
+      font-size: 14px;
+      color: $text-secondary;
+      margin: 0;
+      
+      strong {
+        color: $text-primary;
+      }
+    }
+    
+    .welcome-hint {
+      margin-top: 8px;
+      font-size: 13px;
+      color: $text-muted;
+    }
+  }
+  
+  &.no-results {
+    .no-results-icon {
+      font-size: 32px;
+      margin-bottom: 12px;
+      opacity: 0.5;
+    }
+    
+    .no-results-text {
+      font-size: 14px;
+      color: $text-secondary;
+      margin: 0;
+      
+      strong {
+        color: $text-primary;
+      }
+    }
+    
+    .no-results-hint {
+      margin-top: 8px;
+      font-size: 13px;
+      color: $text-muted;
+    }
+  }
+}
+
+// Results
+.search-results {
+  padding: 8px 0;
+}
+
+.results-section {
+  &:not(:last-child) {
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid $input-border;
+  }
+  
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 20px;
+    
+    .section-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: $text-muted;
+    }
+    
+    .section-count {
+      font-size: 11px;
+      color: $text-muted;
+      background: $hover-bg;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+  }
+  
+  .section-more {
+    padding: 8px 20px;
+    font-size: 12px;
+    color: $text-muted;
+    font-style: italic;
+  }
+}
+
+.results-list {
+  display: flex;
+  flex-direction: column;
+}
+
+// Result Item
+.result-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 20px;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.1s ease;
+  
+  &:hover {
+    background: $hover-bg;
+  }
+  
+  &:active {
+    background: $active-bg;
+  }
+  
+  .result-icon {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    &.api-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 8px;
+      color: white;
+      
+      svg {
+        width: 18px;
+        height: 18px;
+      }
+    }
+    
+    &.method-badge {
+      min-width: 52px;
+      height: 24px;
+      padding: 0 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      color: white;
+      margin-top: 6px;
+      
+      &.method-get { background-color: $method-get; }
+      &.method-post { background-color: $method-post; }
+      &.method-put { background-color: $method-put; }
+      &.method-patch { background-color: $method-patch; }
+      &.method-delete { background-color: $method-delete; }
+      &.method-head, &.method-options { background-color: $text-muted; }
+    }
+  }
+  
+  .result-content {
+    flex: 1;
+    min-width: 0;
+    
+    .result-title {
+      font-size: 14px;
+      font-weight: 500;
+      color: $text-primary;
+      line-height: 1.4;
+      
+      &.endpoint-path {
+        font-family: 'SF Mono', 'Fira Code', monospace;
+        font-size: 13px;
+      }
+      
+      :global(mark) {
+        background-color: #fef08a;
+        color: inherit;
+        padding: 0 2px;
+        border-radius: 2px;
+      }
+    }
+    
+    .result-subtitle {
+      font-size: 12px;
+      color: $text-secondary;
+      margin-top: 2px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      
+      .endpoint-api {
+        color: $text-muted;
+        
+        &::after {
+          content: '•';
+          margin-left: 8px;
+        }
+      }
+      
+      .endpoint-summary {
+        flex: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+    }
+    
+    .result-description {
+      font-size: 12px;
+      color: $text-muted;
+      margin-top: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+  
+  .result-arrow {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    color: $text-muted;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    margin-top: 8px;
+    
+    svg {
+      width: 16px;
+      height: 16px;
+    }
+  }
+  
+  &:hover .result-arrow {
+    opacity: 1;
+  }
+}
+
+// Results Footer
+.results-footer {
+  padding: 12px 20px;
+  border-top: 1px solid $input-border;
+  
+  .results-summary {
+    font-size: 12px;
+    color: $text-muted;
+  }
+}
+
+// Footer
+.search-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 12px 20px;
+  border-top: 1px solid $input-border;
+  background: $input-bg;
+  
+  .footer-hint {
+    font-size: 12px;
+    color: $text-muted;
+    
+    kbd {
+      display: inline-block;
+      padding: 2px 6px;
+      font-size: 11px;
+      font-family: inherit;
+      background: white;
+      border: 1px solid $input-border;
+      border-radius: 4px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+  }
+}
+
+// Animations
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+// Scrollbar styling
+.search-results-container {
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: $input-border;
+    border-radius: 4px;
+    
+    &:hover {
+      background: $text-muted;
+    }
+  }
+}
+
+// Mobile adjustments
+@media (max-width: 640px) {
+  .search-backdrop {
+    padding-top: 0;
+    align-items: flex-start;
+  }
+  
+  .search-modal {
+    max-height: 100vh;
+    height: 100vh;
+    margin: 0;
+    border-radius: 0;
+  }
+  
+  .search-input-container {
+    padding: 12px 16px;
+  }
+  
+  .results-section .section-header,
+  .result-item,
+  .results-footer,
+  .search-footer {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}

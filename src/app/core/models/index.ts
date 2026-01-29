@@ -23,3 +23,6 @@ export * from './api-card.model';
 
 // Modèles communs
 export type { APIQueryParams, ApplicationQueryParams, SubscriptionQueryParams, ApiError } from './common.models';
+
+// Modèles de recherche
+export * from './search.model';

@@ -1,0 +1,190 @@
+<!-- Global Search Modal -->
+@if (isOpen) {
+  <div 
+    class="search-backdrop" 
+    (click)="onBackdropClick($event)"
+    (keydown)="onKeydown($event)"
+  >
+    <div class="search-modal" role="dialog" aria-modal="true" aria-label="Recherche globale">
+      
+      <!-- Search Input -->
+      <div class="search-input-container">
+        <svg class="search-icon" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/>
+        </svg>
+        
+        <input
+          #searchInput
+          type="text"
+          class="search-input"
+          [(ngModel)]="query"
+          (ngModelChange)="onQueryChange()"
+          [placeholder]="placeholderText"
+          [disabled]="!isIndexReady"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        
+        @if (query) {
+          <button class="clear-btn" (click)="clearQuery()" title="Effacer">
+            <svg viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+            </svg>
+          </button>
+        }
+        
+        <button class="close-btn" (click)="close()" title="Fermer (Échap)">
+          <svg viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+          </svg>
+        </button>
+      </div>
+      
+      <!-- Search Results Container -->
+      <div class="search-results-container">
+        
+        <!-- Indexing State -->
+        @if (isIndexing) {
+          <div class="search-state indexing">
+            <div class="indexing-progress">
+              <div class="progress-bar">
+                <div class="progress-fill" [style.width.%]="indexState?.progress || 0"></div>
+              </div>
+              <span class="progress-text">Indexation en cours... {{ indexState?.progress }}%</span>
+            </div>
+            @if (indexState?.currentApi) {
+              <p class="indexing-detail">{{ indexState?.currentApi }}</p>
+            }
+          </div>
+        }
+        
+        <!-- Welcome State -->
+        @if (showWelcome) {
+          <div class="search-state welcome">
+            <div class="welcome-icon">🔍</div>
+            <p class="welcome-text">
+              Recherchez dans <strong>{{ indexState?.apiCount }} APIs</strong> 
+              et <strong>{{ indexState?.endpointCount }} endpoints</strong>
+            </p>
+            <p class="welcome-hint">Commencez à taper pour rechercher...</p>
+          </div>
+        }
+        
+        <!-- No Results State -->
+        @if (showNoResults) {
+          <div class="search-state no-results">
+            <div class="no-results-icon">🔍</div>
+            <p class="no-results-text">Aucun résultat pour "<strong>{{ query }}</strong>"</p>
+            <p class="no-results-hint">Essayez avec d'autres termes de recherche</p>
+          </div>
+        }
+        
+        <!-- Results -->
+        @if (hasResults && results) {
+          <div class="search-results">
+            
+            <!-- APIs Section -->
+            @if (results.apis.length > 0) {
+              <div class="results-section">
+                <div class="section-header">
+                  <span class="section-title">APIs</span>
+                  <span class="section-count">{{ results.totalApis }}</span>
+                </div>
+                
+                <div class="results-list">
+                  @for (api of results.apis; track api.id) {
+                    <button class="result-item api-item" (click)="goToApi(api)">
+                      <div class="result-icon api-icon">
+                        <svg viewBox="0 0 20 20" fill="currentColor">
+                          <path fill-rule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                        </svg>
+                      </div>
+                      <div class="result-content">
+                        <div class="result-title" [innerHTML]="highlightMatch(api.title, query)"></div>
+                        <div class="result-subtitle">{{ api.subtitle }}</div>
+                        @if (api.description) {
+                          <div class="result-description">{{ truncateDescription(api.description) }}</div>
+                        }
+                      </div>
+                      <div class="result-arrow">
+                        <svg viewBox="0 0 20 20" fill="currentColor">
+                          <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                      </div>
+                    </button>
+                  }
+                </div>
+                
+                @if (results.totalApis > results.apis.length) {
+                  <div class="section-more">
+                    +{{ results.totalApis - results.apis.length }} autres APIs
+                  </div>
+                }
+              </div>
+            }
+            
+            <!-- Endpoints Section -->
+            @if (results.endpoints.length > 0) {
+              <div class="results-section">
+                <div class="section-header">
+                  <span class="section-title">Endpoints</span>
+                  <span class="section-count">{{ results.totalEndpoints }}</span>
+                </div>
+                
+                <div class="results-list">
+                  @for (endpoint of results.endpoints; track endpoint.id) {
+                    <button class="result-item endpoint-item" (click)="goToEndpoint(endpoint)">
+                      <div class="result-icon method-badge" [class]="getMethodClass(endpoint.method)">
+                        {{ endpoint.method }}
+                      </div>
+                      <div class="result-content">
+                        <div class="result-title endpoint-path" [innerHTML]="highlightMatch(endpoint.path, query)"></div>
+                        <div class="result-subtitle">
+                          <span class="endpoint-api">{{ endpoint.apiName }}</span>
+                          @if (endpoint.subtitle) {
+                            <span class="endpoint-summary">{{ endpoint.subtitle }}</span>
+                          }
+                        </div>
+                      </div>
+                      <div class="result-arrow">
+                        <svg viewBox="0 0 20 20" fill="currentColor">
+                          <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                      </div>
+                    </button>
+                  }
+                </div>
+                
+                @if (results.totalEndpoints > results.endpoints.length) {
+                  <div class="section-more">
+                    +{{ results.totalEndpoints - results.endpoints.length }} autres endpoints
+                  </div>
+                }
+              </div>
+            }
+            
+            <!-- View All (if more results) -->
+            @if (results.hasMore) {
+              <div class="results-footer">
+                <span class="results-summary">
+                  Affichage de {{ results.apis.length + results.endpoints.length }} 
+                  sur {{ results.totalCount }} résultats
+                </span>
+              </div>
+            }
+            
+          </div>
+        }
+        
+      </div>
+      
+      <!-- Footer -->
+      <div class="search-footer">
+        <span class="footer-hint">
+          <kbd>Échap</kbd> pour fermer
+        </span>
+      </div>
+      
+    </div>
+  </div>
+}

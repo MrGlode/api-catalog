@@ -150,6 +150,110 @@
 }
 
 // ========================================
+// SEARCH TRIGGER BUTTON
+// ========================================
+.search-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--vp-white);
+  font-family: var(--vp-font-custom);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  
+  .search-icon {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+  }
+  
+  .search-text {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    
+    @media (max-width: 900px) {
+      display: none;
+    }
+  }
+  
+  // État hover quand prêt
+  &.ready:hover {
+    border-color: rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.2);
+  }
+  
+  // État désactivé / chargement
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+  
+  // État indexation
+  &.indexing {
+    background: linear-gradient(
+      90deg, 
+      rgba(255, 255, 255, 0.1) 0%, 
+      rgba(255, 255, 255, 0.2) 50%, 
+      rgba(255, 255, 255, 0.1) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    
+    .search-text {
+      font-variant-numeric: tabular-nums;
+    }
+  }
+}
+
+// Animation dots pour l'indexation
+.indexing-dots {
+  display: inline-flex;
+  gap: 3px;
+  
+  span {
+    width: 4px;
+    height: 4px;
+    background-color: currentColor;
+    border-radius: 50%;
+    animation: dotPulse 1s ease-in-out infinite;
+    
+    &:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+    
+    &:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+  }
+}
+
+@keyframes dotPulse {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+// ========================================
 // USER MENU
 // ========================================
 .user-menu-container {
@@ -178,6 +282,12 @@
   }
 }
 
+.user-dropdown-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 98;
+}
+
 .user-dropdown {
   position: absolute;
   top: calc(100% + var(--vp-spacing-xxs));
@@ -188,13 +298,13 @@
   border-radius: var(--vp-card-border-radius);
   box-shadow: var(--vp-box-shadow-lg);
   animation: dropdownIn 0.2s ease-out;
-  z-index: 200;
+  z-index: 99;
 }
 
 @keyframes dropdownIn {
   from {
     opacity: 0;
-    transform: translateY(-8px);
+    transform: translateY(-10px);
   }
   to {
     opacity: 1;
@@ -204,23 +314,20 @@
 
 .dropdown-header {
   padding: var(--vp-spacing-xs);
+  border-bottom: 1px solid var(--vp-gray-200);
+}
 
-  .dropdown-username {
-    display: block;
-    font-family: var(--vp-font-custom-title);
-    font-weight: 700;
-    color: var(--vp-black);
-  }
-
-  .dropdown-email {
-    font-size: var(--vp-secondary-font-size);
-    color: var(--vp-gray-500);
-  }
+.dropdown-username {
+  font-family: var(--vp-font-custom);
+  font-size: var(--vp-secondary-font-size);
+  font-weight: 600;
+  color: var(--vp-black);
 }
 
 .dropdown-divider {
   height: 1px;
   background: var(--vp-gray-200);
+  margin: var(--vp-spacing-xxs) 0;
 }
 
 .dropdown-item {
@@ -228,18 +335,15 @@
   align-items: center;
   gap: var(--vp-spacing-xxs);
   width: 100%;
-  padding: var(--vp-spacing-xxs) var(--vp-spacing-xs);
+  padding: var(--vp-spacing-xs);
   font-family: var(--vp-font-custom);
   font-size: var(--vp-secondary-font-size);
   color: var(--vp-black);
+  text-decoration: none;
   background: transparent;
   border: none;
-  text-align: left;
-  text-decoration: none;
   cursor: pointer;
   transition: all var(--vp-transition-normal);
-  border-radius: var(--vp-border-radius-sm);
-  margin: 0 5px;
 
   svg {
     width: 18px;
@@ -249,11 +353,6 @@
 
   &:hover {
     background: var(--vp-gray-100);
-    box-shadow: var(--vp-box-shadow-sm);
-
-    svg {
-      color: var(--vp-black);
-    }
   }
 
   &.dropdown-item-danger {
@@ -269,30 +368,51 @@
   }
 }
 
-.user-dropdown-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 99;
-}
-
-.user-dropdown {
-  z-index: 100;
-}
-
-.auth-nav {
+// ========================================
+// AUTH BUTTONS
+// ========================================
+.btn-register,
+.btn-login {
   display: flex;
   align-items: center;
-  gap: var(--vp-spacing-s);
+  padding: 8px 16px;
+  font-family: var(--vp-font-custom);
+  font-size: var(--vp-secondary-font-size);
+  font-weight: 500;
+  text-decoration: none;
+  border-radius: var(--vp-border-radius-md);
+  transition: all var(--vp-transition-normal);
+
+  @media (max-width: 768px) {
+    display: none;
+  }
 }
 
+.btn-register {
+  color: var(--vp-white);
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--vp-white);
+  }
+}
+
+.btn-login {
+  color: var(--vp-primary-500);
+  background: var(--vp-white);
+  border: 1px solid var(--vp-white);
+
+  &:hover {
+    background: var(--vp-gray-100);
+  }
+}
 
 // ========================================
-// MOBILE MENU TOGGLE
+// MOBILE MENU BUTTON
 // ========================================
-.mobile-menu-toggle {
+.mobile-menu-btn {
   display: none;
   align-items: center;
   justify-content: center;
@@ -346,7 +466,9 @@
 }
 
 .mobile-nav-link {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   padding: var(--vp-spacing-xs);
   font-family: var(--vp-font-custom);
   font-size: var(--vp-base-font-size);
@@ -360,6 +482,10 @@
   width: 100%;
   cursor: pointer;
   transition: all var(--vp-transition-normal);
+
+  svg {
+    flex-shrink: 0;
+  }
 
   &:hover {
     background: var(--vp-gray-100);
@@ -378,6 +504,15 @@
   &.mobile-nav-danger {
     color: var(--vp-danger-500);
   }
+
+  &.mobile-search-btn {
+    color: var(--vp-primary-500);
+    
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
 }
 
 // ========================================
@@ -395,5 +530,22 @@
   .nav-link {
     padding: 0 15px;
     font-size: var(--vp-secondary-font-size);
+  }
+  
+  .search-trigger {
+    padding: 8px 12px;
+  }
+}
+
+@media (max-width: 768px) {
+  .search-trigger {
+    .search-text {
+      display: none;
+    }
+    
+    .search-icon {
+      width: 20px;
+      height: 20px;
+    }
   }
 }
