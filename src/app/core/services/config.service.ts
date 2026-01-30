@@ -2,13 +2,22 @@ import { Injectable } from '@angular/core';
 import { environment } from '../../../environments/environment';
 
 /**
- * Service de configuration centralisé
- * Fournit un accès type-safe aux paramètres d'environnement
+ * Configuration Service (BFF Version)
+ * 
+ * Provides type-safe access to environment configuration.
+ * 
+ * SECURITY: This service no longer exposes OAuth client secrets.
+ * Authentication is handled by the BFF server.
  */
 @Injectable({
   providedIn: 'root'
 })
 export class ConfigService {
+  
+  // ===========================================================================
+  // WSO2 Configuration
+  // ===========================================================================
+
   /**
    * URL de base de l'API Manager WSO2
    */
@@ -24,46 +33,54 @@ export class ConfigService {
   }
 
   /**
-   * URL du endpoint de token OAuth2
-   */
-  get tokenUrl(): string {
-    return environment.wso2.tokenUrl;
-  }
-
-  /**
-   * URL d'enregistrement DCR (Dynamic Client Registration)
-   */
-  get dcrUrl(): string {
-    return environment.wso2.dcrUrl;
-  }
-
-  /**
-   * Tenant configuré (vide pour super tenant)
+   * Tenant configuré
    */
   get tenant(): string {
     return environment.wso2.tenant;
   }
 
+  // ===========================================================================
+  // BFF Configuration
+  // ===========================================================================
+
   /**
-   * Client ID OAuth2
+   * URL de base du BFF
    */
-  get clientId(): string {
-    return environment.wso2.oauth2.clientId;
+  get bffBaseUrl(): string {
+    return environment.bff.baseUrl;
   }
 
   /**
-   * Client Secret OAuth2
+   * URL de login
    */
-  get clientSecret(): string {
-    return environment.wso2.oauth2.clientSecret;
+  get loginUrl(): string {
+    return environment.bff.auth.login;
   }
 
   /**
-   * Scopes OAuth2 requis
+   * URL de refresh token
    */
-  get scopes(): string {
-    return environment.wso2.oauth2.scopes;
+  get refreshUrl(): string {
+    return environment.bff.auth.refresh;
   }
+
+  /**
+   * URL de logout
+   */
+  get logoutUrl(): string {
+    return environment.bff.auth.logout;
+  }
+
+  /**
+   * URL d'inscription
+   */
+  get registerUrl(): string {
+    return environment.bff.registration.register;
+  }
+
+  // ===========================================================================
+  // App Configuration
+  // ===========================================================================
 
   /**
    * Nom de l'application
@@ -100,22 +117,43 @@ export class ConfigService {
     return environment.production;
   }
 
+  // ===========================================================================
+  // Helpers
+  // ===========================================================================
+
   /**
    * Construit une URL complète pour l'API Devportal
-   * @param endpoint - Chemin de l'endpoint (ex: '/apis')
-   * @returns URL complète
    */
   getDevportalUrl(endpoint: string): string {
-    // Enlever le slash initial si présent
     const cleanEndpoint = endpoint.startsWith('/') ? endpoint.substring(1) : endpoint;
     return `${this.devportalApiUrl}/${cleanEndpoint}`;
   }
 
+  // ===========================================================================
+  // DEPRECATED METHODS
+  // ===========================================================================
+
   /**
-   * Vérifie si les credentials OAuth2 sont configurés
-   * @returns true si clientId et clientSecret sont définis
+   * @deprecated OAuth credentials are now handled by BFF server
+   */
+  get clientId(): string {
+    console.warn('clientId is deprecated - OAuth is handled by BFF server');
+    return '';
+  }
+
+  /**
+   * @deprecated OAuth credentials are now handled by BFF server
+   */
+  get clientSecret(): string {
+    console.warn('clientSecret is deprecated - OAuth is handled by BFF server');
+    return '';
+  }
+
+  /**
+   * @deprecated OAuth credentials are now handled by BFF server
    */
   hasOAuthCredentials(): boolean {
-    return !!this.clientId && !!this.clientSecret;
+    console.warn('hasOAuthCredentials is deprecated - OAuth is handled by BFF server');
+    return true; // Always true since BFF handles this
   }
 }

@@ -17,7 +17,7 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Configuration WSO2
-const WSO2_BASE_URL = process.env.WSO2_BASE_URL || 'https://localhost:9443';
+const WSO2_BASE_URL = process.env.WSO2_BASE_URL || 'https://cp-am.recette.verspieren.com:9443';
 const WSO2_TENANT = process.env.WSO2_TENANT || 'carbon.super';
 const WSO2_SP = process.env.WSO2_SP || 'apim_devportal';
 

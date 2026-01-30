@@ -7,8 +7,7 @@ import { provideRouter, withComponentInputBinding } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 
 import { routes } from './app.routes';
-import { authInterceptor, errorInterceptor } from './core';
-import { ConfigLoaderService, initializeApp } from './core/services/config-loader.service';
+import { authInterceptor, credentialsInterceptor } from './core';
 import { provideAnimations } from '@angular/platform-browser/animations';
 
 export const appConfig: ApplicationConfig = {
@@ -21,17 +20,9 @@ export const appConfig: ApplicationConfig = {
     
     // HTTP client with WSO2 interceptors
     provideHttpClient(
-      withInterceptors([authInterceptor, errorInterceptor])
+      withInterceptors([authInterceptor, credentialsInterceptor])
     ),
 
     provideAnimations(),
-    
-    // Load external configuration at startup
-    {
-      provide: APP_INITIALIZER,
-      useFactory: initializeApp,
-      deps: [ConfigLoaderService],
-      multi: true
-    }
   ]
 };

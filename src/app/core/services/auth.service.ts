@@ -1,15 +1,19 @@
 /**
- * WSO2 Authentication Service
- * Handles OAuth2 authentication with WSO2 API Manager
+ * WSO2 Authentication Service (BFF Version)
+ * 
+ * Handles OAuth2 authentication through the Backend-For-Frontend server.
+ * Client secrets are NEVER exposed to the frontend.
+ * 
+ * Security improvements:
+ * - No client secrets in frontend code
+ * - Refresh tokens stored in httpOnly cookies (handled by BFF)
+ * - Only access tokens are stored client-side
  */
-import { Injectable, signal, computed } from '@angular/core';
-import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import { Injectable, signal } from '@angular/core';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, BehaviorSubject, throwError, of } from 'rxjs';
 import { map, tap, catchError, switchMap } from 'rxjs/operators';
-import { environment, getOAuthUrl } from '../../../environments/environment';
 import { 
-  DCRRequest, 
-  DCRResponse, 
   TokenResponse, 
   AuthState, 
   LoginCredentials,
@@ -17,7 +21,27 @@ import {
 } from '../models';
 
 const AUTH_STORAGE_KEY = 'wso2_auth_state';
-const DCR_STORAGE_KEY = 'wso2_dcr_client';
+
+/**
+ * BFF Token Response (differs from direct WSO2 response)
+ * Note: refresh_token is NOT included - it's in httpOnly cookie
+ */
+interface BffTokenResponse {
+  access_token: string;
+  token_type: string;
+  expires_in: number;
+  scope?: string;
+}
+
+/**
+ * Stored auth state (no secrets!)
+ */
+interface SecureAuthState {
+  isAuthenticated: boolean;
+  accessToken?: string;
+  expiresAt?: number;
+  user?: UserInfo;
+}
 
 @Injectable({
   providedIn: 'root'
@@ -27,12 +51,15 @@ export class AuthService {
     isAuthenticated: false
   });
 
+  // BFF API base path
+  private readonly bffAuthUrl = '/api/auth';
+
   // Public observables
   authState$ = this.authState.asObservable();
   isAuthenticated$ = this.authState$.pipe(map(state => state.isAuthenticated));
   user$ = this.authState$.pipe(map(state => state.user));
   
-  // Username as string observable (for components expecting string | null)
+  // Username as string observable
   currentUser$: Observable<string | null> = this.user$.pipe(
     map(user => {
       if (!user) return null;
@@ -48,99 +75,94 @@ export class AuthService {
     this.loadStoredAuth();
   }
 
+  // ===========================================================================
+  // PRIVATE METHODS
+  // ===========================================================================
+
   /**
-   * Load stored authentication state
+   * Load stored authentication state from localStorage
+   * Note: Only access token is stored, not refresh token
    */
   private loadStoredAuth(): void {
     try {
       const stored = localStorage.getItem(AUTH_STORAGE_KEY);
       if (stored) {
-        const state: AuthState = JSON.parse(stored);
+        const state: SecureAuthState = JSON.parse(stored);
         
         // Check if token is still valid
         if (state.expiresAt && state.expiresAt > Date.now()) {
-          this.authState.next(state);
-          this.isAuthenticated.set(state.isAuthenticated);
-          this.currentUser.set(state.user || null);
-        } else if (state.refreshToken) {
-          // Try to refresh token
-          this.refreshToken(state.refreshToken).subscribe();
+          this.updateAuthState({
+            isAuthenticated: true,
+            accessToken: state.accessToken,
+            expiresAt: state.expiresAt,
+            user: state.user
+          });
+        } else {
+          // Token expired - try to refresh via BFF
+          this.refreshToken().subscribe({
+            error: () => this.clearAuthState()
+          });
         }
       }
     } catch (e) {
       console.error('Failed to load stored auth state', e);
+      this.clearAuthState();
     }
   }
 
   /**
-   * Save authentication state
+   * Update auth state in memory and localStorage
    */
-  private saveAuthState(state: AuthState): void {
-    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(state));
+  private updateAuthState(state: AuthState): void {
+    // Save to localStorage (without secrets)
+    const secureState: SecureAuthState = {
+      isAuthenticated: state.isAuthenticated,
+      accessToken: state.accessToken,
+      expiresAt: state.expiresAt,
+      user: state.user
+    };
+    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(secureState));
+    
+    // Update BehaviorSubject
     this.authState.next(state);
+    
+    // Update signals
     this.isAuthenticated.set(state.isAuthenticated);
     this.currentUser.set(state.user || null);
   }
 
   /**
-   * Get stored DCR client credentials
+   * Clear auth state
    */
-  private getStoredDCRClient(): DCRResponse | null {
-    try {
-      const stored = localStorage.getItem(DCR_STORAGE_KEY);
-      return stored ? JSON.parse(stored) : null;
-    } catch {
-      return null;
-    }
+  private clearAuthState(): void {
+    localStorage.removeItem(AUTH_STORAGE_KEY);
+    this.authState.next({ isAuthenticated: false });
+    this.isAuthenticated.set(false);
+    this.currentUser.set(null);
   }
 
   /**
-   * Save DCR client credentials
+   * Create auth state from BFF token response
    */
-  private saveDCRClient(client: DCRResponse): void {
-    localStorage.setItem(DCR_STORAGE_KEY, JSON.stringify(client));
-  }
-
-  /**
-   * Register DCR application (Dynamic Client Registration)
-   */
-  registerDCRApplication(adminUsername: string, adminPassword: string): Observable<DCRResponse> {
-    const url = `${environment.wso2.baseUrl}${environment.wso2.oauth.dcrEndpoint}`;
-    
-    const headers = new HttpHeaders({
-      'Content-Type': 'application/json',
-      'Authorization': 'Basic ' + btoa(`${adminUsername}:${adminPassword}`)
-    });
-
-    const body: DCRRequest = {
-      clientName: environment.wso2.dcr.clientName,
-      grantType: environment.wso2.dcr.grantTypes,
-      callbackUrl: environment.wso2.dcr.callbackUrl,
-      saasApp: true,
-      owner: adminUsername
+  private createAuthStateFromToken(tokenResponse: BffTokenResponse): AuthState {
+    return {
+      isAuthenticated: true,
+      accessToken: tokenResponse.access_token,
+      expiresAt: Date.now() + (tokenResponse.expires_in * 1000),
     };
-
-    return this.http.post<DCRResponse>(url, body, { headers }).pipe(
-      tap(response => this.saveDCRClient(response)),
-      catchError(error => {
-        console.error('DCR registration failed', error);
-        return throwError(() => error);
-      })
-    );
   }
+
+  // ===========================================================================
+  // PUBLIC METHODS
+  // ===========================================================================
 
   /**
    * Login with username and password
-   * Supports both: login(credentials) and login(username, password)
+   * 
+   * @param credentials - Login credentials or username string
+   * @param password - Password (if first param is username string)
    */
   login(credentialsOrUsername: LoginCredentials | string, password?: string): Observable<AuthState> {
-    const dcrClient = this.getStoredDCRClient();
-    
-    if (!dcrClient) {
-      return throwError(() => new Error('DCR client not registered. Please register first.'));
-    }
-
-    // Support both signatures
     let username: string;
     let pwd: string;
     
@@ -152,39 +174,17 @@ export class AuthService {
       pwd = credentialsOrUsername.password;
     }
 
-    return this.getToken(
-      dcrClient.clientId,
-      dcrClient.clientSecret,
-      username,
-      pwd
-    );
-  }
-
-  /**
-   * Get OAuth2 token
-   */
-  private getToken(clientId: string, clientSecret: string, username: string, password: string ): Observable<AuthState> {
-    const url = getOAuthUrl('tokenEndpoint');
-    
-    const headers = new HttpHeaders({
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Authorization': 'Basic ' + btoa(`${clientId}:${clientSecret}`)
-    });
-
-    const scopes = Object.values(environment.wso2.scopes).join(' ');
-    
-    const body = new HttpParams()
-      .set('grant_type', 'password')
-      .set('username', username)
-      .set('password', password)
-      .set('scope', scopes);
-
-    return this.http.post<TokenResponse>(url, body.toString(), { headers }).pipe(
-      map(response => this.createAuthState(response, clientId, clientSecret)),
-      tap(state => this.saveAuthState(state)),
+    return this.http.post<BffTokenResponse>(
+      `${this.bffAuthUrl}/login`,
+      { username, password: pwd },
+      { withCredentials: true } // Important: Send/receive cookies
+    ).pipe(
+      map(response => this.createAuthStateFromToken(response)),
+      tap(state => this.updateAuthState(state)),
       switchMap(state => this.fetchUserInfo(state)),
       catchError(error => {
-        console.error('Token request failed', error);
+        console.error('Login failed', error);
+        this.clearAuthState();
         return throwError(() => error);
       })
     );
@@ -192,124 +192,70 @@ export class AuthService {
 
   /**
    * Refresh access token
-   * Can be called without argument (uses stored refresh token) or with explicit token
+   * Uses httpOnly cookie managed by BFF
    */
-  refreshToken(refreshTokenParam?: string): Observable<AuthState> {
-    const dcrClient = this.getStoredDCRClient();
-    
-    if (!dcrClient) {
-      return throwError(() => new Error('DCR client not found'));
-    }
-
-    // Use provided token or get from stored state
-    const tokenToUse = refreshTokenParam || this.authState.getValue().refreshToken;
-    
-    if (!tokenToUse) {
-      return throwError(() => new Error('No refresh token available'));
-    }
-
-    const url = getOAuthUrl('tokenEndpoint');
-    
-    const headers = new HttpHeaders({
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Authorization': 'Basic ' + btoa(`${dcrClient.clientId}:${dcrClient.clientSecret}`)
-    });
-
-    const body = new HttpParams()
-      .set('grant_type', 'refresh_token')
-      .set('refresh_token', tokenToUse);
-
-    return this.http.post<TokenResponse>(url, body.toString(), { headers }).pipe(
-      map(response => this.createAuthState(response, dcrClient.clientId, dcrClient.clientSecret)),
-      tap(state => this.saveAuthState(state)),
+  refreshToken(): Observable<AuthState> {
+    return this.http.post<BffTokenResponse>(
+      `${this.bffAuthUrl}/refresh`,
+      {},
+      { withCredentials: true } // Important: Send cookies
+    ).pipe(
+      map(response => this.createAuthStateFromToken(response)),
+      tap(state => this.updateAuthState(state)),
       catchError(error => {
         console.error('Token refresh failed', error);
-        this.logout();
+        this.clearAuthState();
         return throwError(() => error);
       })
     );
   }
 
   /**
-   * Fetch user info from OAuth2 userinfo endpoint
+   * Logout - clears local state and revokes tokens via BFF
+   */
+  logout(): void {
+    const accessToken = this.getAccessToken();
+    
+    // Call BFF logout endpoint
+    const headers = accessToken 
+      ? new HttpHeaders({ 'Authorization': `Bearer ${accessToken}` })
+      : new HttpHeaders();
+
+    this.http.post(
+      `${this.bffAuthUrl}/logout`,
+      {},
+      { headers, withCredentials: true }
+    ).subscribe({
+      error: (err) => console.warn('Logout request failed', err)
+    });
+
+    // Clear local state immediately
+    this.clearAuthState();
+  }
+
+  /**
+   * Fetch user info from BFF
    */
   private fetchUserInfo(state: AuthState): Observable<AuthState> {
     if (!state.accessToken) {
       return of(state);
     }
 
-    const url = getOAuthUrl('userinfoEndpoint');
-    const headers = new HttpHeaders({
-      'Authorization': `Bearer ${state.accessToken}`
-    });
-
-    return this.http.get<UserInfo>(url, { headers }).pipe(
+    return this.http.get<UserInfo>(
+      `${this.bffAuthUrl}/userinfo`,
+      {
+        headers: new HttpHeaders({
+          'Authorization': `Bearer ${state.accessToken}`
+        })
+      }
+    ).pipe(
       map(userInfo => ({
         ...state,
         user: userInfo
       })),
-      tap(updatedState => this.saveAuthState(updatedState)),
-      catchError(() => of(state)) // If userinfo fails, continue with existing state
+      tap(updatedState => this.updateAuthState(updatedState)),
+      catchError(() => of(state)) // Continue with existing state if userinfo fails
     );
-  }
-
-  /**
-   * Create auth state from token response
-   */
-  private createAuthState(
-    tokenResponse: TokenResponse,
-    clientId: string,
-    clientSecret: string
-  ): AuthState {
-    return {
-      isAuthenticated: true,
-      accessToken: tokenResponse.access_token,
-      refreshToken: tokenResponse.refresh_token,
-      expiresAt: Date.now() + (tokenResponse.expires_in * 1000),
-      clientId,
-      clientSecret
-    };
-  }
-
-  /**
-   * Logout
-   */
-  logout(): void {
-    const state = this.authState.getValue();
-    
-    // Optionally revoke token
-    if (state.accessToken) {
-      this.revokeToken(state.accessToken).subscribe({
-        error: () => {} // Ignore revoke errors
-      });
-    }
-
-    // Clear state
-    localStorage.removeItem(AUTH_STORAGE_KEY);
-    this.authState.next({ isAuthenticated: false });
-    this.isAuthenticated.set(false);
-    this.currentUser.set(null);
-  }
-
-  /**
-   * Revoke token
-   */
-  private revokeToken(token: string): Observable<void> {
-    const dcrClient = this.getStoredDCRClient();
-    if (!dcrClient) {
-      return of(void 0);
-    }
-
-    const url = getOAuthUrl('revokeEndpoint');
-    
-    const headers = new HttpHeaders({
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Authorization': 'Basic ' + btoa(`${dcrClient.clientId}:${dcrClient.clientSecret}`)
-    });
-
-    const body = new HttpParams().set('token', token);
-
-    return this.http.post<void>(url, body.toString(), { headers });
   }
 
   /**
@@ -346,9 +292,36 @@ export class AuthService {
   }
 
   /**
-   * Get refresh token from current state
+   * Check authentication status via BFF
+   * Useful on app init to check if refresh token cookie exists
+   */
+  checkAuthStatus(): Observable<boolean> {
+    return this.http.get<{ authenticated: boolean }>(
+      `${this.bffAuthUrl}/status`,
+      { withCredentials: true }
+    ).pipe(
+      map(response => response.authenticated),
+      catchError(() => of(false))
+    );
+  }
+
+  // ===========================================================================
+  // DEPRECATED METHODS (for backward compatibility)
+  // ===========================================================================
+
+  /**
+   * @deprecated DCR is now handled server-side
+   */
+  registerDCRApplication(_adminUsername: string, _adminPassword: string): Observable<any> {
+    console.warn('registerDCRApplication is deprecated - DCR is now handled by BFF server');
+    return throwError(() => new Error('DCR registration is handled server-side'));
+  }
+
+  /**
+   * @deprecated No longer needed - refresh token is in httpOnly cookie
    */
   getRefreshToken(): string | undefined {
-    return this.authState.getValue().refreshToken;
+    console.warn('getRefreshToken is deprecated - refresh token is managed by BFF via httpOnly cookie');
+    return undefined;
   }
 }

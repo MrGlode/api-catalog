@@ -118,7 +118,7 @@ router.post('/login', async (req, res) => {
       {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
-          'Authorization': getBasicAuthHeader(),
+          //'Authorization': getBasicAuthHeader(),
         },
       }
     );

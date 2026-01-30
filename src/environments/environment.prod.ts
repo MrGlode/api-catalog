@@ -1,15 +1,15 @@
 /**
- * Environment configuration for WSO2 API Manager integration
+ * Production Environment configuration
  * 
  * SECURITY: No client secrets in this file!
  * OAuth2 authentication is handled by the BFF server.
  */
 export const environment = {
-  production: false,
+  production: true,
   
   // WSO2 API Manager Configuration
   wso2: {
-    // Base URL - empty for proxy mode in development
+    // Base URL - will be proxied through BFF/reverse proxy
     baseUrl: '',
     
     // API URLs
@@ -28,10 +28,8 @@ export const environment = {
 
   // BFF Server Configuration
   bff: {
-    // Base URL for BFF endpoints
     baseUrl: '/api',
     
-    // Auth endpoints (handled by BFF)
     auth: {
       login: '/api/auth/login',
       refresh: '/api/auth/refresh',
@@ -40,7 +38,6 @@ export const environment = {
       status: '/api/auth/status',
     },
     
-    // Registration endpoints
     registration: {
       register: '/api/register',
       checkUsername: '/api/check-username',
@@ -52,7 +49,7 @@ export const environment = {
     name: 'API Catalog',
     version: '1.0.0',
     itemsPerPage: 25,
-    tokenExpirationBuffer: 300, // 5 minutes in seconds
+    tokenExpirationBuffer: 300,
   },
 };
 
