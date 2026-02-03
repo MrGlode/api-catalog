@@ -1,431 +1,97 @@
 /**
- * Mermaid Diagram Styles
- * Styles for Mermaid diagram containers rendered by MermaidRendererDirective
+ * Mermaid Diagram Styles - Minimal version
+ * Only styles .mermaid-block elements, does not affect other styles
  */
 
-// ============================================
-// MERMAID BLOCK CONTAINER
-// ============================================
-
 .mermaid-block {
-  position: relative;
-  margin: var(--vp-spacing-m, 1.5rem) 0;
-  padding: var(--vp-spacing-m, 1.5rem);
-  background: var(--vp-gray-50, #f9fafb);
-  border: 1px solid var(--vp-gray-200, #e5e7eb);
-  border-radius: var(--vp-radius-l, 12px);
-  overflow: hidden;
-  
-  // Subtle gradient header
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: linear-gradient(90deg, 
-      var(--vp-primary-400, #60a5fa) 0%, 
-      var(--vp-primary-500, #3b82f6) 50%,
-      var(--vp-primary-600, #2563eb) 100%
-    );
-    opacity: 0.8;
-  }
-  
-  // Rendered state
-  &.rendered {
-    .mermaid-loading {
-      display: none;
-    }
-    
-    .mermaid-content {
-      display: block;
-    }
+  margin: 1.5rem 0;
+  padding: 1rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+
+  &.rendered .mermaid-loading {
+    display: none;
   }
 }
-
-// ============================================
-// LOADING STATE
-// ============================================
 
 .mermaid-loading {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--vp-spacing-s, 0.75rem);
-  padding: var(--vp-spacing-l, 2rem);
-  color: var(--vp-gray-500, #6b7280);
-  font-size: var(--vp-secondary-font-size, 0.875rem);
-  
+  gap: 0.75rem;
+  padding: 2rem;
+  color: #64748b;
+  font-size: 0.875rem;
+
   .mermaid-spinner {
-    width: 24px;
-    height: 24px;
-    border: 3px solid var(--vp-gray-200, #e5e7eb);
-    border-top-color: var(--vp-primary-500, #3b82f6);
+    width: 20px;
+    height: 20px;
+    border: 2px solid #e2e8f0;
+    border-top-color: #3b82f6;
     border-radius: 50%;
     animation: mermaidSpin 0.8s linear infinite;
   }
 }
 
 @keyframes mermaidSpin {
-  to {
-    transform: rotate(360deg);
-  }
+  to { transform: rotate(360deg); }
 }
-
-// ============================================
-// DIAGRAM CONTENT
-// ============================================
 
 .mermaid-content {
   display: flex;
   justify-content: center;
-  padding: var(--vp-spacing-s, 0.75rem) 0;
   overflow-x: auto;
-  
-  // SVG styling
+
   svg {
     max-width: 100%;
     height: auto;
-    
-    // Better text rendering
-    text {
-      font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif !important;
-    }
-    
-    // Node styling
-    .node rect,
-    .node circle,
-    .node ellipse,
-    .node polygon,
-    .node path {
-      stroke-width: 2px;
-    }
-    
-    // Edge styling
-    .edgePath path {
-      stroke-width: 2px;
-    }
-    
-    // Cluster styling
-    .cluster rect {
-      fill: var(--vp-gray-100, #f3f4f6) !important;
-      stroke: var(--vp-gray-300, #d1d5db) !important;
-    }
   }
 }
-
-// ============================================
-// ERROR STATE
-// ============================================
 
 .mermaid-error {
   display: none;
   align-items: center;
   justify-content: center;
-  gap: var(--vp-spacing-xs, 0.5rem);
-  padding: var(--vp-spacing-m, 1rem);
-  background: var(--vp-red-50, #fef2f2);
-  border: 1px solid var(--vp-red-200, #fecaca);
-  border-radius: var(--vp-radius-m, 8px);
-  color: var(--vp-red-700, #b91c1c);
-  font-size: var(--vp-secondary-font-size, 0.875rem);
-  
-  .error-icon {
-    font-size: 1.25rem;
-  }
-  
-  .error-text {
-    font-weight: 500;
-  }
+  gap: 0.5rem;
+  padding: 1rem;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  color: #b91c1c;
+  font-size: 0.875rem;
 }
-
-// ============================================
-// SOURCE CODE (COLLAPSIBLE)
-// ============================================
 
 .mermaid-source {
-  margin-top: var(--vp-spacing-m, 1rem);
-  border-top: 1px solid var(--vp-gray-200, #e5e7eb);
-  padding-top: var(--vp-spacing-s, 0.75rem);
-  
+  margin-top: 1rem;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 0.75rem;
+
   summary {
-    display: flex;
-    align-items: center;
-    gap: var(--vp-spacing-xs, 0.5rem);
-    padding: var(--vp-spacing-xs, 0.5rem) var(--vp-spacing-s, 0.75rem);
-    font-size: var(--vp-small-font-size, 0.8125rem);
-    font-weight: 500;
-    color: var(--vp-gray-600, #4b5563);
     cursor: pointer;
-    border-radius: var(--vp-radius-s, 6px);
-    transition: all 0.2s ease;
-    user-select: none;
-    
+    font-size: 0.8125rem;
+    color: #64748b;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+
     &:hover {
-      background: var(--vp-gray-100, #f3f4f6);
-      color: var(--vp-gray-800, #1f2937);
-    }
-    
-    &:focus {
-      outline: none;
-      box-shadow: 0 0 0 2px var(--vp-primary-200, #bfdbfe);
-    }
-    
-    svg {
-      flex-shrink: 0;
-      opacity: 0.7;
-    }
-    
-    // Hide default marker
-    &::-webkit-details-marker {
-      display: none;
-    }
-    
-    &::marker {
-      display: none;
+      background: #f1f5f9;
+      color: #334155;
     }
   }
-  
-  &[open] summary {
-    margin-bottom: var(--vp-spacing-s, 0.75rem);
-    
-    svg {
-      opacity: 1;
-    }
-  }
-  
-  .mermaid-code {
-    margin: 0;
-    padding: var(--vp-spacing-m, 1rem);
-    background: var(--vp-gray-900, #111827);
-    border-radius: var(--vp-radius-m, 8px);
+
+  pre {
+    margin: 0.75rem 0 0 0;
+    padding: 1rem;
+    background: #1e293b;
+    border-radius: 6px;
     overflow-x: auto;
-    
+
     code {
-      font-family: 'SF Mono', 'Monaco', 'Consolas', 'Liberation Mono', monospace;
-      font-size: var(--vp-small-font-size, 0.8125rem);
-      line-height: 1.6;
-      color: var(--vp-gray-100, #f3f4f6);
+      font-family: 'SF Mono', Monaco, Consolas, monospace;
+      font-size: 0.8125rem;
+      color: #e2e8f0;
       white-space: pre;
     }
-  }
-}
-
-// ============================================
-// ACTION BUTTONS
-// ============================================
-
-.mermaid-actions {
-  position: absolute;
-  top: var(--vp-spacing-m, 1rem);
-  right: var(--vp-spacing-m, 1rem);
-  display: flex;
-  gap: var(--vp-spacing-xs, 0.5rem);
-  opacity: 0;
-  transition: opacity 0.2s ease;
-  
-  .mermaid-block:hover & {
-    opacity: 1;
-  }
-}
-
-.mermaid-action-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  border: none;
-  background: var(--vp-white, #ffffff);
-  border-radius: var(--vp-radius-s, 6px);
-  color: var(--vp-gray-600, #4b5563);
-  cursor: pointer;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  transition: all 0.2s ease;
-  text-decoration: none;
-  
-  &:hover {
-    background: var(--vp-gray-100, #f3f4f6);
-    color: var(--vp-gray-800, #1f2937);
-    transform: translateY(-1px);
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-  }
-  
-  &:active {
-    transform: translateY(0);
-  }
-  
-  &.copied {
-    background: var(--vp-green-500, #22c55e);
-    color: white;
-  }
-  
-  svg {
-    flex-shrink: 0;
-  }
-}
-
-// ============================================
-// MERMAID THEME OVERRIDES
-// ============================================
-
-// Flowchart colors
-.mermaid-content {
-  // Default nodes
-  .node.default > rect,
-  .node.default > polygon {
-    fill: var(--vp-primary-50, #eff6ff) !important;
-    stroke: var(--vp-primary-400, #60a5fa) !important;
-  }
-  
-  // Decision diamonds
-  .node.decision > polygon {
-    fill: var(--vp-amber-50, #fffbeb) !important;
-    stroke: var(--vp-amber-400, #fbbf24) !important;
-  }
-  
-  // Start/End nodes
-  .node.start > rect,
-  .node.start > circle,
-  .node.end > rect,
-  .node.end > circle {
-    fill: var(--vp-green-50, #f0fdf4) !important;
-    stroke: var(--vp-green-500, #22c55e) !important;
-  }
-  
-  // Labels
-  .edgeLabel {
-    background: var(--vp-white, #ffffff) !important;
-    padding: 2px 6px !important;
-    border-radius: 4px !important;
-  }
-  
-  // Arrows
-  .marker {
-    fill: var(--vp-gray-500, #6b7280) !important;
-    stroke: var(--vp-gray-500, #6b7280) !important;
-  }
-}
-
-// Sequence diagram colors
-.mermaid-content {
-  .actor {
-    fill: var(--vp-primary-50, #eff6ff) !important;
-    stroke: var(--vp-primary-400, #60a5fa) !important;
-  }
-  
-  .actor-line {
-    stroke: var(--vp-gray-300, #d1d5db) !important;
-  }
-  
-  .messageLine0,
-  .messageLine1 {
-    stroke: var(--vp-gray-500, #6b7280) !important;
-  }
-  
-  .activation0,
-  .activation1 {
-    fill: var(--vp-primary-100, #dbeafe) !important;
-    stroke: var(--vp-primary-300, #93c5fd) !important;
-  }
-  
-  .note {
-    fill: var(--vp-amber-50, #fffbeb) !important;
-    stroke: var(--vp-amber-300, #fcd34d) !important;
-  }
-}
-
-// ============================================
-// RESPONSIVE
-// ============================================
-
-@media (max-width: 768px) {
-  .mermaid-block {
-    margin: var(--vp-spacing-s, 0.75rem) calc(-1 * var(--vp-spacing-s, 0.75rem));
-    border-radius: 0;
-    border-left: none;
-    border-right: none;
-    padding: var(--vp-spacing-s, 0.75rem);
-  }
-  
-  .mermaid-actions {
-    opacity: 1;
-  }
-  
-  .mermaid-content svg {
-    min-width: 300px;
-  }
-}
-
-// ============================================
-// DARK MODE SUPPORT (future)
-// ============================================
-
-@media (prefers-color-scheme: dark) {
-  .mermaid-block {
-    background: var(--vp-gray-800, #1f2937);
-    border-color: var(--vp-gray-700, #374151);
-  }
-  
-  .mermaid-loading {
-    color: var(--vp-gray-400, #9ca3af);
-    
-    .mermaid-spinner {
-      border-color: var(--vp-gray-600, #4b5563);
-      border-top-color: var(--vp-primary-400, #60a5fa);
-    }
-  }
-  
-  .mermaid-source {
-    border-top-color: var(--vp-gray-700, #374151);
-    
-    summary {
-      color: var(--vp-gray-400, #9ca3af);
-      
-      &:hover {
-        background: var(--vp-gray-700, #374151);
-        color: var(--vp-gray-200, #e5e7eb);
-      }
-    }
-    
-    .mermaid-code {
-      background: var(--vp-gray-950, #030712);
-    }
-  }
-  
-  .mermaid-action-btn {
-    background: var(--vp-gray-700, #374151);
-    color: var(--vp-gray-300, #d1d5db);
-    
-    &:hover {
-      background: var(--vp-gray-600, #4b5563);
-      color: var(--vp-white, #ffffff);
-    }
-  }
-}
-
-// ============================================
-// PRINT STYLES
-// ============================================
-
-@media print {
-  .mermaid-block {
-    break-inside: avoid;
-    page-break-inside: avoid;
-    border: 1px solid #ccc;
-    
-    &::before {
-      display: none;
-    }
-  }
-  
-  .mermaid-actions {
-    display: none;
-  }
-  
-  .mermaid-source {
-    display: none;
   }
 }

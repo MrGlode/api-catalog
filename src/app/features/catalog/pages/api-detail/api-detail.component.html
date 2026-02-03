@@ -1,6 +1,6 @@
 <!-- API Detail Page -->
 <div class="api-detail-page">
-  
+
   <!-- Error State -->
   @if (errorMessage) {
     <div class="error-state">
@@ -24,7 +24,7 @@
 
   <!-- Main Content -->
   @if (!isLoading && !errorMessage && api) {
-    
+
     <!-- Back Button -->
     <div class="back-nav">
       <button class="back-button" (click)="goBack()">
@@ -38,7 +38,7 @@
     <!-- API Header -->
     <header class="api-header">
       <div class="api-header-content">
-        
+
         <!-- Thumbnail ou icône fallback -->
         <div class="api-header-icon">
           @if (apiThumbnailUrl) {
@@ -51,7 +51,7 @@
             </div>
           }
         </div>
-        
+
         <div class="api-title-section">
           <div class="api-title-row">
             <h1 class="api-name">{{ api.name }}</h1>
@@ -62,7 +62,7 @@
           </div>
           <p class="api-description">{{ api.description || 'Aucune description disponible.' }}</p>
         </div>
-        
+
       </div>
     </header>
 
@@ -78,8 +78,8 @@
           Découvrir
         </span>
         <div class="tab-group">
-          <button 
-            class="tab-btn" 
+          <button
+            class="tab-btn"
             [class.active]="activeTab === 'overview'"
             (click)="setTab('overview')"
           >
@@ -89,8 +89,8 @@
               <span class="tab-subtitle">Comprendre le service</span>
             </span>
           </button>
-          <button 
-            class="tab-btn" 
+          <button
+            class="tab-btn"
             [class.active]="activeTab === 'documentation'"
             (click)="setTab('documentation')"
           >
@@ -126,8 +126,8 @@
           Intégrer
         </span>
         <div class="tab-group">
-          <button 
-            class="tab-btn" 
+          <button
+            class="tab-btn"
             [class.active]="activeTab === 'reference'"
             (click)="setTab('reference')"
           >
@@ -140,8 +140,8 @@
               <span class="tab-count">{{ endpoints.length }}</span>
             }
           </button>
-          <button 
-            class="tab-btn" 
+          <button
+            class="tab-btn"
             [class.active]="activeTab === 'sandbox'"
             (click)="setTab('sandbox')"
           >
@@ -157,13 +157,13 @@
 
     <!-- Tab Content -->
     <div class="tab-content">
-      
+
       <!-- ============================================ -->
       <!-- OVERVIEW TAB -->
       <!-- ============================================ -->
       @if (activeTab === 'overview') {
         <div class="overview-tab">
-          
+
           <!-- API Info Cards -->
           <div class="info-cards">
             <div class="info-card">
@@ -177,7 +177,7 @@
                 <span class="info-card-label">Endpoints</span>
               </div>
             </div>
-            
+
             <div class="info-card">
               <div class="info-card-icon green">
                 <svg viewBox="0 0 20 20" fill="currentColor">
@@ -189,7 +189,7 @@
                 <span class="info-card-label">Documents</span>
               </div>
             </div>
-            
+
             <div class="info-card">
               <div class="info-card-icon purple">
                 <svg viewBox="0 0 20 20" fill="currentColor">
@@ -310,7 +310,7 @@
                 <ul class="docs-list">
                   @for (doc of documents; track doc.documentId) {
                     <li>
-                      <button 
+                      <button
                         class="doc-item"
                         [class.active]="selectedDocument === doc"
                         (click)="selectDocument(doc)"
@@ -325,7 +325,7 @@
                   }
                 </ul>
               </aside>
-              
+
               <!-- Document Content -->
               <main class="docs-content">
                 @if (selectedDocument) {
@@ -335,7 +335,7 @@
                       <p class="doc-summary">{{ selectedDocument.summary }}</p>
                     }
                   </div>
-                  
+
                   @if (isLoadingDocContent) {
                     <div class="loading-inline">
                       <div class="loading-spinner small"></div>
@@ -349,7 +349,7 @@
                       </a>
                     </div>
                   } @else {
-                    <div class="doc-body" [innerHTML]="documentContent"></div>
+                    <div class="doc-body" [innerHTML]="documentContent" appMermaidRenderer></div>
                   }
                 }
               </main>
@@ -394,19 +394,19 @@
                       </svg>
                     </div>
                   </button>
-                  
+
                   <!-- Endpoints List -->
                   @if (group.expanded) {
                     <div class="tag-endpoints">
                       @for (endpoint of group.endpoints; track trackByPath($index, endpoint)) {
-                        <div 
-                          class="endpoint-block" 
+                        <div
+                          class="endpoint-block"
                           [class.expanded]="endpoint.expanded"
                           [class.highlighted]="isEndpointHighlighted(endpoint)"
                           [id]="getEndpointElementId(endpoint)"
                         >
                           <!-- Endpoint Header -->
-                          <button 
+                          <button
                             class="endpoint-header"
                             [class]="'endpoint-header method-' + endpoint.method.toLowerCase()"
                             (click)="toggleEndpoint(endpoint)"
@@ -422,14 +422,14 @@
                               </svg>
                             </div>
                           </button>
-                          
+
                           <!-- Endpoint Details -->
                           @if (endpoint.expanded) {
                             <div class="endpoint-details">
                               @if (endpoint.description) {
                                 <p class="endpoint-description">{{ endpoint.description }}</p>
                               }
-                              
+
                               <!-- Parameters -->
                               @if (endpoint.parameters && endpoint.parameters.length > 0) {
                                 <div class="detail-section">
@@ -465,12 +465,12 @@
                                             }
                                           </div>
                                         </div>
-                                        
+
                                         <!-- Parameter Description -->
                                         @if (param.description) {
                                           <p class="param-desc">{{ param.description }}</p>
                                         }
-                                        
+
                                         <!-- Parameter Constraints (directly on param) -->
                                         @if (hasParamConstraints(param)) {
                                           <div class="param-constraints">
@@ -482,7 +482,7 @@
                                             }
                                           </div>
                                         }
-                                        
+
                                         <!-- Enum Values (now part of constraints, but keep for backward compat) -->
                                         @if (hasParamEnum(param) && !hasParamConstraintsWithEnum(param)) {
                                           <div class="param-enum">
@@ -492,7 +492,7 @@
                                             }
                                           </div>
                                         }
-                                        
+
                                         <!-- Expanded Schema Details -->
                                         @if (hasComplexParamSchema(param) && isParamSchemaExpanded(endpoint, param.name)) {
                                           <div class="param-schema-details">
@@ -522,7 +522,7 @@
                                                       </div>
                                                       <div class="schema-prop-desc">{{ prop.description || '-' }}</div>
                                                     </div>
-                                                    
+
                                                     <!-- Constraints -->
                                                     @if (hasConstraints(prop.schema)) {
                                                       <div class="constraints-row">
@@ -534,7 +534,7 @@
                                                         }
                                                       </div>
                                                     }
-                                                    
+
                                                     <!-- Nested Properties -->
                                                     @if (hasNestedSchema(prop.schema) && isNestedPropExpanded(getParamNestedContext(endpoint, param.name, prop.name), prop.name)) {
                                                       <div class="nested-schema">
@@ -572,7 +572,7 @@
                                                 }
                                               </div>
                                             }
-                                            
+
                                             <!-- Example -->
                                             @if (getParamExample(param)) {
                                               <div class="schema-example">
@@ -600,7 +600,7 @@
                                       @let response = endpoint.responses[code];
                                       <div class="response-block" [class.expanded]="isResponseExpanded(endpoint, code)">
                                         <!-- Response Header (clickable) -->
-                                        <button 
+                                        <button
                                           class="response-header"
                                           [class.success]="code.startsWith('2')"
                                           [class.error]="code.startsWith('4') || code.startsWith('5')"
@@ -617,7 +617,7 @@
                                             <polyline points="6 9 12 15 18 9"></polyline>
                                           </svg>
                                         </button>
-                                        
+
                                         <!-- Response Content (expandable) -->
                                         @if (isResponseExpanded(endpoint, code)) {
                                           <div class="response-content">
@@ -636,7 +636,7 @@
                                                     <span class="schema-type">{{ getResponseSchemaType(response) }}</span>
                                                   }
                                                 </div>
-                                                
+
                                                 <!-- OneOf / AnyOf Options Tabs -->
                                                 @if (hasSchemaOptions(response)) {
                                                   <div class="schema-options">
@@ -646,7 +646,7 @@
                                                     </div>
                                                     <div class="schema-options-tabs">
                                                       @for (option of getSchemaOptions(response); track option.index) {
-                                                        <button 
+                                                        <button
                                                           class="option-tab"
                                                           [class.active]="getSelectedOptionIndex(endpoint, code) === option.index"
                                                           (click)="selectSchemaOption(endpoint, code, option.index)"
@@ -655,7 +655,7 @@
                                                         </button>
                                                       }
                                                     </div>
-                                                    
+
                                                     <!-- Selected Option Properties -->
                                                     @let selectedOption = getSchemaOptions(response)[getSelectedOptionIndex(endpoint, code)];
                                                     @if (selectedOption) {
@@ -685,7 +685,7 @@
                                                                   </div>
                                                                   <div class="schema-prop-desc">{{ prop.description || '-' }}</div>
                                                                 </div>
-                                                                
+
                                                                 <!-- Constraints Details -->
                                                                 @if (hasConstraints(prop.schema)) {
                                                                   <div class="constraints-row">
@@ -697,7 +697,7 @@
                                                                     }
                                                                   </div>
                                                                 }
-                                                                
+
                                                                 <!-- Nested Properties -->
                                                                 @if (hasNestedSchema(prop.schema) && isNestedPropExpanded(getNestedContext(endpoint, code + '-' + selectedOption.index, prop.name), prop.name)) {
                                                                   <div class="nested-schema">
@@ -737,7 +737,7 @@
                                                         } @else {
                                                           <p class="no-props">Aucune propriété définie pour cette option.</p>
                                                         }
-                                                        
+
                                                         <!-- Option Example -->
                                                         @if (getOptionExample(selectedOption.schema)) {
                                                           <div class="schema-example">
@@ -778,7 +778,7 @@
                                                             </div>
                                                             <div class="schema-prop-desc">{{ prop.description || '-' }}</div>
                                                           </div>
-                                                          
+
                                                           <!-- Constraints Details -->
                                                           @if (hasConstraints(prop.schema)) {
                                                             <div class="constraints-row">
@@ -790,7 +790,7 @@
                                                               }
                                                             </div>
                                                           }
-                                                          
+
                                                           <!-- Nested Properties -->
                                                           @if (hasNestedSchema(prop.schema) && isNestedPropExpanded(getNestedContext(endpoint, code, prop.name), prop.name)) {
                                                             <div class="nested-schema">
@@ -828,7 +828,7 @@
                                                       }
                                                     </div>
                                                   }
-                                                  
+
                                                   <!-- Example -->
                                                   @if (getResponseExample(response)) {
                                                     <div class="schema-example">
@@ -856,18 +856,18 @@
                               <div class="detail-section">
                                 <h4>Exemple de code</h4>
                                 <div class="code-tabs">
-                                  <button 
-                                    class="code-tab" 
+                                  <button
+                                    class="code-tab"
                                     [class.active]="activeCodeLang === 'curl'"
                                     (click)="setCodeLang('curl')"
                                   >cURL</button>
-                                  <button 
-                                    class="code-tab" 
+                                  <button
+                                    class="code-tab"
                                     [class.active]="activeCodeLang === 'javascript'"
                                     (click)="setCodeLang('javascript')"
                                   >JavaScript</button>
-                                  <button 
-                                    class="code-tab" 
+                                  <button
+                                    class="code-tab"
                                     [class.active]="activeCodeLang === 'python'"
                                     (click)="setCodeLang('python')"
                                   >Python</button>
@@ -914,7 +914,7 @@
               <label class="toolbar-label">Environnement</label>
               <div class="env-selector">
                 @for (env of sandboxEnvironments; track env.name) {
-                  <button 
+                  <button
                     class="env-btn"
                     [class.active]="selectedEnvironment?.name === env.name"
                     [class]="'env-' + env.type"
@@ -926,7 +926,7 @@
                 }
               </div>
             </div>
-            
+
             <!-- Token Selector (if authenticated and has subscriptions) -->
             @if (isAuthenticated && availableAppKeys.length > 0) {
               <div class="toolbar-section">
@@ -936,7 +936,7 @@
                     <span class="loading-mini"></span>
                   }
                 </label>
-                <select 
+                <select
                   class="token-select"
                   [ngModel]="selectedAppKey"
                   (ngModelChange)="selectAppKey($event)"
@@ -978,7 +978,7 @@
           <!-- Power Tools Bar (Level 3) -->
           <div class="power-tools-bar">
             <div class="power-tools-left">
-              <button 
+              <button
                 class="power-btn"
                 [class.active]="showEnvPanel"
                 (click)="toggleEnvPanel()"
@@ -992,7 +992,7 @@
                   <span class="power-badge">{{ countEnvVariablesWithValue() }}</span>
                 }
               </button>
-              <button 
+              <button
                 class="power-btn"
                 [class.active]="showCollectionsPanel"
                 (click)="toggleCollectionsPanel()"
@@ -1009,7 +1009,7 @@
             </div>
             <div class="power-tools-right">
               @if (sandboxRequest.endpoint) {
-                <button 
+                <button
                   class="power-btn save"
                   (click)="saveCurrentRequest()"
                   title="Sauvegarder cette requête"
@@ -1021,7 +1021,7 @@
                 </button>
               }
               @if (sandboxResponse) {
-                <button 
+                <button
                   class="power-btn code"
                   (click)="openCodeGenModal()"
                   title="Générer le code avec les vraies valeurs"
@@ -1047,8 +1047,8 @@
                 @for (v of envVariables; track v.key; let i = $index) {
                   <div class="env-row">
                     <span class="env-key">{{'{{' + v.key + '}}'}}</span>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       [(ngModel)]="v.value"
                       [placeholder]="v.description || 'Valeur'"
                     />
@@ -1095,12 +1095,12 @@
             <!-- Left Panel: Request -->
             <div class="sandbox-request">
               <h3 class="sandbox-title">Requête</h3>
-              
+
               <!-- Endpoint Selector -->
               <div class="form-group">
                 <label>Endpoint</label>
                 <div class="endpoint-selector-row">
-                  <select 
+                  <select
                     [ngModel]="sandboxRequest.endpoint"
                     (ngModelChange)="selectEndpointForSandbox($event)"
                   >
@@ -1109,7 +1109,7 @@
                     }
                   </select>
                   @if (hasExamples()) {
-                    <button 
+                    <button
                       class="btn-example"
                       (click)="loadExampleValues()"
                       title="Charger les valeurs d'exemple depuis la spécification OpenAPI"
@@ -1147,8 +1147,8 @@
                             {{ param.name }}
                             <span class="param-meta">{{ getParamTypeLabel(param) }}</span>
                           </label>
-                          <input 
-                            type="text" 
+                          <input
+                            type="text"
                             [placeholder]="param.description || param.name"
                             [(ngModel)]="sandboxRequest.parameters[param.name]"
                           />
@@ -1156,7 +1156,7 @@
                       }
                     </div>
                   }
-                  
+
                   <!-- Query Parameters -->
                   @if (getParamsByType('query').length > 0) {
                     <div class="params-section">
@@ -1170,8 +1170,8 @@
                             {{ param.name }}
                             <span class="param-meta">{{ getParamTypeLabel(param) }}</span>
                           </label>
-                          <input 
-                            type="text" 
+                          <input
+                            type="text"
                             [placeholder]="param.description || param.name"
                             [(ngModel)]="sandboxRequest.parameters[param.name]"
                           />
@@ -1179,7 +1179,7 @@
                       }
                     </div>
                   }
-                  
+
                   <!-- Header Parameters -->
                   @if (getParamsByType('header').length > 0) {
                     <div class="params-section">
@@ -1193,8 +1193,8 @@
                             {{ param.name }}
                             <span class="param-meta">{{ getParamTypeLabel(param) }}</span>
                           </label>
-                          <input 
-                            type="text" 
+                          <input
+                            type="text"
                             [placeholder]="param.description || param.name"
                             [(ngModel)]="sandboxRequest.parameters[param.name]"
                           />
@@ -1213,8 +1213,8 @@
                   @for (header of sandboxRequest.headers | keyvalue; track header.key) {
                     <div class="header-row">
                       <input type="text" [value]="header.key" disabled class="header-key" />
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         [(ngModel)]="sandboxRequest.headers[header.key]"
                         class="header-value"
                         [class.has-token]="header.key === 'Authorization' && getEnvVariableValue('token')"
@@ -1261,7 +1261,7 @@
                         </button>
                       </div>
                     </div>
-                    <textarea 
+                    <textarea
                       [(ngModel)]="sandboxRequest.body"
                       (ngModelChange)="validateJsonBody()"
                       rows="8"
@@ -1278,7 +1278,7 @@
 
                 <!-- Execute Button -->
                 <div class="sandbox-actions">
-                  <button 
+                  <button
                     class="btn btn-primary btn-large"
                     (click)="executeSandboxRequest()"
                     [disabled]="isSandboxLoading || (!jsonValidation.isValid && sandboxRequest.body)"
@@ -1299,7 +1299,7 @@
             <!-- Right Panel: Response -->
             <div class="sandbox-response">
               <h3 class="sandbox-title">Réponse</h3>
-              
+
               @if (sandboxResponse) {
                 <!-- Status Bar -->
                 <div class="response-status-bar">
@@ -1360,7 +1360,7 @@
                       <div class="response-actions">
                         <!-- Copy Dropdown -->
                         <div class="dropdown-group">
-                          <button 
+                          <button
                             class="btn-mini"
                             (click)="copyResponseFormatted()"
                             title="Copier formaté"
@@ -1375,7 +1375,7 @@
                               Copier
                             }
                           </button>
-                          <button 
+                          <button
                             class="btn-mini"
                             (click)="copyResponseRaw()"
                             title="Copier minifié (une ligne)"
@@ -1391,7 +1391,7 @@
                           </button>
                         </div>
                         <!-- Download -->
-                        <button 
+                        <button
                           class="btn-mini primary"
                           (click)="downloadResponse()"
                           title="Télécharger en .json"
@@ -1425,8 +1425,8 @@
               <div class="history-header">
                 <h4>Historique ({{ sandboxHistory.length }})</h4>
                 <div class="history-actions">
-                  <button 
-                    class="btn-mini" 
+                  <button
+                    class="btn-mini"
                     [class.active]="diffMode"
                     (click)="toggleDiffMode()"
                     title="Comparer deux réponses"
@@ -1439,7 +1439,7 @@
                   <button class="btn-link" (click)="clearSandboxHistory()">Effacer</button>
                 </div>
               </div>
-              
+
               @if (diffMode) {
                 <p class="diff-hint">
                   Sélectionnez 2 réponses à comparer
@@ -1451,10 +1451,10 @@
                   }
                 </p>
               }
-              
+
               <div class="history-list">
                 @for (item of sandboxHistory; track item.id; let i = $index) {
-                  <button 
+                  <button
                     class="history-item"
                     [class.diff-selected-first]="diffMode && diffSelection.first?.id === item.id"
                     [class.diff-selected-second]="diffMode && diffSelection.second?.id === item.id"
@@ -1472,7 +1472,7 @@
                   </button>
                 }
               </div>
-              
+
               <!-- Diff Result -->
               @if (diffMode && diffSelection.first && diffSelection.second) {
                 <div class="diff-result">
@@ -1525,28 +1525,28 @@
           </svg>
         </button>
       </div>
-      
+
       <div class="modal-body">
         <p class="codegen-hint">Code généré avec les vraies valeurs de votre dernière requête</p>
-        
+
         <div class="codegen-tabs">
-          <button 
+          <button
             class="codegen-tab"
             [class.active]="codeGenLang === 'curl'"
             (click)="codeGenLang = 'curl'"
           >cURL</button>
-          <button 
+          <button
             class="codegen-tab"
             [class.active]="codeGenLang === 'javascript'"
             (click)="codeGenLang = 'javascript'"
           >JavaScript</button>
-          <button 
+          <button
             class="codegen-tab"
             [class.active]="codeGenLang === 'python'"
             (click)="codeGenLang = 'python'"
           >Python</button>
         </div>
-        
+
         <div class="codegen-content">
           <div class="code-block">
             <button class="copy-btn" (click)="copyCode(getRealCodeExample())">
@@ -1556,7 +1556,7 @@
           </div>
         </div>
       </div>
-      
+
       <div class="modal-footer">
         <button class="btn btn-secondary" (click)="closeCodeGenModal()">Fermer</button>
       </div>
@@ -1576,7 +1576,7 @@
           </svg>
         </button>
       </div>
-      
+
       <div class="modal-body">
         @if (applications.length === 0) {
           <div class="no-apps-warning">
@@ -1594,7 +1594,7 @@
               }
             </select>
           </div>
-          
+
           <div class="form-group">
             <label for="sub-policy">Politique de throttling</label>
             <select id="sub-policy" [(ngModel)]="selectedPolicy" [disabled]="isSubscribing">
@@ -1605,14 +1605,14 @@
           </div>
         }
       </div>
-      
+
       <div class="modal-footer">
         <button class="btn btn-secondary" (click)="closeSubscribeModal()" [disabled]="isSubscribing">
           Annuler
         </button>
         @if (applications.length > 0) {
-          <button 
-            class="btn btn-primary" 
+          <button
+            class="btn btn-primary"
             (click)="subscribe()"
             [disabled]="!selectedAppId || !selectedPolicy || isSubscribing"
           >

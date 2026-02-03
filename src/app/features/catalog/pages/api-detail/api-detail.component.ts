@@ -16,6 +16,7 @@ import {
   ApplicationList,
   ThrottlingPolicy
 } from '../../../../core/models';
+import { MermaidRendererDirective } from '../../../../shared/directives/mermaid-renderer.directive';
 
 /**
  * Parsed endpoint from OpenAPI spec
@@ -201,7 +202,7 @@ interface HistoryItem {
 @Component({
   selector: 'app-api-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink, FormsModule],
+  imports: [CommonModule, RouterLink, FormsModule, MermaidRendererDirective],
   templateUrl: './api-detail.component.html',
   styleUrls: ['./api-detail.component.scss']
 })
@@ -440,7 +441,7 @@ export class ApiDetailComponent implements OnInit, OnDestroy {
       },
       error: (error) => {
         console.error('Failed to load API', error);
-        this.errorMessage = 'Impossible de charger les détails de l\'API.';
+        this.errorMessage = 'Impossible de charger les dÃ©tails de l\'API.';
         this.isLoading = false;
         this.cdr.detectChanges();
       }
@@ -797,9 +798,9 @@ export class ApiDetailComponent implements OnInit, OnDestroy {
   
   getEnvironmentIcon(type: 'production' | 'sandbox' | 'hybrid'): string {
     switch (type) {
-      case 'production': return '🔴';
-      case 'sandbox': return '🟢';
-      case 'hybrid': return '🟡';
+      case 'production': return 'ðŸ”´';
+      case 'sandbox': return 'ðŸŸ¢';
+      case 'hybrid': return 'ðŸŸ¡';
     }
   }
   
@@ -1255,7 +1256,7 @@ export class ApiDetailComponent implements OnInit, OnDestroy {
     if (key && key.trim()) {
       // Check if already exists
       if (this.envVariables.some(v => v.key === key.trim())) {
-        alert('Cette variable existe déjà.');
+        alert('Cette variable existe dÃ©jÃ .');
         return;
       }
       this.envVariables.push({
@@ -1312,11 +1313,11 @@ export class ApiDetailComponent implements OnInit, OnDestroy {
   
   saveCurrentRequest(): void {
     if (!this.sandboxRequest.endpoint) {
-      alert('Sélectionnez un endpoint d\'abord.');
+      alert('SÃ©lectionnez un endpoint d\'abord.');
       return;
     }
     
-    const name = prompt('Nom de la requête sauvegardée:', 
+    const name = prompt('Nom de la requÃªte sauvegardÃ©e:', 
       `${this.sandboxRequest.endpoint.method} ${this.sandboxRequest.endpoint.path}`);
     
     if (name && name.trim()) {
@@ -1362,7 +1363,7 @@ export class ApiDetailComponent implements OnInit, OnDestroy {
   }
   
   deleteSavedRequest(id: string): void {
-    if (confirm('Supprimer cette requête sauvegardée ?')) {
+    if (confirm('Supprimer cette requÃªte sauvegardÃ©e ?')) {
       this.savedRequests = this.savedRequests.filter(r => r.id !== id);
       this.persistSavedRequests();
       this.cdr.detectChanges();
@@ -1956,7 +1957,7 @@ export class ApiDetailComponent implements OnInit, OnDestroy {
       next: () => {
         this.isSubscribing = false;
         this.closeSubscribeModal();
-        alert('Souscription réussie !');
+        alert('Souscription rÃ©ussie !');
       },
       error: (error) => {
         console.error('Failed to subscribe', error);
@@ -2129,24 +2130,24 @@ export class ApiDetailComponent implements OnInit, OnDestroy {
 
   getStatusLabel(status?: string): string {
     switch (status) {
-      case 'PUBLISHED': return 'Publié';
+      case 'PUBLISHED': return 'PubliÃ©';
       case 'PROTOTYPED': return 'Prototype';
-      case 'DEPRECATED': return 'Déprécié';
-      case 'BLOCKED': return 'Bloqué';
-      case 'RETIRED': return 'Retiré';
+      case 'DEPRECATED': return 'DÃ©prÃ©ciÃ©';
+      case 'BLOCKED': return 'BloquÃ©';
+      case 'RETIRED': return 'RetirÃ©';
       default: return status || 'Inconnu';
     }
   }
 
   getDocTypeIcon(type?: string): string {
     switch (type) {
-      case 'HOWTO': return '📖';
-      case 'SAMPLES': return '💻';
-      case 'PUBLIC_FORUM': return '💬';
-      case 'SUPPORT_FORUM': return '🛟';
-      case 'API_MESSAGE_FORMAT': return '📄';
-      case 'SWAGGER_DOC': return '📋';
-      default: return '📝';
+      case 'HOWTO': return 'ðŸ“–';
+      case 'SAMPLES': return 'ðŸ’»';
+      case 'PUBLIC_FORUM': return 'ðŸ’¬';
+      case 'SUPPORT_FORUM': return 'ðŸ›Ÿ';
+      case 'API_MESSAGE_FORMAT': return 'ðŸ“„';
+      case 'SWAGGER_DOC': return 'ðŸ“‹';
+      default: return 'ðŸ“';
     }
   }
 
@@ -2564,29 +2565,29 @@ export class ApiDetailComponent implements OnInit, OnDestroy {
     
     // Number constraints
     if (resolved.minimum !== undefined || resolved.maximum !== undefined) {
-      const min = resolved.minimum !== undefined ? resolved.minimum : '-∞';
-      const max = resolved.maximum !== undefined ? resolved.maximum : '+∞';
+      const min = resolved.minimum !== undefined ? resolved.minimum : '-âˆž';
+      const max = resolved.maximum !== undefined ? resolved.maximum : '+âˆž';
       constraints.push({ label: 'Intervalle', value: `[${min}, ${max}]`, type: 'range' });
     }
     
     if (resolved.exclusiveMinimum !== undefined || resolved.exclusiveMaximum !== undefined) {
-      const min = resolved.exclusiveMinimum !== undefined ? resolved.exclusiveMinimum : '-∞';
-      const max = resolved.exclusiveMaximum !== undefined ? resolved.exclusiveMaximum : '+∞';
+      const min = resolved.exclusiveMinimum !== undefined ? resolved.exclusiveMinimum : '-âˆž';
+      const max = resolved.exclusiveMaximum !== undefined ? resolved.exclusiveMaximum : '+âˆž';
       constraints.push({ label: 'Intervalle', value: `]${min}, ${max}[`, type: 'range' });
     }
     
     // String length constraints
     if (resolved.minLength !== undefined || resolved.maxLength !== undefined) {
       const min = resolved.minLength ?? 0;
-      const max = resolved.maxLength ?? '∞';
+      const max = resolved.maxLength ?? 'âˆž';
       constraints.push({ label: 'Longueur', value: `${min} - ${max}`, type: 'range' });
     }
     
     // Array constraints
     if (resolved.minItems !== undefined || resolved.maxItems !== undefined) {
       const min = resolved.minItems ?? 0;
-      const max = resolved.maxItems ?? '∞';
-      constraints.push({ label: 'Nb éléments', value: `${min} - ${max}`, type: 'range' });
+      const max = resolved.maxItems ?? 'âˆž';
+      constraints.push({ label: 'Nb Ã©lÃ©ments', value: `${min} - ${max}`, type: 'range' });
     }
     
     // Format
@@ -2612,7 +2613,7 @@ export class ApiDetailComponent implements OnInit, OnDestroy {
       constraints.push({ label: 'Lecture seule', value: 'oui', type: 'flag' });
     }
     if (resolved.writeOnly) {
-      constraints.push({ label: 'Écriture seule', value: 'oui', type: 'flag' });
+      constraints.push({ label: 'Ã‰criture seule', value: 'oui', type: 'flag' });
     }
     
     // Default value
@@ -2620,7 +2621,7 @@ export class ApiDetailComponent implements OnInit, OnDestroy {
       const defaultVal = typeof resolved.default === 'object' 
         ? JSON.stringify(resolved.default) 
         : String(resolved.default);
-      constraints.push({ label: 'Défaut', value: defaultVal, type: 'default' });
+      constraints.push({ label: 'DÃ©faut', value: defaultVal, type: 'default' });
     }
     
     return constraints;
@@ -2639,13 +2640,13 @@ export class ApiDetailComponent implements OnInit, OnDestroy {
     // Length/Range
     if (resolved.minLength !== undefined || resolved.maxLength !== undefined) {
       const min = resolved.minLength ?? 0;
-      const max = resolved.maxLength ?? '∞';
+      const max = resolved.maxLength ?? 'âˆž';
       parts.push(`len: ${min}-${max}`);
     }
     
     if (resolved.minimum !== undefined || resolved.maximum !== undefined) {
-      const min = resolved.minimum ?? '-∞';
-      const max = resolved.maximum ?? '+∞';
+      const min = resolved.minimum ?? '-âˆž';
+      const max = resolved.maximum ?? '+âˆž';
       parts.push(`${min}..${max}`);
     }
     
@@ -2663,7 +2664,7 @@ export class ApiDetailComponent implements OnInit, OnDestroy {
       parts.push(`${resolved.enum.length} valeurs`);
     }
     
-    return parts.join(' · ');
+    return parts.join(' Â· ');
   }
 
   // ========================================

@@ -23,23 +23,55 @@ export class MarkdownService {
    */
   parse(markdown: string): string {
     if (!markdown) return '';
-    
+
     try {
+      // Extract mermaid blocks before parsing
+      const { text, blocks } = this.extractMermaidBlocks(markdown);
+
       // Use marked to parse markdown
-      const result = marked.parse(markdown);
-      
+      const result = marked.parse(text);
+
       // marked.parse can return string or Promise<string>
       if (typeof result === 'string') {
         // Post-process to add syntax highlighting to code blocks
-        return this.addSyntaxHighlighting(result);
+        let html = this.addSyntaxHighlighting(result);
+        // Restore mermaid blocks
+        html = this.restoreMermaidBlocks(html, blocks);
+        return html;
       }
-      
+
       // Fallback for async result (shouldn't happen with sync options)
       return markdown;
     } catch (error) {
       console.error('Markdown parsing error:', error);
       return this.escapeHtml(markdown);
     }
+  }
+
+  /**
+   * Extract mermaid code blocks and replace with placeholders
+   */
+  private extractMermaidBlocks(markdown: string): { text: string; blocks: Map<string, string> } {
+    const blocks = new Map<string, string>();
+    let i = 0;
+    const text = markdown.replace(/```mermaid\s*\n([\s\S]*?)```/gi, (_, code) => {
+      const key = `MERMAIDPLACEHOLDER${i++}END`;
+      blocks.set(key, code.trim());
+      return key;
+    });
+    return { text, blocks };
+  }
+
+  /**
+   * Restore mermaid blocks as div elements
+   */
+  private restoreMermaidBlocks(html: string, blocks: Map<string, string>): string {
+    blocks.forEach((code, key) => {
+      const encoded = btoa(unescape(encodeURIComponent(code)));
+      const div = `<div class="mermaid" data-mermaid="${encoded}"></div>`;
+      html = html.replace(`<p>${key}</p>`, div).replace(key, div);
+    });
+    return html;
   }
 
   /**
@@ -62,28 +94,28 @@ export class MarkdownService {
    */
   private detectLanguage(code: string): string {
     const trimmed = code.trim();
-    
+
     // JSON detection
     if ((trimmed.startsWith('{') && trimmed.endsWith('}')) ||
         (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
       return 'json';
     }
-    
+
     // Bash/Shell detection
-    if (trimmed.startsWith('$') || 
-        trimmed.startsWith('curl') || 
+    if (trimmed.startsWith('$') ||
+        trimmed.startsWith('curl') ||
         trimmed.startsWith('#!')) {
       return 'bash';
     }
-    
+
     // JavaScript detection
-    if (trimmed.includes('const ') || 
-        trimmed.includes('let ') || 
+    if (trimmed.includes('const ') ||
+        trimmed.includes('let ') ||
         trimmed.includes('function ') ||
         trimmed.includes('=>')) {
       return 'javascript';
     }
-    
+
     return 'text';
   }
 
@@ -134,7 +166,7 @@ export class MarkdownService {
       // Comments
       .replace(/(#[^\n]*)/g, '<span class="bash-comment">$1</span>')
       // Commands at start
-      .replace(/^(curl|wget|npm|yarn|docker|git|cd|ls|mkdir|rm|cp|mv|echo|cat|grep|sed|awk)/gm, 
+      .replace(/^(curl|wget|npm|yarn|docker|git|cd|ls|mkdir|rm|cp|mv|echo|cat|grep|sed|awk)/gm,
         '<span class="bash-command">$1</span>')
       // Flags
       .replace(/(\s)(-{1,2}[\w-]+)/g, '$1<span class="bash-flag">$2</span>')
@@ -150,7 +182,7 @@ export class MarkdownService {
       // Comments
       .replace(/(\/\/[^\n]*)/g, '<span class="js-comment">$1</span>')
       // Keywords
-      .replace(/\b(const|let|var|function|return|if|else|for|while|class|import|export|from|async|await|try|catch|throw|new)\b/g, 
+      .replace(/\b(const|let|var|function|return|if|else|for|while|class|import|export|from|async|await|try|catch|throw|new)\b/g,
         '<span class="js-keyword">$1</span>')
       // Numbers
       .replace(/\b(\d+\.?\d*)\b/g, '<span class="js-number">$1</span>')
