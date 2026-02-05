@@ -1,6 +1,6 @@
 <!-- Applications Page -->
 <div class="applications-page">
-  
+
   <!-- Page Header -->
   <div class="page-header">
     <div class="page-header-content">
@@ -11,7 +11,9 @@
     </div>
     <button class="btn btn-primary" (click)="openCreateModal()">
       <svg viewBox="0 0 20 20" fill="currentColor" width="18" height="18">
-        <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
+        <path fill-rule="evenodd"
+          d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+          clip-rule="evenodd" />
       </svg>
       Nouvelle application
     </button>
@@ -19,563 +21,751 @@
 
   <!-- Error State -->
   @if (errorMessage) {
-    <div class="error-state">
-      <div class="error-icon">⚠️</div>
-      <h3>Erreur</h3>
-      <p>{{ errorMessage }}</p>
-      <button class="btn btn-primary" (click)="reload()">Réessayer</button>
-    </div>
+  <div class="error-state">
+    <div class="error-icon">⚠️</div>
+    <h3>Erreur</h3>
+    <p>{{ errorMessage }}</p>
+    <button class="btn btn-primary" (click)="reload()">Réessayer</button>
+  </div>
   }
 
   <!-- Loading State -->
   @if (isLoading) {
-    <div class="loading">
-      <div class="loading-spinner"></div>
-      <span>Chargement...</span>
-    </div>
+  <div class="loading">
+    <div class="loading-spinner"></div>
+    <span>Chargement...</span>
+  </div>
   } @else if (!errorMessage) {
-    
-    <!-- Main Content -->
-    <div class="applications-layout" [class.has-detail]="selectedApp">
-      
-      <!-- Applications List -->
-      <div class="applications-list-container">
-        @if (applications.length === 0) {
-          <div class="empty-state">
-            <div class="empty-icon">📦</div>
-            <h3>Aucune application</h3>
-            <p>Créez votre première application pour commencer à utiliser les API.</p>
-            <button class="btn btn-primary" (click)="openCreateModal()">
-              Créer une application
-            </button>
-          </div>
-        } @else {
-          <div class="applications-list">
-            @for (app of applications; track app.applicationId) {
-              <div 
-                class="app-card" 
-                [class.selected]="selectedApp?.applicationId === app.applicationId"
-                (click)="selectApp(app)"
-              >
-                <div class="app-card-header">
-                  <div class="app-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                      <line x1="3" y1="9" x2="21" y2="9"/>
-                      <line x1="9" y1="21" x2="9" y2="9"/>
-                    </svg>
-                  </div>
-                  <div class="app-info">
-                    <h3 class="app-name">{{ app.name }}</h3>
-                    <span class="badge" [class]="getStatusClass(app.status)">
-                      {{ getStatusLabel(app.status) }}
-                    </span>
-                  </div>
-                  <button class="app-delete" (click)="deleteApp(app, $event)" title="Supprimer">
-                    <svg viewBox="0 0 20 20" fill="currentColor">
-                      <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                    </svg>
-                  </button>
-                </div>
-                <p class="app-description">{{ app.description || 'Aucune description' }}</p>
-                <div class="app-meta">
-                  <span class="meta-item">
-                    <svg viewBox="0 0 20 20" fill="currentColor">
-                      <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    {{ app.throttlingPolicy }}
-                  </span>
-                  <span class="meta-item">
-                    <svg viewBox="0 0 20 20" fill="currentColor">
-                      <path fill-rule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z" clip-rule="evenodd"/>
-                    </svg>
-                    {{ app.subscriptionCount || 0 }} souscription{{ (app.subscriptionCount || 0) > 1 ? 's' : '' }}
-                  </span>
-                </div>
-              </div>
-            }
-          </div>
-        }
+
+  <!-- Main Content -->
+  <div class="applications-layout" [class.has-detail]="selectedApp">
+
+    <!-- Applications List -->
+    <div class="applications-list-container">
+      @if (applications.length === 0) {
+      <div class="empty-state">
+        <div class="empty-icon">📦</div>
+        <h3>Aucune application</h3>
+        <p>Créez votre première application pour commencer à utiliser les API.</p>
+        <button class="btn btn-primary" (click)="openCreateModal()">
+          Créer une application
+        </button>
       </div>
-      
-      <!-- Application Detail Panel -->
-      @if (selectedApp) {
-        <div class="app-detail-panel">
-          
-          <!-- Detail Header -->
-          <div class="detail-header">
-            <button class="back-button" (click)="closeDetail()">
-              <svg viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/>
+      } @else {
+      <div class="applications-list">
+        @for (app of applications; track app.applicationId) {
+        <div class="app-card" [class.selected]="selectedApp?.applicationId === app.applicationId"
+          (click)="selectApp(app)">
+          <div class="app-card-header">
+            <div class="app-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                <line x1="3" y1="9" x2="21" y2="9" />
+                <line x1="9" y1="21" x2="9" y2="9" />
               </svg>
-              <span class="back-text">Retour</span>
+            </div>
+            <div class="app-info">
+              <h3 class="app-name">{{ app.name }}</h3>
+              <span class="badge" [class]="getStatusClass(app.status)">
+                {{ getStatusLabel(app.status) }}
+              </span>
+            </div>
+            <button class="app-delete" (click)="deleteApp(app, $event)" title="Supprimer">
+              <svg viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd"
+                  d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                  clip-rule="evenodd" />
+              </svg>
             </button>
-            <h2 class="detail-title">{{ selectedApp.name }}</h2>
-            <span class="badge" [class]="getStatusClass(selectedApp.status)">
-              {{ getStatusLabel(selectedApp.status) }}
+          </div>
+          <p class="app-description">{{ app.description || 'Aucune description' }}</p>
+          <div class="app-meta">
+            <span class="meta-item">
+              <svg viewBox="0 0 20 20" fill="currentColor">
+                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              {{ app.throttlingPolicy }}
+            </span>
+            <span class="meta-item">
+              <svg viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd"
+                  d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z"
+                  clip-rule="evenodd" />
+              </svg>
+              {{ app.subscriptionCount || 0 }} souscription{{ (app.subscriptionCount || 0) > 1 ? 's' : '' }}
             </span>
           </div>
-          
-          <!-- Tabs -->
-          <div class="tabs">
-            <button 
-              class="tab" 
-              [class.active]="activeTab === 'overview'"
-              (click)="setTab('overview')"
-            >
-              Vue d'ensemble
-            </button>
-            <button 
-              class="tab" 
-              [class.active]="activeTab === 'subscriptions'"
-              (click)="setTab('subscriptions')"
-            >
-              Souscriptions
-              @if (appSubscriptions.length > 0) {
-                <span class="tab-badge">{{ appSubscriptions.length }}</span>
-              }
-            </button>
-            <button 
-              class="tab" 
-              [class.active]="activeTab === 'production'"
-              (click)="setTab('production')"
-            >
-              Production
-              @if (hasKey('PRODUCTION')) {
-                <span class="tab-dot green"></span>
-              }
-            </button>
-            <button 
-              class="tab" 
-              [class.active]="activeTab === 'sandbox'"
-              (click)="setTab('sandbox')"
-            >
-              Sandbox
-              @if (hasKey('SANDBOX')) {
-                <span class="tab-dot blue"></span>
-              }
-            </button>
-          </div>
-          
-          <!-- Tab Content -->
-          <div class="tab-content">
-            
-            <!-- Overview Tab -->
-            @if (activeTab === 'overview') {
-              <div class="overview-content">
-                <div class="info-section">
-                  <h3 class="section-title">Informations</h3>
-                  <div class="info-grid">
-                    <div class="info-item">
-                      <span class="info-label">Description</span>
-                      <span class="info-value">{{ selectedApp.description || 'Aucune description' }}</span>
-                    </div>
-                    <div class="info-item">
-                      <span class="info-label">Throttling Policy</span>
-                      <span class="info-value">{{ selectedApp.throttlingPolicy }}</span>
-                    </div>
-                    <div class="info-item">
-                      <span class="info-label">Créé le</span>
-                      <span class="info-value">{{ formatDate(selectedApp.createdTime) }}</span>
-                    </div>
-                    <div class="info-item">
-                      <span class="info-label">Propriétaire</span>
-                      <span class="info-value">{{ selectedApp.owner }}</span>
-                    </div>
-                    <div class="info-item">
-                      <span class="info-label">Token Type</span>
-                      <span class="info-value">{{ selectedApp.tokenType || 'OAUTH' }}</span>
-                    </div>
-                  </div>
-                </div>
-                
-                <div class="info-section">
-                  <h3 class="section-title">Clés d'accès</h3>
-                  <div class="keys-summary">
-                    <div class="key-summary-item" [class.active]="hasKey('PRODUCTION')">
-                      <span class="key-type">Production</span>
-                      @if (hasKey('PRODUCTION')) {
-                        <span class="badge badge-green">Configuré</span>
-                      } @else {
-                        <span class="badge badge-gray">Non configuré</span>
-                      }
-                    </div>
-                    <div class="key-summary-item" [class.active]="hasKey('SANDBOX')">
-                      <span class="key-type">Sandbox</span>
-                      @if (hasKey('SANDBOX')) {
-                        <span class="badge badge-blue">Configuré</span>
-                      } @else {
-                        <span class="badge badge-gray">Non configuré</span>
-                      }
-                    </div>
-                  </div>
-                </div>
-              </div>
-            }
-
-            <!-- Subscriptions Tab -->
-            @if (activeTab === 'subscriptions') {
-              <div class="subscriptions-content">
-                @if (isLoadingSubscriptions) {
-                  <div class="loading-inline">
-                    <div class="loading-spinner small"></div>
-                    <span>Chargement des souscriptions...</span>
-                  </div>
-                } @else if (appSubscriptions.length === 0) {
-                  <div class="empty-subscriptions">
-                    <div class="empty-icon">🔗</div>
-                    <h3>Aucune souscription</h3>
-                    <p>Cette application n'est souscrite à aucune API.</p>
-                    <a routerLink="/catalog" class="btn btn-primary">
-                      Parcourir le catalogue
-                    </a>
-                  </div>
-                } @else {
-                  <div class="subscriptions-header">
-                    <span class="subscriptions-count">{{ appSubscriptions.length }} API souscrite{{ appSubscriptions.length > 1 ? 's' : '' }}</span>
-                    <a routerLink="/catalog" class="btn btn-secondary btn-sm">
-                      + Ajouter une API
-                    </a>
-                  </div>
-                  
-                  <div class="subscriptions-list">
-                    @for (sub of appSubscriptions; track sub.subscriptionId) {
-                      <div class="subscription-item">
-                        <div class="subscription-main">
-                          <div class="subscription-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                              <path d="M13 10V3L4 14h7v7l9-11h-7z" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                          </div>
-                          <div class="subscription-info">
-                            <div class="subscription-header">
-                              <h4 class="subscription-name">{{ sub.apiName }}</h4>
-                              <span class="badge" [class]="getSubscriptionStatusClass(sub.status)">
-                                {{ getSubscriptionStatusLabel(sub.status) }}
-                              </span>
-                            </div>
-                            <p class="subscription-description">{{ sub.apiDescription || 'Aucune description' }}</p>
-                            <div class="subscription-meta">
-                              <span class="badge badge-gray">{{ sub.apiVersion }}</span>
-                              <span class="badge" [class]="getApiTypeClass(sub.apiType)">{{ sub.apiType }}</span>
-                              <span class="meta-text">Policy: {{ sub.throttlingPolicy }}</span>
-                            </div>
-                          </div>
-                        </div>
-                        <div class="subscription-actions">
-                          <button class="btn btn-secondary btn-sm" (click)="goToApi(sub.apiId)">
-                            Voir l'API
-                          </button>
-                          <button class="btn btn-danger btn-sm" (click)="openUnsubscribeModal(sub, $event)">
-                            Se désabonner
-                          </button>
-                        </div>
-                      </div>
-                    }
-                  </div>
-                }
-              </div>
-            }
-            
-            <!-- Production Tab -->
-            @if (activeTab === 'production') {
-              <div class="keys-content">
-                @if (hasKey('PRODUCTION')) {
-                  <div class="key-details">
-                    <div class="key-header">
-                      <h3>Clés Production</h3>
-                      <span class="badge" [class]="getKeyStateClass(getKeyState('PRODUCTION'))">
-                        {{ getKeyState('PRODUCTION') }}
-                      </span>
-                    </div>
-                    
-                    <div class="key-field">
-                      <label>Consumer Key</label>
-                      <div class="key-value-wrapper">
-                        <code class="key-value">{{ getConsumerKey('PRODUCTION') }}</code>
-                        <button 
-                          class="copy-btn" 
-                          (click)="copyToClipboard(getConsumerKey('PRODUCTION'), 'prod-key')"
-                          [class.copied]="copiedField === 'prod-key'"
-                        >
-                          {{ copiedField === 'prod-key' ? '✓ Copié' : 'Copier' }}
-                        </button>
-                      </div>
-                    </div>
-                    
-                    <div class="key-field">
-                      <label>Consumer Secret</label>
-                      <div class="key-value-wrapper">
-                        <code class="key-value">
-                          {{ showProductionSecret ? getConsumerSecret('PRODUCTION') : maskSecret(getConsumerSecret('PRODUCTION')) }}
-                        </code>
-                        <button class="toggle-btn" (click)="toggleSecretVisibility('PRODUCTION')">
-                          {{ showProductionSecret ? 'Masquer' : 'Afficher' }}
-                        </button>
-                        <button 
-                          class="copy-btn" 
-                          (click)="copyToClipboard(getConsumerSecret('PRODUCTION'), 'prod-secret')"
-                          [class.copied]="copiedField === 'prod-secret'"
-                        >
-                          {{ copiedField === 'prod-secret' ? '✓ Copié' : 'Copier' }}
-                        </button>
-                      </div>
-                    </div>
-                    
-                    @if (getGrantTypes('PRODUCTION').length > 0) {
-                      <div class="key-field">
-                        <label>Grant Types</label>
-                        <div class="grant-types">
-                          @for (grant of getGrantTypes('PRODUCTION'); track grant) {
-                            <span class="grant-tag">{{ grant }}</span>
-                          }
-                        </div>
-                      </div>
-                    }
-                    
-                    @if (getCallbackUrl('PRODUCTION')) {
-                      <div class="key-field">
-                        <label>Callback URL</label>
-                        <code class="key-value">{{ getCallbackUrl('PRODUCTION') }}</code>
-                      </div>
-                    }
-                    
-                    <div class="key-actions">
-                      <button class="btn btn-danger btn-sm" (click)="regenerateSecret('PRODUCTION')">
-                        Régénérer le secret
-                      </button>
-                    </div>
-                  </div>
-                } @else {
-                  <div class="no-keys">
-                    <div class="no-keys-icon">🔑</div>
-                    <h3>Aucune clé Production</h3>
-                    <p>Générez des clés pour permettre à votre application d'accéder aux API en production.</p>
-                    <button 
-                      class="btn btn-primary" 
-                      (click)="generateKeys('PRODUCTION')"
-                      [disabled]="isGeneratingKeys"
-                    >
-                      @if (isGeneratingKeys) {
-                        <span class="spinner"></span> Génération...
-                      } @else {
-                        Générer les clés Production
-                      }
-                    </button>
-                  </div>
-                }
-              </div>
-            }
-            
-            <!-- Sandbox Tab -->
-            @if (activeTab === 'sandbox') {
-              <div class="keys-content">
-                @if (hasKey('SANDBOX')) {
-                  <div class="key-details">
-                    <div class="key-header">
-                      <h3>Clés Sandbox</h3>
-                      <span class="badge" [class]="getKeyStateClass(getKeyState('SANDBOX'))">
-                        {{ getKeyState('SANDBOX') }}
-                      </span>
-                    </div>
-                    
-                    <div class="key-field">
-                      <label>Consumer Key</label>
-                      <div class="key-value-wrapper">
-                        <code class="key-value">{{ getConsumerKey('SANDBOX') }}</code>
-                        <button 
-                          class="copy-btn" 
-                          (click)="copyToClipboard(getConsumerKey('SANDBOX'), 'sand-key')"
-                          [class.copied]="copiedField === 'sand-key'"
-                        >
-                          {{ copiedField === 'sand-key' ? '✓ Copié' : 'Copier' }}
-                        </button>
-                      </div>
-                    </div>
-                    
-                    <div class="key-field">
-                      <label>Consumer Secret</label>
-                      <div class="key-value-wrapper">
-                        <code class="key-value">
-                          {{ showSandboxSecret ? getConsumerSecret('SANDBOX') : maskSecret(getConsumerSecret('SANDBOX')) }}
-                        </code>
-                        <button class="toggle-btn" (click)="toggleSecretVisibility('SANDBOX')">
-                          {{ showSandboxSecret ? 'Masquer' : 'Afficher' }}
-                        </button>
-                        <button 
-                          class="copy-btn" 
-                          (click)="copyToClipboard(getConsumerSecret('SANDBOX'), 'sand-secret')"
-                          [class.copied]="copiedField === 'sand-secret'"
-                        >
-                          {{ copiedField === 'sand-secret' ? '✓ Copié' : 'Copier' }}
-                        </button>
-                      </div>
-                    </div>
-                    
-                    @if (getGrantTypes('SANDBOX').length > 0) {
-                      <div class="key-field">
-                        <label>Grant Types</label>
-                        <div class="grant-types">
-                          @for (grant of getGrantTypes('SANDBOX'); track grant) {
-                            <span class="grant-tag">{{ grant }}</span>
-                          }
-                        </div>
-                      </div>
-                    }
-                    
-                    @if (getCallbackUrl('SANDBOX')) {
-                      <div class="key-field">
-                        <label>Callback URL</label>
-                        <code class="key-value">{{ getCallbackUrl('SANDBOX') }}</code>
-                      </div>
-                    }
-                    
-                    <div class="key-actions">
-                      <button class="btn btn-danger btn-sm" (click)="regenerateSecret('SANDBOX')">
-                        Régénérer le secret
-                      </button>
-                    </div>
-                  </div>
-                } @else {
-                  <div class="no-keys">
-                    <div class="no-keys-icon">🧪</div>
-                    <h3>Aucune clé Sandbox</h3>
-                    <p>Générez des clés pour tester votre application dans l'environnement de sandbox.</p>
-                    <button 
-                      class="btn btn-primary" 
-                      (click)="generateKeys('SANDBOX')"
-                      [disabled]="isGeneratingKeys"
-                    >
-                      @if (isGeneratingKeys) {
-                        <span class="spinner"></span> Génération...
-                      } @else {
-                        Générer les clés Sandbox
-                      }
-                    </button>
-                  </div>
-                }
-              </div>
-            }
-            
-          </div>
         </div>
+        }
+      </div>
       }
-      
     </div>
+
+    <!-- Application Detail Panel -->
+    @if (selectedApp) {
+    <div class="app-detail-panel">
+
+      <!-- Detail Header -->
+      <div class="detail-header">
+        <button class="back-button" (click)="closeDetail()">
+          <svg viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd"
+              d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"
+              clip-rule="evenodd" />
+          </svg>
+          <span class="back-text">Retour</span>
+        </button>
+        <h2 class="detail-title">{{ selectedApp.name }}</h2>
+        <span class="badge" [class]="getStatusClass(selectedApp.status)">
+          {{ getStatusLabel(selectedApp.status) }}
+        </span>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <button class="tab" [class.active]="activeTab === 'overview'" (click)="setTab('overview')">
+          Vue d'ensemble
+        </button>
+        <button class="tab" [class.active]="activeTab === 'subscriptions'" (click)="setTab('subscriptions')">
+          Souscriptions
+          @if (appSubscriptions.length > 0) {
+          <span class="tab-badge">{{ appSubscriptions.length }}</span>
+          }
+        </button>
+        <button class="tab" [class.active]="activeTab === 'production'" (click)="setTab('production')">
+          Production
+          @if (hasKey('PRODUCTION')) {
+          <span class="tab-dot green"></span>
+          }
+        </button>
+        <button class="tab" [class.active]="activeTab === 'sandbox'" (click)="setTab('sandbox')">
+          Sandbox
+          @if (hasKey('SANDBOX')) {
+          <span class="tab-dot blue"></span>
+          }
+        </button>
+      </div>
+
+      <!-- Tab Content -->
+      <div class="tab-content">
+
+        <!-- Overview Tab -->
+        @if (activeTab === 'overview') {
+        <div class="overview-content">
+
+          <!-- Informations générales -->
+          <div class="info-card">
+            <h3 class="info-card-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="16" x2="12" y2="12" />
+                <line x1="12" y1="8" x2="12.01" y2="8" />
+              </svg>
+              Informations
+            </h3>
+            <div class="info-grid">
+              <div class="info-item">
+                <span class="info-label">Description</span>
+                <span class="info-value">{{ selectedApp.description || 'Aucune description' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Throttling Policy</span>
+                <span class="info-value badge-inline">{{ selectedApp.throttlingPolicy }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Créé le</span>
+                <span class="info-value">{{ formatDate(selectedApp.createdTime) }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Propriétaire</span>
+                <span class="info-value">{{ selectedApp.owner }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Token Type</span>
+                <span class="info-value">{{ selectedApp.tokenType || 'JWT' }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Résumé des clés -->
+          <div class="info-card">
+            <h3 class="info-card-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path
+                  d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" />
+              </svg>
+              Clés d'accès
+            </h3>
+            <div class="keys-overview">
+              <div class="key-overview-card" [class.configured]="hasKey('PRODUCTION')" (click)="setTab('production')">
+                <div class="key-overview-icon production">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                    <polyline points="22 4 12 14.01 9 11.01" />
+                  </svg>
+                </div>
+                <div class="key-overview-info">
+                  <span class="key-overview-label">Production</span>
+                  @if (hasKey('PRODUCTION')) {
+                  <span class="key-overview-status configured">
+                    <svg viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                        clip-rule="evenodd" />
+                    </svg>
+                    Configuré
+                  </span>
+                  } @else {
+                  <span class="key-overview-status not-configured">Non configuré</span>
+                  }
+                </div>
+                <svg class="key-overview-arrow" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd"
+                    d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                    clip-rule="evenodd" />
+                </svg>
+              </div>
+
+              <div class="key-overview-card" [class.configured]="hasKey('SANDBOX')" (click)="setTab('sandbox')">
+                <div class="key-overview-icon sandbox">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path
+                      d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+                  </svg>
+                </div>
+                <div class="key-overview-info">
+                  <span class="key-overview-label">Sandbox</span>
+                  @if (hasKey('SANDBOX')) {
+                  <span class="key-overview-status configured">
+                    <svg viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                        clip-rule="evenodd" />
+                    </svg>
+                    Configuré
+                  </span>
+                  } @else {
+                  <span class="key-overview-status not-configured">Non configuré</span>
+                  }
+                </div>
+                <svg class="key-overview-arrow" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd"
+                    d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                    clip-rule="evenodd" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+        </div>
+        }
+
+        <!-- Subscriptions Tab -->
+        @if (activeTab === 'subscriptions') {
+        <div class="subscriptions-content">
+          @if (isLoadingSubscriptions) {
+          <div class="loading-inline">
+            <div class="loading-spinner small"></div>
+            <span>Chargement des souscriptions...</span>
+          </div>
+          } @else if (appSubscriptions.length === 0) {
+          <div class="empty-subscriptions">
+            <div class="empty-icon">🔗</div>
+            <h3>Aucune souscription</h3>
+            <p>Cette application n'est souscrite à aucune API.</p>
+            <a routerLink="/catalog" class="btn btn-primary">
+              Parcourir le catalogue
+            </a>
+          </div>
+          } @else {
+          <div class="subscriptions-header">
+            <span class="subscriptions-count">{{ appSubscriptions.length }} API souscrite{{ appSubscriptions.length > 1
+              ? 's' : '' }}</span>
+            <a routerLink="/catalog" class="btn btn-secondary btn-sm">
+              + Ajouter une API
+            </a>
+          </div>
+
+          <div class="subscriptions-list">
+            @for (sub of appSubscriptions; track sub.subscriptionId) {
+            <div class="subscription-item">
+              <div class="subscription-main">
+                <div class="subscription-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M13 10V3L4 14h7v7l9-11h-7z" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </div>
+                <div class="subscription-info">
+                  <div class="subscription-header">
+                    <h4 class="subscription-name">{{ sub.apiName }}</h4>
+                    <span class="badge" [class]="getSubscriptionStatusClass(sub.status)">
+                      {{ getSubscriptionStatusLabel(sub.status) }}
+                    </span>
+                  </div>
+                  <p class="subscription-description">{{ sub.apiDescription || 'Aucune description' }}</p>
+                  <div class="subscription-meta">
+                    <span class="badge badge-gray">{{ sub.apiVersion }}</span>
+                    <span class="badge" [class]="getApiTypeClass(sub.apiType)">{{ sub.apiType }}</span>
+                    <span class="meta-text">Policy: {{ sub.throttlingPolicy }}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="subscription-actions">
+                <button class="btn btn-secondary btn-sm" (click)="goToApi(sub.apiId)">
+                  Voir l'API
+                </button>
+                <button class="btn btn-danger btn-sm" (click)="openUnsubscribeModal(sub, $event)">
+                  Se désabonner
+                </button>
+              </div>
+            </div>
+            }
+          </div>
+          }
+        </div>
+        }
+
+        <!-- Production Tab -->
+        @if (activeTab === 'production') {
+        <div class="keys-content">
+          @if (hasKey('PRODUCTION')) {
+          <div class="key-details-card">
+            <div class="key-card-header production">
+              <div class="key-card-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                  <polyline points="22 4 12 14.01 9 11.01" />
+                </svg>
+                <h3>Clés Production</h3>
+              </div>
+              <span class="key-state-badge" [class]="getKeyState('PRODUCTION')?.toLowerCase()">
+                {{ getKeyState('PRODUCTION') === 'COMPLETED' ? 'Actif' : getKeyState('PRODUCTION') }}
+              </span>
+            </div>
+
+            <div class="key-card-body">
+              <!-- Consumer Key -->
+              <div class="credential-field">
+                <div class="credential-header">
+                  <label>Consumer Key</label>
+                  <span class="credential-hint">Identifiant client OAuth2</span>
+                </div>
+                <div class="credential-value-group">
+                  <code class="credential-value">{{ getConsumerKey('PRODUCTION') }}</code>
+                  <button class="credential-btn" (click)="copyToClipboard(getConsumerKey('PRODUCTION'), 'prod-key')"
+                    [class.copied]="copiedField === 'prod-key'">
+                    @if (copiedField === 'prod-key') {
+                    <svg viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd"
+                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                        clip-rule="evenodd" />
+                    </svg>
+                    Copié
+                    } @else {
+                    <svg viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
+                      <path
+                        d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
+                    </svg>
+                    Copier
+                    }
+                  </button>
+                </div>
+              </div>
+
+              <!-- Consumer Secret -->
+              <div class="credential-field">
+                <div class="credential-header">
+                  <label>Consumer Secret</label>
+                  <span class="credential-hint">Clé secrète - Ne jamais partager</span>
+                </div>
+                <div class="credential-value-group secret">
+                  <code class="credential-value" [class.masked]="!showProductionSecret">
+                {{ showProductionSecret ? getConsumerSecret('PRODUCTION') : maskSecret(getConsumerSecret('PRODUCTION')) }}
+              </code>
+                  <button class="credential-btn toggle" (click)="toggleSecretVisibility('PRODUCTION')">
+                    @if (showProductionSecret) {
+                    <svg viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd"
+                        d="M3.707 2.293a1 1 0 00-1.414 1.414l14 14a1 1 0 001.414-1.414l-1.473-1.473A10.014 10.014 0 0019.542 10C18.268 5.943 14.478 3 10 3a9.958 9.958 0 00-4.512 1.074l-1.78-1.781zm4.261 4.26l1.514 1.515a2.003 2.003 0 012.45 2.45l1.514 1.514a4 4 0 00-5.478-5.478z"
+                        clip-rule="evenodd" />
+                      <path
+                        d="M12.454 16.697L9.75 13.992a4 4 0 01-3.742-3.741L2.335 6.578A9.98 9.98 0 00.458 10c1.274 4.057 5.065 7 9.542 7 .847 0 1.669-.105 2.454-.303z" />
+                    </svg>
+                    Masquer
+                    } @else {
+                    <svg viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                      <path fill-rule="evenodd"
+                        d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z"
+                        clip-rule="evenodd" />
+                    </svg>
+                    Afficher
+                    }
+                  </button>
+                  <button class="credential-btn"
+                    (click)="copyToClipboard(getConsumerSecret('PRODUCTION'), 'prod-secret')"
+                    [class.copied]="copiedField === 'prod-secret'">
+                    @if (copiedField === 'prod-secret') {
+                    <svg viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd"
+                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                        clip-rule="evenodd" />
+                    </svg>
+                    Copié
+                    } @else {
+                    <svg viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
+                      <path
+                        d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
+                    </svg>
+                    Copier
+                    }
+                  </button>
+                </div>
+              </div>
+
+              <!-- Grant Types -->
+              @if (getGrantTypes('PRODUCTION').length > 0) {
+              <div class="credential-field">
+                <div class="credential-header">
+                  <label>Grant Types</label>
+                  <span class="credential-hint">Méthodes d'authentification autorisées</span>
+                </div>
+                <div class="grant-types-list">
+                  @for (grant of getGrantTypes('PRODUCTION'); track grant) {
+                  <span class="grant-type-badge">{{ grant }}</span>
+                  }
+                </div>
+              </div>
+              }
+
+              <!-- Callback URL -->
+              @if (getCallbackUrl('PRODUCTION')) {
+              <div class="credential-field">
+                <div class="credential-header">
+                  <label>Callback URL</label>
+                  <span class="credential-hint">URL de redirection OAuth2</span>
+                </div>
+                <div class="credential-value-group">
+                  <code class="credential-value url">{{ getCallbackUrl('PRODUCTION') }}</code>
+                </div>
+              </div>
+              }
+            </div>
+
+            <div class="key-card-footer">
+              <button class="btn btn-outline-danger btn-sm" (click)="regenerateSecret('PRODUCTION')">
+                <svg viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd"
+                    d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"
+                    clip-rule="evenodd" />
+                </svg>
+                Régénérer le secret
+              </button>
+            </div>
+          </div>
+          } @else {
+          <div class="no-keys-state">
+            <div class="no-keys-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path
+                  d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
+                  stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </div>
+            <h3>Aucune clé Production</h3>
+            <p>Générez des clés OAuth2 pour permettre à votre application d'accéder aux API en production.</p>
+            <button class="btn btn-generate" (click)="generateKeys('PRODUCTION')" [disabled]="isGeneratingKeys">
+              @if (isGeneratingKeys) {
+              <span class="btn-spinner"></span>
+              Génération en cours...
+              } @else {
+              <svg viewBox="0 0 20 20" fill="currentColor" class="btn-icon">
+                <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+              </svg>
+              Générer les clés
+              }
+            </button>
+          </div>
+          }
+        </div>
+        }
+
+        <!-- Sandbox Tab -->
+        @if (activeTab === 'sandbox') {
+        <div class="keys-content">
+          @if (hasKey('SANDBOX')) {
+          <div class="key-details-card sandbox">
+            <div class="key-card-header sandbox">
+              <div class="key-card-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path
+                    d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+                </svg>
+                <h3>Clés Sandbox</h3>
+              </div>
+              <span class="key-state-badge" [class]="getKeyState('SANDBOX')?.toLowerCase()">
+                {{ getKeyState('SANDBOX') === 'COMPLETED' ? 'Actif' : getKeyState('SANDBOX') }}
+              </span>
+            </div>
+
+            <div class="key-card-body">
+              <!-- Consumer Key -->
+              <div class="credential-field">
+                <div class="credential-header">
+                  <label>Consumer Key</label>
+                  <span class="credential-hint">Identifiant client OAuth2</span>
+                </div>
+                <div class="credential-value-group">
+                  <code class="credential-value">{{ getConsumerKey('SANDBOX') }}</code>
+                  <button class="credential-btn" (click)="copyToClipboard(getConsumerKey('SANDBOX'), 'sand-key')"
+                    [class.copied]="copiedField === 'sand-key'">
+                    @if (copiedField === 'sand-key') {
+                    <svg viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd"
+                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                        clip-rule="evenodd" />
+                    </svg>
+                    Copié
+                    } @else {
+                    <svg viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
+                      <path
+                        d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
+                    </svg>
+                    Copier
+                    }
+                  </button>
+                </div>
+              </div>
+
+              <!-- Consumer Secret -->
+              <div class="credential-field">
+                <div class="credential-header">
+                  <label>Consumer Secret</label>
+                  <span class="credential-hint">Clé secrète - Ne jamais partager</span>
+                </div>
+                <div class="credential-value-group secret">
+                  <code class="credential-value" [class.masked]="!showSandboxSecret">
+                {{ showSandboxSecret ? getConsumerSecret('SANDBOX') : maskSecret(getConsumerSecret('SANDBOX')) }}
+              </code>
+                  <button class="credential-btn toggle" (click)="toggleSecretVisibility('SANDBOX')">
+                    @if (showSandboxSecret) {
+                    <svg viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd"
+                        d="M3.707 2.293a1 1 0 00-1.414 1.414l14 14a1 1 0 001.414-1.414l-1.473-1.473A10.014 10.014 0 0019.542 10C18.268 5.943 14.478 3 10 3a9.958 9.958 0 00-4.512 1.074l-1.78-1.781zm4.261 4.26l1.514 1.515a2.003 2.003 0 012.45 2.45l1.514 1.514a4 4 0 00-5.478-5.478z"
+                        clip-rule="evenodd" />
+                      <path
+                        d="M12.454 16.697L9.75 13.992a4 4 0 01-3.742-3.741L2.335 6.578A9.98 9.98 0 00.458 10c1.274 4.057 5.065 7 9.542 7 .847 0 1.669-.105 2.454-.303z" />
+                    </svg>
+                    Masquer
+                    } @else {
+                    <svg viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                      <path fill-rule="evenodd"
+                        d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z"
+                        clip-rule="evenodd" />
+                    </svg>
+                    Afficher
+                    }
+                  </button>
+                  <button class="credential-btn" (click)="copyToClipboard(getConsumerSecret('SANDBOX'), 'sand-secret')"
+                    [class.copied]="copiedField === 'sand-secret'">
+                    @if (copiedField === 'sand-secret') {
+                    <svg viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd"
+                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                        clip-rule="evenodd" />
+                    </svg>
+                    Copié
+                    } @else {
+                    <svg viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
+                      <path
+                        d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
+                    </svg>
+                    Copier
+                    }
+                  </button>
+                </div>
+              </div>
+
+              <!-- Grant Types -->
+              @if (getGrantTypes('SANDBOX').length > 0) {
+              <div class="credential-field">
+                <div class="credential-header">
+                  <label>Grant Types</label>
+                  <span class="credential-hint">Méthodes d'authentification autorisées</span>
+                </div>
+                <div class="grant-types-list">
+                  @for (grant of getGrantTypes('SANDBOX'); track grant) {
+                  <span class="grant-type-badge">{{ grant }}</span>
+                  }
+                </div>
+              </div>
+              }
+
+              <!-- Callback URL -->
+              @if (getCallbackUrl('SANDBOX')) {
+              <div class="credential-field">
+                <div class="credential-header">
+                  <label>Callback URL</label>
+                  <span class="credential-hint">URL de redirection OAuth2</span>
+                </div>
+                <div class="credential-value-group">
+                  <code class="credential-value url">{{ getCallbackUrl('SANDBOX') }}</code>
+                </div>
+              </div>
+              }
+            </div>
+
+            <div class="key-card-footer">
+              <button class="btn btn-outline-danger btn-sm" (click)="regenerateSecret('SANDBOX')">
+                <svg viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd"
+                    d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"
+                    clip-rule="evenodd" />
+                </svg>
+                Régénérer le secret
+              </button>
+            </div>
+          </div>
+          } @else {
+          <div class="no-keys-state sandbox">
+            <div class="no-keys-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path
+                  d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"
+                  stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </div>
+            <h3>Aucune clé Sandbox</h3>
+            <p>Générez des clés OAuth2 pour tester votre application dans l'environnement de sandbox.</p>
+            <button class="btn btn-generate sandbox" (click)="generateKeys('SANDBOX')" [disabled]="isGeneratingKeys">
+              @if (isGeneratingKeys) {
+              <span class="btn-spinner"></span>
+              Génération en cours...
+              } @else {
+              <svg viewBox="0 0 20 20" fill="currentColor" class="btn-icon">
+                <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+              </svg>
+              Générer les clés
+              }
+            </button>
+          </div>
+          }
+        </div>
+        }
+
+
+      </div>
+    </div>
+    }
+
+  </div>
   }
 </div>
 
 <!-- Create Application Modal -->
 @if (showCreateModal) {
-  <div class="modal-overlay" (click)="closeCreateModal()">
-    <div class="modal" (click)="$event.stopPropagation()">
-      <div class="modal-header">
-        <h2>Nouvelle application</h2>
-        <button class="modal-close" (click)="closeCreateModal()">
-          <svg viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
-          </svg>
-        </button>
+<div class="modal-overlay" (click)="closeCreateModal()">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Nouvelle application</h2>
+      <button class="modal-close" (click)="closeCreateModal()">
+        <svg viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd"
+            d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+            clip-rule="evenodd" />
+        </svg>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <div class="form-group">
+        <label for="app-name">Nom de l'application *</label>
+        <input type="text" id="app-name" [(ngModel)]="newApp.name" placeholder="Mon application"
+          [disabled]="isCreating" />
       </div>
-      
-      <div class="modal-body">
-        <div class="form-group">
-          <label for="app-name">Nom de l'application *</label>
-          <input 
-            type="text" 
-            id="app-name" 
-            [(ngModel)]="newApp.name"
-            placeholder="Mon application"
-            [disabled]="isCreating"
-          />
-        </div>
-        
-        <div class="form-group">
-          <label for="app-description">Description</label>
-          <textarea 
-            id="app-description" 
-            [(ngModel)]="newApp.description"
-            placeholder="Description de l'application..."
-            rows="3"
-            [disabled]="isCreating"
-          ></textarea>
-        </div>
-        
-        <div class="form-group">
-          <label for="app-tier">Throttling Policy</label>
-          <select 
-            id="app-tier" 
-            [(ngModel)]="newApp.tier"
-            [disabled]="isCreating"
-          >
-            @for (tier of availableTiers; track (tier.name || tier.policyName)) {
-              <option [value]="tier.name || tier.policyName">
-                {{ tier.name || tier.policyName }} - {{ tier.description }}
-              </option>
-            }
-          </select>
-        </div>
+
+      <div class="form-group">
+        <label for="app-description">Description</label>
+        <textarea id="app-description" [(ngModel)]="newApp.description" placeholder="Description de l'application..."
+          rows="3" [disabled]="isCreating"></textarea>
       </div>
-      
-      <div class="modal-footer">
-        <button class="btn btn-secondary" (click)="closeCreateModal()" [disabled]="isCreating">
-          Annuler
-        </button>
-        <button 
-          class="btn btn-primary" 
-          (click)="createApplication()"
-          [disabled]="!newApp.name.trim() || isCreating"
-        >
-          @if (isCreating) {
-            <span class="spinner"></span> Création...
-          } @else {
-            Créer
+
+      <div class="form-group">
+        <label for="app-tier">Throttling Policy</label>
+        <select id="app-tier" [(ngModel)]="newApp.tier" [disabled]="isCreating">
+          @for (tier of availableTiers; track (tier.name || tier.policyName)) {
+          <option [value]="tier.name || tier.policyName">
+            {{ tier.name || tier.policyName }} - {{ tier.description }}
+          </option>
           }
-        </button>
+        </select>
       </div>
     </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-secondary" (click)="closeCreateModal()" [disabled]="isCreating">
+        Annuler
+      </button>
+      <button class="btn btn-primary" (click)="createApplication()" [disabled]="!newApp.name.trim() || isCreating">
+        @if (isCreating) {
+        <span class="spinner"></span> Création...
+        } @else {
+        Créer
+        }
+      </button>
+    </div>
   </div>
+</div>
 }
 
 <!-- Unsubscribe Confirmation Modal -->
 @if (showUnsubscribeModal && subscriptionToUnsubscribe) {
-  <div class="modal-overlay" (click)="closeUnsubscribeModal()">
-    <div class="modal" (click)="$event.stopPropagation()">
-      <div class="modal-header">
-        <h2>Confirmer la désinscription</h2>
-        <button class="modal-close" (click)="closeUnsubscribeModal()">
-          <svg viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
-          </svg>
-        </button>
+<div class="modal-overlay" (click)="closeUnsubscribeModal()">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Confirmer la désinscription</h2>
+      <button class="modal-close" (click)="closeUnsubscribeModal()">
+        <svg viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd"
+            d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+            clip-rule="evenodd" />
+        </svg>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <p>Êtes-vous sûr de vouloir vous désabonner de :</p>
+      <div class="unsubscribe-details">
+        <strong>{{ subscriptionToUnsubscribe.apiName }}</strong>
+        <span>{{ subscriptionToUnsubscribe.apiVersion }}</span>
       </div>
-      
-      <div class="modal-body">
-        <p>Êtes-vous sûr de vouloir vous désabonner de :</p>
-        <div class="unsubscribe-details">
-          <strong>{{ subscriptionToUnsubscribe.apiName }}</strong>
-          <span>{{ subscriptionToUnsubscribe.apiVersion }}</span>
-        </div>
-        <p class="warning-text">
-          <svg viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-          </svg>
-          Cette action est irréversible. L'application ne pourra plus accéder à cette API.
-        </p>
-      </div>
-      
-      <div class="modal-footer">
-        <button class="btn btn-secondary" (click)="closeUnsubscribeModal()" [disabled]="isUnsubscribing">
-          Annuler
-        </button>
-        <button class="btn btn-danger" (click)="confirmUnsubscribe()" [disabled]="isUnsubscribing">
-          @if (isUnsubscribing) {
-            <span class="spinner"></span> Désinscription...
-          } @else {
-            Se désabonner
-          }
-        </button>
-      </div>
+      <p class="warning-text">
+        <svg viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd"
+            d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+            clip-rule="evenodd" />
+        </svg>
+        Cette action est irréversible. L'application ne pourra plus accéder à cette API.
+      </p>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-secondary" (click)="closeUnsubscribeModal()" [disabled]="isUnsubscribing">
+        Annuler
+      </button>
+      <button class="btn btn-danger" (click)="confirmUnsubscribe()" [disabled]="isUnsubscribing">
+        @if (isUnsubscribing) {
+        <span class="spinner"></span> Désinscription...
+        } @else {
+        Se désabonner
+        }
+      </button>
     </div>
   </div>
+</div>
 }

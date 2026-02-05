@@ -1,13 +1,13 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink, Router } from '@angular/router';
+import { RouterLink, Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ApplicationService } from '../../core/services/application.service';
 import { SubscriptionService } from '../../core/services/subscription.service';
-import { 
-  Application, 
-  ApplicationInfo, 
-  ApplicationList, 
+import {
+  Application,
+  ApplicationInfo,
+  ApplicationList,
   ApplicationKey,
   ApplicationKeyGenerateRequest,
   ThrottlingPolicy,
@@ -42,7 +42,7 @@ interface DisplaySubscription {
   styleUrls: ['./applications.component.scss']
 })
 export class ApplicationsComponent implements OnInit {
-  
+
   /**
    * Loading states
    */
@@ -51,43 +51,43 @@ export class ApplicationsComponent implements OnInit {
   isGeneratingKeys = false;
   isLoadingSubscriptions = false;
   isUnsubscribing = false;
-  
+
   /**
    * Error message
    */
   errorMessage: string | null = null;
-  
+
   /**
    * Applications list
    */
   applications: ApplicationInfo[] = [];
-  
+
   /**
    * Selected application for detail view (full details with keys)
    */
   selectedApp: Application | null = null;
-  
+
   /**
    * Subscriptions for selected application
    */
   appSubscriptions: DisplaySubscription[] = [];
-  
+
   /**
    * Active tab in detail view
    */
   activeTab: 'overview' | 'production' | 'sandbox' | 'subscriptions' = 'overview';
-  
+
   /**
    * Show create modal
    */
   showCreateModal = false;
-  
+
   /**
    * Show unsubscribe modal
    */
   showUnsubscribeModal = false;
   subscriptionToUnsubscribe: DisplaySubscription | null = null;
-  
+
   /**
    * New application form
    */
@@ -96,18 +96,18 @@ export class ApplicationsComponent implements OnInit {
     description: '',
     tier: 'Unlimited'
   };
-  
+
   /**
    * Available throttling policies (loaded from WSO2)
    */
   availableTiers: ThrottlingPolicy[] = [];
-  
+
   /**
    * Visibility toggles for secrets
    */
   showProductionSecret = false;
   showSandboxSecret = false;
-  
+
   /**
    * Copy feedback
    */
@@ -116,9 +116,10 @@ export class ApplicationsComponent implements OnInit {
   constructor(
     private cdr: ChangeDetectorRef,
     private router: Router,
+    private route: ActivatedRoute,
     private applicationService: ApplicationService,
     private subscriptionService: SubscriptionService
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     this.loadApplications();
@@ -131,12 +132,20 @@ export class ApplicationsComponent implements OnInit {
   loadApplications(): void {
     this.isLoading = true;
     this.errorMessage = null;
-    
+
     this.applicationService.getApplications({ limit: 100 }).subscribe({
       next: (response: ApplicationList) => {
         this.applications = response.list || [];
         this.isLoading = false;
         this.cdr.detectChanges();
+
+        const appId = this.route.snapshot.queryParamMap.get('app');
+        if (appId) {
+          const targetApp = this.applications.find(a => a.applicationId === appId);
+          if (targetApp) {
+            this.selectApp(targetApp);
+          }
+        }
       },
       error: (error) => {
         console.error('Failed to load applications', error);
@@ -179,7 +188,7 @@ export class ApplicationsComponent implements OnInit {
    */
   selectApp(app: ApplicationInfo): void {
     if (!app.applicationId) return;
-    
+
     this.applicationService.getApplicationById(app.applicationId).subscribe({
       next: (fullApp: Application) => {
         this.selectedApp = fullApp;
@@ -188,12 +197,32 @@ export class ApplicationsComponent implements OnInit {
         this.showSandboxSecret = false;
         this.appSubscriptions = [];
         this.cdr.detectChanges();
-        
+
         // Load subscriptions for this application
         this.loadAppSubscriptions(app.applicationId!);
+
+        // Load Oauth keys for this application
+        this.loadAppKeys(app.applicationId!);
       },
       error: (error) => {
         console.error('Failed to load application details', error);
+      }
+    });
+  }
+
+  /**
+   * Load OAuth keys for selected application
+   */
+  loadAppKeys(applicationId: string): void {
+    this.applicationService.getApplicationKeys(applicationId).subscribe({
+      next: (response: any) => {
+        if (this.selectedApp) {
+          this.selectedApp.keys = response.list || [];
+          this.cdr.detectChanges();
+        }
+      },
+      error: (error) => {
+        console.error('Failed to load application keys', error);
       }
     });
   }
@@ -203,7 +232,7 @@ export class ApplicationsComponent implements OnInit {
    */
   loadAppSubscriptions(applicationId: string): void {
     this.isLoadingSubscriptions = true;
-    
+
     this.subscriptionService.getApplicationSubscriptions(applicationId, 100).subscribe({
       next: (response: SubscriptionList) => {
         this.appSubscriptions = this.mapSubscriptions(response.list || []);
@@ -257,10 +286,10 @@ export class ApplicationsComponent implements OnInit {
    */
   openCreateModal(): void {
     const firstTier = this.availableTiers[0];
-    this.newApp = { 
-      name: '', 
-      description: '', 
-      tier: firstTier?.name || firstTier?.policyName || 'Unlimited' 
+    this.newApp = {
+      name: '',
+      description: '',
+      tier: firstTier?.name || firstTier?.policyName || 'Unlimited'
     };
     this.showCreateModal = true;
     this.cdr.detectChanges();
@@ -279,9 +308,9 @@ export class ApplicationsComponent implements OnInit {
    */
   createApplication(): void {
     if (!this.newApp.name.trim()) return;
-    
+
     this.isCreating = true;
-    
+
     this.applicationService.createApplication({
       name: this.newApp.name,
       description: this.newApp.description,
@@ -291,7 +320,7 @@ export class ApplicationsComponent implements OnInit {
         this.isCreating = false;
         this.closeCreateModal();
         this.loadApplications();
-        
+
         // Select the new application
         if (newApplication.applicationId) {
           this.selectApp(newApplication);
@@ -310,18 +339,18 @@ export class ApplicationsComponent implements OnInit {
    */
   generateKeys(keyType: 'PRODUCTION' | 'SANDBOX'): void {
     if (!this.selectedApp?.applicationId) return;
-    
+
     this.isGeneratingKeys = true;
-    
+
     const request: ApplicationKeyGenerateRequest = {
       keyType,
       grantTypesToBeSupported: ['client_credentials', 'password'],
-      callbackUrl: keyType === 'PRODUCTION' 
-        ? 'https://myapp.com/callback' 
+      callbackUrl: keyType === 'PRODUCTION'
+        ? 'https://myapp.com/callback'
         : 'http://localhost:4200/callback',
       validityTime: 3600
     };
-    
+
     this.applicationService.generateKeys(this.selectedApp.applicationId, request).subscribe({
       next: (key: ApplicationKey) => {
         this.isGeneratingKeys = false;
@@ -341,17 +370,17 @@ export class ApplicationsComponent implements OnInit {
    */
   regenerateSecret(keyType: 'PRODUCTION' | 'SANDBOX'): void {
     if (!this.selectedApp?.applicationId) return;
-    
+
     const key = this.getKeyByType(keyType);
     if (!key?.keyMappingId) {
       alert('Aucune clé trouvée pour ce type.');
       return;
     }
-    
+
     if (!confirm('Êtes-vous sûr de vouloir régénérer le secret ? L\'ancien secret ne sera plus valide.')) {
       return;
     }
-    
+
     this.applicationService.regenerateSecret(this.selectedApp.applicationId, key.keyMappingId).subscribe({
       next: (response) => {
         // Reload application to get updated keys
@@ -392,25 +421,25 @@ export class ApplicationsComponent implements OnInit {
    */
   confirmUnsubscribe(): void {
     if (!this.subscriptionToUnsubscribe) return;
-    
+
     this.isUnsubscribing = true;
     const subId = this.subscriptionToUnsubscribe.subscriptionId;
-    
+
     this.subscriptionService.deleteSubscription(subId).subscribe({
       next: () => {
         this.appSubscriptions = this.appSubscriptions.filter(s => s.subscriptionId !== subId);
-        
+
         // Update subscription count in selected app
         if (this.selectedApp) {
           this.selectedApp.subscriptionCount = (this.selectedApp.subscriptionCount || 1) - 1;
         }
-        
+
         // Update count in applications list
         const appInList = this.applications.find(a => a.applicationId === this.selectedApp?.applicationId);
         if (appInList) {
           appInList.subscriptionCount = (appInList.subscriptionCount || 1) - 1;
         }
-        
+
         this.isUnsubscribing = false;
         this.closeUnsubscribeModal();
         this.cdr.detectChanges();
@@ -609,13 +638,13 @@ export class ApplicationsComponent implements OnInit {
    */
   deleteApp(app: ApplicationInfo, event: Event): void {
     event.stopPropagation();
-    
+
     if (!app.applicationId) return;
-    
+
     if (!confirm(`Êtes-vous sûr de vouloir supprimer "${app.name}" ?`)) {
       return;
     }
-    
+
     this.applicationService.deleteApplication(app.applicationId).subscribe({
       next: () => {
         this.applications = this.applications.filter(a => a.applicationId !== app.applicationId);
@@ -634,17 +663,37 @@ export class ApplicationsComponent implements OnInit {
   /**
    * Format date for display
    */
-  formatDate(dateString?: string): string {
-    if (!dateString) return '-';
+  formatDate(dateInput?: string | number): string {
+    if (!dateInput) return '-';
+
     try {
-      const date = new Date(dateString);
+      let date: Date;
+
+      // Si c'est un nombre (timestamp en millisecondes)
+      if (typeof dateInput === 'number') {
+        date = new Date(dateInput);
+      }
+      // Si c'est une string numérique (timestamp en string)
+      else if (/^\d+$/.test(dateInput)) {
+        date = new Date(parseInt(dateInput, 10));
+      }
+      // Sinon c'est une date ISO ou autre format string
+      else {
+        date = new Date(dateInput);
+      }
+
+      // Vérifier si la date est valide
+      if (isNaN(date.getTime())) {
+        return '-';
+      }
+
       return date.toLocaleDateString('fr-FR', {
         year: 'numeric',
         month: 'short',
         day: 'numeric'
       });
     } catch {
-      return dateString;
+      return '-';
     }
   }
 

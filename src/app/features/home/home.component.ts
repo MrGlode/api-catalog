@@ -188,7 +188,7 @@ export class HomeComponent implements OnInit {
   }
 
   goToApplication(appId: string): void {
-    this.router.navigate(['/applications', appId]);
+    this.router.navigate(['/applications'], { queryParams: { app: appId }});
   }
 
   getAppStatusClass(status: string | undefined): string {
