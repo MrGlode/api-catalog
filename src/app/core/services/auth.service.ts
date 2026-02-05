@@ -19,6 +19,19 @@ import {
 const AUTH_STORAGE_KEY = 'wso2_auth_state';
 const DCR_STORAGE_KEY = 'wso2_dcr_client';
 
+/**
+ * Custom error for accounts not yet validated by admin.
+ * When WSO2 returns only the "openid" scope, it means the user
+ * has been created but not yet approved / assigned proper roles.
+ */
+export class AccountNotValidatedError extends Error {
+  override name = 'AccountNotValidatedError';
+
+  constructor(message: string) {
+    super(message);
+  }
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -161,6 +174,27 @@ export class AuthService {
   }
 
   /**
+   * Validate granted scopes from token response.
+   * If the only scope returned is "openid", the account has not been
+   * validated / approved by an administrator yet.
+   */
+  private validateGrantedScopes(response: TokenResponse): void {
+    const grantedScopes = (response.scope || '')
+      .trim()
+      .split(/\s+/)
+      .filter(s => s.length > 0);
+
+    const hasOnlyOpenId =
+      grantedScopes.length === 1 && grantedScopes[0] === 'openid';
+
+    if (hasOnlyOpenId) {
+      throw new AccountNotValidatedError(
+        'Votre compte n\'est pas encore validé. Veuillez contacter un administrateur pour activer votre accès.'
+      );
+    }
+  }
+
+  /**
    * Get OAuth2 token
    */
   private getToken(clientId: string, clientSecret: string, username: string, password: string ): Observable<AuthState> {
@@ -180,6 +214,8 @@ export class AuthService {
       .set('scope', scopes);
 
     return this.http.post<TokenResponse>(url, body.toString(), { headers }).pipe(
+      // Vérifier les scopes retournés — si uniquement "openid", le compte n'est pas validé
+      tap(response => this.validateGrantedScopes(response)),
       map(response => this.createAuthState(response, clientId, clientSecret)),
       tap(state => this.saveAuthState(state)),
       switchMap(state => this.fetchUserInfo(state)),

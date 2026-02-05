@@ -6,7 +6,7 @@ import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
-import { AuthService } from '../../core/services/auth.service';
+import { AuthService, AccountNotValidatedError } from '../../core/services/auth.service';
 
 @Component({
   selector: 'app-login',
@@ -27,10 +27,22 @@ import { AuthService } from '../../core/services/auth.service';
             <p>Connectez-vous pour accéder à vos applications et souscriptions</p>
           </div>
 
-          @if (error()) {
+          <!-- Erreur classique (identifiants incorrects, etc.) -->
+          @if (error() && !isAccountNotValidated()) {
             <div class="error-message">
               <span class="error-icon">⚠️</span>
               {{ error() }}
+            </div>
+          }
+
+          <!-- Compte non validé — message d'avertissement distinct -->
+          @if (isAccountNotValidated()) {
+            <div class="warning-message">
+              <span class="warning-icon">🔒</span>
+              <div class="warning-content">
+                <strong>Compte en attente de validation</strong>
+                <p>{{ error() }}</p>
+              </div>
             </div>
           }
 
@@ -148,6 +160,42 @@ import { AuthService } from '../../core/services/auth.service';
       font-size: var(--font-size-sm);
     }
 
+    .warning-message {
+      background: #fef3c7;
+      border: 1px solid #fde68a;
+      color: #92400e;
+      padding: var(--spacing-md);
+      border-radius: var(--border-radius-md);
+      margin-bottom: var(--spacing-lg);
+      display: flex;
+      align-items: flex-start;
+      gap: var(--spacing-sm);
+      font-size: var(--font-size-sm);
+    }
+
+    .warning-icon {
+      font-size: 1.25rem;
+      line-height: 1;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .warning-content {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .warning-content strong {
+      font-weight: var(--font-weight-semibold, 600);
+      color: #78350f;
+    }
+
+    .warning-content p {
+      margin: 0;
+      line-height: 1.4;
+    }
+
     .login-form {
       display: flex;
       flex-direction: column;
@@ -252,6 +300,7 @@ export class LoginComponent {
   password = '';
   loading = signal(false);
   error = signal<string | null>(null);
+  isAccountNotValidated = signal(false);
 
   private returnUrl = '/home';
 
@@ -271,6 +320,7 @@ export class LoginComponent {
 
     this.loading.set(true);
     this.error.set(null);
+    this.isAccountNotValidated.set(false);
 
     this.authService.login({
       username: this.username,
@@ -281,7 +331,15 @@ export class LoginComponent {
       },
       error: (err) => {
         this.loading.set(false);
-        this.error.set(err.message || 'Échec de la connexion. Vérifiez vos identifiants.');
+
+        // Détection du cas "compte non validé"
+        if (err instanceof AccountNotValidatedError) {
+          this.isAccountNotValidated.set(true);
+          this.error.set(err.message);
+        } else {
+          this.isAccountNotValidated.set(false);
+          this.error.set(err.message || 'Échec de la connexion. Vérifiez vos identifiants.');
+        }
       }
     });
   }
